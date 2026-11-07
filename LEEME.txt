@@ -1,0 +1,15 @@
+CALCULADORA 3D A1 - PROYECTO ANDROID
+
+Este paquete contiene el proyecto Android listo para compilar. No contiene todavía un APK:
+el entorno donde se preparó no dispone del Android SDK/Gradle para compilar el binario.
+
+COMPILACIÓN AUTOMÁTICA:
+1. Crear una cuenta o iniciar sesión en GitHub.
+2. Crear un repositorio nuevo y subir TODO el contenido de esta carpeta.
+3. Abrir la pestaña Actions del repositorio.
+4. Ejecutar "Construir APK Android" (Run workflow), o esperar a que termine el flujo tras subir los archivos.
+5. En el resultado del flujo, descargar el artefacto "Calculadora3D-A1-APK".
+6. Dentro del ZIP descargado está app-debug.apk. Abrirlo en Android y autorizar la instalación desde esa fuente si el teléfono lo solicita.
+
+La aplicación funciona sin conexión: la calculadora está incluida dentro del APK.
+Los valores editados se guardan localmente en el almacenamiento de la aplicación.

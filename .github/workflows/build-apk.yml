@@ -5,19 +5,17 @@ name: Construir APK Android
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+
     steps:
       - name: Descargar archivos del repositorio
         uses: actions/checkout@v4
 
-      - name: Descomprimir proyecto Android
+      - name: Recuperar proyecto desde el ZIP
         run: |
           mkdir -p proyecto
           unzip -o Proyecto_Android_Calculadora3D_A1.zip -d proyecto
-          cp -a proyecto/app ./app
-          cp proyecto/build.gradle.kts ./build.gradle.kts
-          cp proyecto/settings.gradle.kts ./settings.gradle.kts
-          cp proyecto/gradle.properties ./gradle.properties
+          cp -a proyecto/. .
 
       - name: Configurar Java
         uses: actions/setup-java@v4
@@ -26,19 +24,19 @@ jobs:
           java-version: '17'
 
       - name: Configurar Android
-  uses: android-actions/setup-android@v3
-  with:
-    packages: 'platform-tools'
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Compilar APK
+      - name: Compilar aplicación
         run: gradle assembleDebug
 
-      - name: Publicar APK
+      - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: Calculadora3D-A1-APK

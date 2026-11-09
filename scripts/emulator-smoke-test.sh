@@ -104,6 +104,43 @@ for k, v in expected.items():
 print("OK: los 6 resultados coinciden con el cálculo esperado")
 PY
 
+H="python3 scripts/ui_helper.py"
+digits() { tr -cd '0-9'; }
+expect_digits() {  # expect_digits <descripción> <obtenido> <esperado>
+  local got
+  got=$(printf '%s' "$2" | digits)
+  [ "$got" = "$3" ] || fail "$1: esperado '$3', obtenido '$2'"
+  echo "OK: $1 -> '$2'"
+}
+expect_empty() {  # expect_empty <descripción> <obtenido>
+  [ -z "$(printf '%s' "$2" | digits)" ] || fail "$1: debía estar vacío y fue '$2'"
+  echo "OK: $1 vacío"
+}
+
+echo "== LIMPIAR vacía campos y resultados"
+$H tap btn_limpiar || fail "no se pudo tocar LIMPIAR"
+expect_empty "tv_total tras LIMPIAR" "$($H text tv_total)"
+expect_empty "tv_unitario tras LIMPIAR" "$($H text tv_unitario)"
+for id in et_precio_kg et_gramos et_piezas et_horas et_minutos et_watts et_precio_kwh et_precio_impresora et_vida_util et_mantenimiento; do
+  expect_empty "$id tras LIMPIAR" "$($H text $id)"
+done
+
+echo "== Valores sugeridos visibles y fijos"
+expect_digits "sugerido precio impresora" "$($H text tv_sug_precio_impresora)" "450000"
+expect_digits "sugerido vida útil" "$($H text tv_sug_vida_util)" "5000"
+expect_digits "sugerido mantenimiento" "$($H text tv_sug_mantenimiento)" "100"
+
+echo "== Botones USAR copian el sugerido al campo editable"
+$H tap btn_usar_precio_impresora || fail "no se pudo tocar USAR (impresora)"
+$H tap btn_usar_vida_util || fail "no se pudo tocar USAR (vida útil)"
+$H tap btn_usar_mantenimiento || fail "no se pudo tocar USAR (mantenimiento)"
+expect_digits "campo precio impresora" "$($H text et_precio_impresora)" "450000"
+expect_digits "campo vida útil" "$($H text et_vida_util)" "5000"
+expect_digits "campo mantenimiento" "$($H text et_mantenimiento)" "100"
+# El texto sugerido sigue ahí (es fijo, aparte del campo editable)
+expect_digits "sugerido sigue visible" "$($H text tv_sug_precio_impresora)" "450000"
+adb exec-out screencap -p > "$OUT/pantalla_sugeridos.png" || true
+
 echo "== Verificando que sigue viva y sin fallos"
 adb shell pidof "$PKG" > /dev/null || fail "la app se cerró durante la prueba"
 if adb logcat -d | grep -q "FATAL EXCEPTION"; then fail "excepción fatal durante la prueba"; fi

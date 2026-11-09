@@ -117,6 +117,14 @@
             style="@style/Campo"
             android:hint="@string/hint_precio_impresora"
             android:inputType="numberDecimal" />
+        <LinearLayout style="@style/FilaSugerido">
+            <TextView
+                android:id="@+id/tv_sug_precio_impresora"
+                style="@style/TextoSugerido" />
+            <Button
+                android:id="@+id/btn_usar_precio_impresora"
+                style="@style/BotonUsar" />
+        </LinearLayout>
 
         <TextView style="@style/Etiqueta" android:text="@string/lbl_vida_util" />
         <EditText
@@ -124,6 +132,14 @@
             style="@style/Campo"
             android:hint="@string/hint_vida_util"
             android:inputType="numberDecimal" />
+        <LinearLayout style="@style/FilaSugerido">
+            <TextView
+                android:id="@+id/tv_sug_vida_util"
+                style="@style/TextoSugerido" />
+            <Button
+                android:id="@+id/btn_usar_vida_util"
+                style="@style/BotonUsar" />
+        </LinearLayout>
 
         <TextView style="@style/Etiqueta" android:text="@string/lbl_mantenimiento" />
         <EditText
@@ -132,6 +148,14 @@
             android:hint="@string/hint_mantenimiento"
             android:imeOptions="actionDone"
             android:inputType="numberDecimal" />
+        <LinearLayout style="@style/FilaSugerido">
+            <TextView
+                android:id="@+id/tv_sug_mantenimiento"
+                style="@style/TextoSugerido" />
+            <Button
+                android:id="@+id/btn_usar_mantenimiento"
+                style="@style/BotonUsar" />
+        </LinearLayout>
 
         <!-- BOTONES -->
         <LinearLayout

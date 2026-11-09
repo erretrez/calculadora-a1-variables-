@@ -155,6 +155,46 @@ class CostCalculatorTest {
     }
 
     @Test
+    fun valoresSugeridosSonLosPedidos() {
+        assertEquals(450000.0, Suggested.PRECIO_IMPRESORA, delta)
+        assertEquals(5000.0, Suggested.VIDA_UTIL_HORAS, delta)
+        assertEquals(100.0, Suggested.MANTENIMIENTO_POR_HORA, delta)
+    }
+
+    @Test
+    fun textoPlanoDeSugeridosSeInterpretaComoElMismoNumero() {
+        assertEquals("450000", Suggested.plain(Suggested.PRECIO_IMPRESORA))
+        assertEquals("5000", Suggested.plain(Suggested.VIDA_UTIL_HORAS))
+        assertEquals("100", Suggested.plain(Suggested.MANTENIMIENTO_POR_HORA))
+        assertEquals(450000.0, CostCalculator.parseNumber(Suggested.plain(Suggested.PRECIO_IMPRESORA))!!, delta)
+        assertEquals(5000.0, CostCalculator.parseNumber(Suggested.plain(Suggested.VIDA_UTIL_HORAS))!!, delta)
+        assertEquals(100.0, CostCalculator.parseNumber(Suggested.plain(Suggested.MANTENIMIENTO_POR_HORA))!!, delta)
+    }
+
+    @Test
+    fun calcularConLosSugeridosEsValidoYCorrecto() {
+        // 10 h: depreciación = 450000/5000*10 = 900; mantenimiento = 100*10 = 1000
+        val b = success(
+            valid().copy(
+                horas = 10.0,
+                minutos = 0.0,
+                precioImpresora = Suggested.PRECIO_IMPRESORA,
+                vidaUtilHoras = Suggested.VIDA_UTIL_HORAS,
+                mantenimientoPorHora = Suggested.MANTENIMIENTO_POR_HORA
+            )
+        )
+        assertEquals(900.0, b.depreciacion, delta)
+        assertEquals(1000.0, b.mantenimiento, delta)
+    }
+
+    @Test
+    fun sugeridosConSeparadorDeMilesChileno() {
+        assertEquals("5.000", Suggested.grouped(5000.0))
+        assertEquals("450.000", Suggested.grouped(450000.0))
+        assertEquals("100", Suggested.grouped(100.0))
+    }
+
+    @Test
     fun formatoClpNoUsaDecimalesYLlevaSimboloDePeso() {
         val s = CostCalculator.formatClp(1234567.4)
         assertTrue("Debe contener el símbolo \$: $s", s.contains("$"))

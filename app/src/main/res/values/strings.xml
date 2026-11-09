@@ -35,6 +35,12 @@
 
     <string name="btn_calcular">CALCULAR</string>
     <string name="btn_limpiar">LIMPIAR</string>
+    <string name="btn_usar">USAR</string>
+    <string name="desc_usar">Usar el valor sugerido</string>
+
+    <string name="sug_precio_impresora">Sugerido: %1$s</string>
+    <string name="sug_vida_util">Sugerido: %1$s horas</string>
+    <string name="sug_mantenimiento">Sugerido: %1$s por hora</string>
 
     <string name="status_inicial">Completa todos los campos para ver el resultado.</string>
     <string name="status_incompleto">Faltan datos o hay valores inválidos. Revisa los campos marcados.</string>

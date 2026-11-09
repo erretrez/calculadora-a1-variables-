@@ -25,6 +25,10 @@ y los valores los ingresa el usuario.
 - Se rechazan textos no numéricos y resultados no finitos.
 - Punto o coma como decimal; sin separador de miles.
 
+## Valores sugeridos
+
+Bajo tres campos se muestra un valor sugerido fijo, como referencia: precio de la impresora $450.000, vida útil 5.000 horas y mantenimiento $100 por hora. Los campos siguen partiendo vacíos; el botón **USAR** copia el sugerido al campo, donde se puede modificar. Las constantes están en `Suggested` (`CostCalculator.kt`).
+
 El resultado se actualiza al escribir y también con el botón **CALCULAR** (que además marca los campos inválidos). **LIMPIAR** vacía todo.
 El formato monetario (CLP) está aislado en `CostCalculator.formatClp`; los cálculos no dependen de ninguna moneda.
 

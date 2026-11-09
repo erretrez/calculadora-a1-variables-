@@ -1,5 +1,7 @@
 package cl.erretrez.calculadora
 
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -48,6 +50,28 @@ sealed class Outcome {
         val fieldErrors: Map<Field, String>,
         val general: String? = null
     ) : Outcome()
+}
+
+/**
+ * Valores sugeridos (fijos). Solo se muestran como referencia; el usuario decide si
+ * los copia al campo con el botón USAR. Los campos siempre parten vacíos.
+ */
+object Suggested {
+    const val PRECIO_IMPRESORA = 450000.0
+    const val VIDA_UTIL_HORAS = 5000.0
+    const val MANTENIMIENTO_POR_HORA = 100.0
+
+    /** Texto plano numérico (sin separador de miles) para copiar a un campo editable. */
+    fun plain(value: Double): String =
+        if (value == Math.floor(value)) value.toLong().toString() else value.toString()
+
+    /** Número con separador de miles chileno (punto), sin decimales. */
+    fun grouped(value: Double): String {
+        // Determinista: algunas versiones de ICU/CLDR no agrupan números de 4 dígitos en español.
+        val symbols = DecimalFormatSymbols(Locale.forLanguageTag("es-CL"))
+        symbols.groupingSeparator = '.'
+        return DecimalFormat("#,##0", symbols).format(value)
+    }
 }
 
 object CostCalculator {

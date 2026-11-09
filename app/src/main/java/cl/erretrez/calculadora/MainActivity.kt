@@ -58,11 +58,33 @@ class MainActivity : Activity() {
         }
         inputs.values.forEach { it.addTextChangedListener(watcher) }
 
+        // Valores sugeridos: texto fijo de referencia + botón USAR que lo copia al campo (editable).
+        findViewById<TextView>(R.id.tv_sug_precio_impresora).text = getString(
+            R.string.sug_precio_impresora, CostCalculator.formatClp(Suggested.PRECIO_IMPRESORA)
+        )
+        findViewById<TextView>(R.id.tv_sug_vida_util).text = getString(
+            R.string.sug_vida_util, Suggested.grouped(Suggested.VIDA_UTIL_HORAS)
+        )
+        findViewById<TextView>(R.id.tv_sug_mantenimiento).text = getString(
+            R.string.sug_mantenimiento, CostCalculator.formatClp(Suggested.MANTENIMIENTO_POR_HORA)
+        )
+        bindUsar(R.id.btn_usar_precio_impresora, Field.PRECIO_IMPRESORA, Suggested.PRECIO_IMPRESORA)
+        bindUsar(R.id.btn_usar_vida_util, Field.VIDA_UTIL, Suggested.VIDA_UTIL_HORAS)
+        bindUsar(R.id.btn_usar_mantenimiento, Field.MANTENIMIENTO, Suggested.MANTENIMIENTO_POR_HORA)
+
         findViewById<Button>(R.id.btn_calcular).setOnClickListener {
             hideKeyboard()
             recalculate(showErrors = true)
         }
         findViewById<Button>(R.id.btn_limpiar).setOnClickListener { clearAll() }
+    }
+
+    private fun bindUsar(buttonId: Int, field: Field, value: Double) {
+        findViewById<Button>(buttonId).setOnClickListener {
+            val editText = inputs.getValue(field)
+            editText.setText(Suggested.plain(value))
+            editText.setSelection(editText.text.length)
+        }
     }
 
     private fun readInputs(): CostInputs {

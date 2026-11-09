@@ -40,6 +40,34 @@
         <item name="android:textSize">17sp</item>
     </style>
 
+    <style name="FilaSugerido">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+    </style>
+
+    <style name="TextoSugerido">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textColor">@color/texto_suave</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <!-- focusable=false: el botón no interrumpe la navegación entre campos con TAB. -->
+    <style name="BotonUsar">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:focusable">false</item>
+        <item name="android:text">@string/btn_usar</item>
+        <item name="android:contentDescription">@string/desc_usar</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
     <style name="FilaResultado">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>

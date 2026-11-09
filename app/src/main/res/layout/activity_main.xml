@@ -108,6 +108,90 @@
             android:hint="@string/hint_precio_kwh"
             android:inputType="numberDecimal" />
 
+        <!-- Ayuda: precio del kWh según la región -->
+        <TextView style="@style/Subtitulo" android:text="@string/sub_region" />
+
+        <Spinner
+            android:id="@+id/sp_region"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="4dp" />
+
+        <Button
+            android:id="@+id/btn_detectar"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="6dp"
+            android:text="@string/btn_detectar" />
+
+        <TextView
+            android:id="@+id/tv_region_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/region_info_inicial"
+            android:textColor="@color/texto"
+            android:textSize="13sp" />
+
+        <LinearLayout style="@style/FilaSugerido">
+            <TextView
+                android:id="@+id/tv_region_ref"
+                style="@style/TextoSugerido"
+                android:text="@string/region_ref_ninguna" />
+            <Button
+                android:id="@+id/btn_usar_region"
+                style="@style/BotonUsar" />
+        </LinearLayout>
+
+        <!-- Ayuda: precio del kWh desde la boleta -->
+        <TextView style="@style/Subtitulo" android:text="@string/sub_boleta" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView style="@style/Etiqueta" android:text="@string/lbl_boleta_monto" />
+                <EditText
+                    android:id="@+id/et_boleta_monto"
+                    style="@style/Campo"
+                    android:hint="@string/hint_boleta_monto"
+                    android:inputType="numberDecimal" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView style="@style/Etiqueta" android:text="@string/lbl_boleta_kwh" />
+                <EditText
+                    android:id="@+id/et_boleta_kwh"
+                    style="@style/Campo"
+                    android:hint="@string/hint_boleta_kwh"
+                    android:inputType="numberDecimal" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout style="@style/FilaSugerido">
+            <TextView
+                android:id="@+id/tv_boleta_resultado"
+                style="@style/TextoSugerido"
+                android:text="@string/boleta_ayuda" />
+            <Button
+                android:id="@+id/btn_usar_boleta"
+                style="@style/BotonUsar" />
+        </LinearLayout>
+
         <!-- ENTRADAS: IMPRESORA -->
         <TextView style="@style/Seccion" android:text="@string/sec_impresora" />
 
@@ -146,7 +230,6 @@
             android:id="@+id/et_mantenimiento"
             style="@style/Campo"
             android:hint="@string/hint_mantenimiento"
-            android:imeOptions="actionDone"
             android:inputType="numberDecimal" />
         <LinearLayout style="@style/FilaSugerido">
             <TextView
@@ -156,6 +239,47 @@
                 android:id="@+id/btn_usar_mantenimiento"
                 style="@style/BotonUsar" />
         </LinearLayout>
+
+        <!-- ENTRADAS: EXTRAS OPCIONALES -->
+        <TextView style="@style/Seccion" android:text="@string/sec_extras" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_horas_trabajo" />
+        <EditText
+            android:id="@+id/et_horas_trabajo"
+            style="@style/Campo"
+            android:hint="@string/hint_horas_trabajo"
+            android:inputType="numberDecimal" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_costo_hora_trabajo" />
+        <EditText
+            android:id="@+id/et_costo_hora_trabajo"
+            style="@style/Campo"
+            android:hint="@string/hint_costo_hora_trabajo"
+            android:inputType="numberDecimal" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_merma" />
+        <EditText
+            android:id="@+id/et_merma"
+            style="@style/Campo"
+            android:hint="@string/hint_merma"
+            android:inputType="numberDecimal" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_margen" />
+        <EditText
+            android:id="@+id/et_margen"
+            style="@style/Campo"
+            android:hint="@string/hint_margen"
+            android:imeOptions="actionDone"
+            android:inputType="numberDecimal" />
+
+        <CheckBox
+            android:id="@+id/cb_iva"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/cb_iva"
+            android:textColor="@color/texto"
+            android:textSize="14sp" />
 
         <!-- BOTONES -->
         <LinearLayout
@@ -233,6 +357,22 @@
                     android:text="@string/vacio" />
             </LinearLayout>
 
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_mano_obra" />
+                <TextView
+                    android:id="@+id/tv_mano_obra"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_merma" />
+                <TextView
+                    android:id="@+id/tv_merma"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
@@ -262,6 +402,41 @@
                     style="@style/ResultadoValor"
                     android:text="@string/vacio"
                     android:textSize="20sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- PRECIO DE VENTA (solo si se indica margen) -->
+        <TextView style="@style/Seccion" android:text="@string/sec_venta" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/tarjeta"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_precio_venta" />
+                <TextView
+                    android:id="@+id/tv_precio_venta"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_precio_iva" />
+                <TextView
+                    android:id="@+id/tv_precio_iva"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_ganancia" />
+                <TextView
+                    android:id="@+id/tv_ganancia"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
             </LinearLayout>
         </LinearLayout>
 

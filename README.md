@@ -29,6 +29,26 @@ y los valores los ingresa el usuario.
 
 Bajo tres campos se muestra un valor sugerido fijo, como referencia: precio de la impresora $450.000, vida útil 5.000 horas y mantenimiento $100 por hora. Los campos siguen partiendo vacíos; el botón **USAR** copia el sugerido al campo, donde se puede modificar. Las constantes están en `Suggested` (`CostCalculator.kt`).
 
+## Versión 1.2
+
+**Precio del kWh según la región.** Bajo el campo del precio del kWh hay dos ayudas, ambas opcionales y siempre editables:
+
+- **Región:** selector de las 16 regiones y botón **DETECTAR MI REGIÓN**, que pide el permiso de ubicación solo al tocarlo y busca la región cuya capital está más cerca (aproximado, sin conexión: no usa límites regionales; la ubicación no se guarda ni se envía). Muestra un valor **referencial** del kWh. Solo hay dato para 8 regiones (Antofagasta, Atacama, Valparaíso, Metropolitana, Biobío, Araucanía, Los Lagos y Magallanes), tomado de un sitio no oficial (cuantomecuesta.com, abril 2026) y anterior al alza de julio de 2026; en las demás la app indica "usa tu boleta" en vez de inventar un valor. Las constantes están en `Regiones` (`CostCalculator.kt`).
+- **Boleta:** monto total de la boleta ÷ kWh consumidos = precio efectivo del kWh (incluye cargos fijos). Es lo más fiable y no se desactualiza.
+
+**Extras opcionales** (vacíos = no aplican; con todos vacíos el resultado es idéntico al de la v1.1):
+
+| Extra | Cálculo |
+|---|---|
+| Mano de obra | horas de trabajo × costo por hora (se exigen ambos datos) |
+| Merma / fallos (%) | % × (material + electricidad + depreciación + mantenimiento); debe ser menor que 100 |
+| Margen de ganancia (%) | precio de venta unitario = costo unitario × (1 + margen) |
+| IVA 19 % (interruptor) | precio de venta con IVA = precio de venta × 1,19 |
+
+El costo total incluye mano de obra y merma. Se muestran además el precio de venta unitario, el precio con IVA (si está activado) y la ganancia del lote sin IVA.
+
+La app declara los permisos de ubicación aproximada y precisa (solo se usan con el botón DETECTAR); no declara INTERNET.
+
 El resultado se actualiza al escribir y también con el botón **CALCULAR** (que además marca los campos inválidos). **LIMPIAR** vacía todo.
 El formato monetario (CLP) está aislado en `CostCalculator.formatClp`; los cálculos no dependen de ninguna moneda.
 

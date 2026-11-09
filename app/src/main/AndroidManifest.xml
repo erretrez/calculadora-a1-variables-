@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Sin permisos: la app funciona 100% offline y no usa INTERNET. -->
+    <!-- Sin permiso de INTERNET: la app funciona 100% offline. -->
+
+    <!-- Solo se usan al tocar "DETECTAR MI REGIÓN", para elegir la región del precio del kWh.
+         La ubicación se procesa en el teléfono, no se guarda ni se envía a ningún lado. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- La app es plenamente usable sin ubicación: el selector de región es manual. -->
+    <uses-feature
+        android:name="android.hardware.location"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="false" />
 
     <application
         android:allowBackup="false"

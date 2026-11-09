@@ -129,7 +129,8 @@ jobs:
 
   release:
     name: Publicar APK en Releases
-    needs: build
+    # Solo se publica si el APK pasó también la prueba en emulador.
+    needs: [build, emulator-test]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

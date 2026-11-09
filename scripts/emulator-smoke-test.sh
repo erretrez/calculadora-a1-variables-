@@ -94,7 +94,7 @@ expect_digits "precio de venta" "$(get tv_precio_venta)" 6279
 expect_empty "precio con IVA (IVA desactivado)" "$(get tv_precio_iva)"
 expect_digits "ganancia del lote" "$(get tv_ganancia)" 2898
 tap cb_iva
-expect_digits "precio con IVA (IVA activado)" "$(get tv_precio_iva)" 7471
+expect_digits "precio con IVA (IVA activado)" "$(get tv_precio_iva)" 7472
 shot pantalla_extras
 
 echo "== Validación: piezas = 0 no debe dar resultado ni dividir por cero"

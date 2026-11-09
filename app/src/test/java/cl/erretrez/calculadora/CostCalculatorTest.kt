@@ -148,7 +148,7 @@ class CostCalculatorTest {
         assertEquals(9660.0, b.total, 1e-6)             // 3050 + 6000 + 610
         assertEquals(4830.0, b.unitario, 1e-6)          // / 2 piezas
         assertEquals(6279.0, b.precioVenta!!, 1e-6)     // 4830 x 1,30
-        assertEquals(7471.01, b.precioConIva!!, 1e-6)   // x 1,19
+        assertEquals(7472.01, b.precioConIva!!, 1e-6)   // 6279 + 19% (1193,01)
         assertEquals(2898.0, b.gananciaLote!!, 1e-6)    // (6279 - 4830) x 2
     }
 

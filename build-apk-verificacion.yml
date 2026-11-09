@@ -1,0 +1,67 @@
+name: Construir APK Android
+
+'on':
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Descomprimir proyecto corregido
+        run: |
+          set -e
+          test -f Proyecto_Android_Calculadora3D_A1.zip
+          rm -rf proyecto app
+          mkdir proyecto
+          unzip -q Proyecto_Android_Calculadora3D_A1.zip -d proyecto
+          echo "Archivos Kotlin encontrados:"
+          find proyecto/app/src/main -type f -maxdepth 10 -print
+          test -f proyecto/app/src/main/java/cl/erretrez/calculadora3d/MainActivity.kt
+          grep -q 'org.jetbrains.kotlin.android' proyecto/app/build.gradle.kts
+          grep -q 'org.jetbrains.kotlin.android' proyecto/build.gradle.kts
+          cp -a proyecto/. .
+
+      - name: Configurar Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Compilar APK
+        run: gradle --no-daemon clean assembleDebug
+
+      - name: Verificar que MainActivity quedó dentro del APK
+        run: |
+          set -e
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -l "$APK"
+          DEX_SIZE=$(unzip -p "$APK" classes.dex | wc -c)
+          echo "Tamaño classes.dex: $DEX_SIZE bytes"
+          if [ "$DEX_SIZE" -lt 3000 ]; then
+            echo "ERROR: classes.dex es demasiado pequeño; MainActivity probablemente no se compiló."
+            exit 1
+          fi
+          unzip -p "$APK" classes.dex | strings | grep -q 'MainActivity'
+          echo "VERIFICADO: MainActivity está incluida en el APK."
+          ls -lh "$APK"
+
+      - name: Publicar APK verificado
+        uses: actions/upload-artifact@v4
+        with:
+          name: Calculadora3D-A1-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14

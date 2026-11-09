@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fondo"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/titulo"
+            android:textColor="@color/texto"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/subtitulo"
+            android:textColor="@color/texto_suave"
+            android:textSize="13sp" />
+
+        <!-- ENTRADAS: MATERIAL -->
+        <TextView style="@style/Seccion" android:text="@string/sec_material" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_precio_kg" />
+        <EditText
+            android:id="@+id/et_precio_kg"
+            style="@style/Campo"
+            android:hint="@string/hint_precio_kg"
+            android:inputType="numberDecimal" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_gramos" />
+        <EditText
+            android:id="@+id/et_gramos"
+            style="@style/Campo"
+            android:hint="@string/hint_gramos"
+            android:inputType="numberDecimal" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_piezas" />
+        <EditText
+            android:id="@+id/et_piezas"
+            style="@style/Campo"
+            android:hint="@string/hint_piezas"
+            android:inputType="number" />
+
+        <!-- ENTRADAS: TIEMPO -->
+        <TextView style="@style/Seccion" android:text="@string/sec_tiempo" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView style="@style/Etiqueta" android:text="@string/lbl_horas" />
+                <EditText
+                    android:id="@+id/et_horas"
+                    style="@style/Campo"
+                    android:hint="@string/hint_horas"
+                    android:inputType="numberDecimal" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView style="@style/Etiqueta" android:text="@string/lbl_minutos" />
+                <EditText
+                    android:id="@+id/et_minutos"
+                    style="@style/Campo"
+                    android:hint="@string/hint_minutos"
+                    android:inputType="numberDecimal" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ENTRADAS: ELECTRICIDAD -->
+        <TextView style="@style/Seccion" android:text="@string/sec_electricidad" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_watts" />
+        <EditText
+            android:id="@+id/et_watts"
+            style="@style/Campo"
+            android:hint="@string/hint_watts"
+            android:inputType="numberDecimal" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_precio_kwh" />
+        <EditText
+            android:id="@+id/et_precio_kwh"
+            style="@style/Campo"
+            android:hint="@string/hint_precio_kwh"
+            android:inputType="numberDecimal" />
+
+        <!-- ENTRADAS: IMPRESORA -->
+        <TextView style="@style/Seccion" android:text="@string/sec_impresora" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_precio_impresora" />
+        <EditText
+            android:id="@+id/et_precio_impresora"
+            style="@style/Campo"
+            android:hint="@string/hint_precio_impresora"
+            android:inputType="numberDecimal" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_vida_util" />
+        <EditText
+            android:id="@+id/et_vida_util"
+            style="@style/Campo"
+            android:hint="@string/hint_vida_util"
+            android:inputType="numberDecimal" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_mantenimiento" />
+        <EditText
+            android:id="@+id/et_mantenimiento"
+            style="@style/Campo"
+            android:hint="@string/hint_mantenimiento"
+            android:imeOptions="actionDone"
+            android:inputType="numberDecimal" />
+
+        <!-- BOTONES -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_calcular"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:text="@string/btn_calcular"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_limpiar"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/btn_limpiar" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/status_inicial"
+            android:textColor="@color/texto_suave"
+            android:textSize="14sp" />
+
+        <!-- RESULTADOS -->
+        <TextView style="@style/Seccion" android:text="@string/sec_resultados" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/tarjeta"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_material" />
+                <TextView
+                    android:id="@+id/tv_material"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_electricidad" />
+                <TextView
+                    android:id="@+id/tv_electricidad"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_depreciacion" />
+                <TextView
+                    android:id="@+id/tv_depreciacion"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_mantenimiento" />
+                <TextView
+                    android:id="@+id/tv_mantenimiento"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="6dp"
+                android:background="@color/linea" />
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView
+                    style="@style/ResultadoEtiqueta"
+                    android:text="@string/res_total"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/tv_total"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio"
+                    android:textSize="20sp" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView
+                    style="@style/ResultadoEtiqueta"
+                    android:text="@string/res_unitario"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/tv_unitario"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio"
+                    android:textSize="20sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="24dp"
+            android:text="@string/nota_formato"
+            android:textColor="@color/texto_suave"
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>

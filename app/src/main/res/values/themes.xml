@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">@color/acento</item>
+        <item name="android:colorPrimary">@color/acento</item>
+        <item name="android:statusBarColor">@color/fondo</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@color/fondo</item>
+    </style>
+
+    <style name="Seccion">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">22dp</item>
+        <item name="android:textColor">@color/acento</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="Etiqueta">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">10dp</item>
+        <item name="android:textColor">@color/texto</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="Campo">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">52dp</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:background">@android:drawable/edit_text</item>
+        <item name="android:imeOptions">actionNext</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:selectAllOnFocus">true</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textColor">@color/texto</item>
+        <item name="android:textColorHint">@color/texto_suave</item>
+        <item name="android:textSize">17sp</item>
+    </style>
+
+    <style name="FilaResultado">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+    </style>
+
+    <style name="ResultadoEtiqueta">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textColor">@color/texto</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <style name="ResultadoValor">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">end</item>
+        <item name="android:textColor">@color/texto</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

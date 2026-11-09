@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Calculadora Costos 3D</string>
+    <string name="titulo">Costo de impresión 3D</string>
+    <string name="subtitulo">Ingresa todos los valores. Ningún campo viene precargado.</string>
+
+    <string name="sec_material">Material</string>
+    <string name="sec_tiempo">Tiempo de impresión</string>
+    <string name="sec_electricidad">Electricidad</string>
+    <string name="sec_impresora">Impresora</string>
+    <string name="sec_resultados">Resultados</string>
+
+    <string name="lbl_precio_kg">Precio del filamento por kilogramo</string>
+    <string name="lbl_gramos">Filamento utilizado (gramos)</string>
+    <string name="lbl_piezas">Cantidad de piezas fabricadas</string>
+    <string name="lbl_horas">Horas</string>
+    <string name="lbl_minutos">Minutos</string>
+    <string name="lbl_watts">Consumo de la impresora (watts)</string>
+    <string name="lbl_precio_kwh">Precio de electricidad por kWh</string>
+    <string name="lbl_precio_impresora">Precio de compra de la impresora</string>
+    <string name="lbl_vida_util">Vida útil estimada (horas)</string>
+    <string name="lbl_mantenimiento">Mantenimiento estimado por hora</string>
+
+    <!-- Los hints no contienen dígitos a propósito: son solo texto guía, no valores. -->
+    <string name="hint_precio_kg">Monto por kg</string>
+    <string name="hint_gramos">Gramos</string>
+    <string name="hint_piezas">Piezas</string>
+    <string name="hint_horas">Horas</string>
+    <string name="hint_minutos">Minutos</string>
+    <string name="hint_watts">Watts</string>
+    <string name="hint_precio_kwh">Monto por kWh</string>
+    <string name="hint_precio_impresora">Monto de compra</string>
+    <string name="hint_vida_util">Horas de vida útil</string>
+    <string name="hint_mantenimiento">Monto por hora</string>
+
+    <string name="btn_calcular">CALCULAR</string>
+    <string name="btn_limpiar">LIMPIAR</string>
+
+    <string name="status_inicial">Completa todos los campos para ver el resultado.</string>
+    <string name="status_incompleto">Faltan datos o hay valores inválidos. Revisa los campos marcados.</string>
+    <string name="status_ok">Cálculo actualizado.</string>
+
+    <string name="res_material">Material</string>
+    <string name="res_electricidad">Electricidad</string>
+    <string name="res_depreciacion">Depreciación</string>
+    <string name="res_mantenimiento">Mantenimiento</string>
+    <string name="res_total">COSTO TOTAL</string>
+    <string name="res_unitario">COSTO UNITARIO</string>
+    <string name="vacio">—</string>
+
+    <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos.</string>
+</resources>

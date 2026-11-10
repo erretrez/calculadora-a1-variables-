@@ -256,6 +256,77 @@ class CostCalculatorTest {
         assertEquals(151.67, CostCalculator.parseNumber(Suggested.plainRounded(151.6666666))!!, delta)
     }
 
+    // ---------- v1.3: valores fijos de la impresora y referencias de la A1 ----------
+
+    private fun sinDatosDeImpresora() = CostInputs(
+        precioKg = 20000.0,
+        gramos = 100.0,
+        piezas = 2.0,
+        horas = 5.0,
+        minutos = 0.0,
+        watts = 200.0,
+        precioKwh = 150.0
+    )
+
+    @Test
+    fun sinDatosDeImpresoraSeUsanLosValoresFijos() {
+        val b = success(sinDatosDeImpresora())
+        assertEquals(450.0, b.depreciacion, delta)   // 450000 / 5000 x 5 h
+        assertEquals(500.0, b.mantenimiento, delta)  // 100 x 5 h
+        assertEquals(3100.0, b.total, delta)         // 2000 + 150 + 450 + 500
+        assertEquals(1550.0, b.unitario, delta)
+    }
+
+    @Test
+    fun valoresFijosMasExtrasDanElTotalEsperado() {
+        val b = success(
+            sinDatosDeImpresora().copy(
+                horasTrabajo = 2.0, costoHoraTrabajo = 3000.0,
+                mermaPct = 20.0, margenPct = 30.0, incluirIva = true
+            )
+        )
+        assertEquals(620.0, b.merma, 1e-6)             // 20% de 3100
+        assertEquals(9720.0, b.total, 1e-6)            // 3100 + 6000 + 620
+        assertEquals(4860.0, b.unitario, 1e-6)
+        assertEquals(6318.0, b.precioVenta!!, 1e-6)    // 4860 x 1,30
+        assertEquals(7518.42, b.precioConIva!!, 1e-6)  // 6318 + 19% (1200,42)
+        assertEquals(2916.0, b.gananciaLote!!, 1e-6)   // (6318 - 4860) x 2
+    }
+
+    @Test
+    fun losValoresFijosNoPermitenDivisionPorCero() {
+        assertTrue(Suggested.VIDA_UTIL_HORAS > 0.0)
+        assertTrue(Suggested.PRECIO_IMPRESORA >= 0.0)
+        assertTrue(Suggested.MANTENIMIENTO_POR_HORA >= 0.0)
+    }
+
+    @Test
+    fun siSeEntreganOtrosDatosDeImpresoraElMotorLosSigueValidando() {
+        val f = failure(sinDatosDeImpresora().copy(vidaUtilHoras = 0.0))
+        assertEquals(CostCalculator.MSG_POSITIVE, f.fieldErrors[Field.VIDA_UTIL])
+    }
+
+    @Test
+    fun referenciasDeConsumoDeLaA1() {
+        assertEquals(70.0, ImpresoraA1.WATTS_ESTANDAR_MIN, delta)
+        assertEquals(95.0, ImpresoraA1.WATTS_ESTANDAR, delta)
+        assertEquals(200.0, ImpresoraA1.WATTS_ALTO, delta)
+        assertTrue(ImpresoraA1.WATTS_ESTANDAR_MIN < ImpresoraA1.WATTS_ESTANDAR)
+        assertTrue(ImpresoraA1.WATTS_ESTANDAR < ImpresoraA1.WATTS_ALTO)
+        // El texto que se copia al campo se interpreta como el mismo número.
+        assertEquals("95", Suggested.plain(ImpresoraA1.WATTS_ESTANDAR))
+        assertEquals("200", Suggested.plain(ImpresoraA1.WATTS_ALTO))
+        assertEquals(95.0, CostCalculator.parseNumber(Suggested.plain(ImpresoraA1.WATTS_ESTANDAR))!!, delta)
+    }
+
+    @Test
+    fun consumoAltoDaMasElectricidadQueElEstandar() {
+        val estandar = success(sinDatosDeImpresora().copy(watts = ImpresoraA1.WATTS_ESTANDAR))
+        val alto = success(sinDatosDeImpresora().copy(watts = ImpresoraA1.WATTS_ALTO))
+        assertTrue(alto.electricidad > estandar.electricidad)
+        assertEquals(0.095 * 5.0 * 150.0, estandar.electricidad, 1e-9)
+    }
+
     // ---------- v1.2: regiones y ubicación ----------
 
     @Test

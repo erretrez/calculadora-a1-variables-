@@ -5,6 +5,7 @@ Uso:
   ui_helper.py tap  <id>           # desplaza hasta el elemento y lo toca
   ui_helper.py fill <id> <texto>   # toca el campo, borra su contenido y escribe
   ui_helper.py get  <id> [attr]    # imprime un atributo del elemento (por defecto: text)
+  ui_helper.py ids                 # recorre toda la pantalla y lista los ids que existen
 
 <id> es el id sin prefijo (por ejemplo: btn_limpiar). Sale con código 1 si no se encuentra.
 """
@@ -22,15 +23,14 @@ STATE = os.path.join(tempfile.gettempdir(), "ui_helper_last")
 # Orden de arriba hacia abajo en la pantalla: sirve para decidir hacia dónde desplazarse.
 ORDER = [
     "et_precio_kg", "et_gramos", "et_piezas", "et_horas", "et_minutos", "et_watts",
+    "tv_watts_estandar", "btn_usar_watts_estandar", "tv_watts_alto", "btn_usar_watts_alto",
     "et_precio_kwh", "sp_region", "btn_detectar", "tv_region_info", "tv_region_ref",
     "btn_usar_region", "et_boleta_monto", "et_boleta_kwh", "tv_boleta_resultado",
-    "btn_usar_boleta", "et_precio_impresora", "tv_sug_precio_impresora",
-    "btn_usar_precio_impresora", "et_vida_util", "tv_sug_vida_util", "btn_usar_vida_util",
-    "et_mantenimiento", "tv_sug_mantenimiento", "btn_usar_mantenimiento",
+    "btn_usar_boleta", "tv_tarifa_guardada", "btn_guardar_tarifa", "btn_usar_tarifa",
     "et_horas_trabajo", "et_costo_hora_trabajo", "et_merma", "et_margen", "cb_iva",
     "btn_calcular", "btn_limpiar", "tv_status", "tv_material", "tv_electricidad",
     "tv_depreciacion", "tv_mantenimiento", "tv_mano_obra", "tv_merma", "tv_total",
-    "tv_unitario", "tv_precio_venta", "tv_precio_iva", "tv_ganancia",
+    "tv_unitario", "tv_fijos", "tv_precio_venta", "tv_precio_iva", "tv_ganancia",
 ]
 
 
@@ -123,6 +123,26 @@ def locate(rid, max_steps=34):
     return None
 
 
+def all_ids():
+    """Recorre la pantalla de arriba abajo una vez y devuelve todos los ids de la app que existen."""
+    for _ in range(8):
+        swipe_to_see_above()
+    seen, prev = set(), None
+    for _ in range(40):
+        ids = {
+            n.get("resource-id").split("/")[-1]
+            for n in dump()
+            if n.get("resource-id", "").startswith(f"{PKG}:id/")
+        }
+        seen |= ids
+        if ids == prev:  # el contenido ya no se desplaza: se llegó al final
+            break
+        prev = ids
+        swipe_to_see_below()
+    write_last("tv_ganancia")
+    return seen
+
+
 def hide_ime_if_shown():
     out = adb("shell", "dumpsys", "input_method").stdout
     if "mInputShown=true" in out:
@@ -131,6 +151,9 @@ def hide_ime_if_shown():
 
 
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] == "ids":
+        print("\n".join(sorted(all_ids())))
+        return
     if len(sys.argv) < 3 or sys.argv[1] not in ("tap", "fill", "get"):
         sys.exit(__doc__)
     cmd, rid = sys.argv[1], sys.argv[2]

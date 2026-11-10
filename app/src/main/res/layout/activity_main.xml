@@ -94,34 +94,57 @@
         <!-- ENTRADAS: ELECTRICIDAD -->
         <TextView style="@style/Seccion" android:text="@string/sec_electricidad" />
 
+        <!-- Consumo de la impresora + referencias de la Bambu Lab A1 Combo -->
         <TextView style="@style/Etiqueta" android:text="@string/lbl_watts" />
         <EditText
             android:id="@+id/et_watts"
             style="@style/Campo"
             android:hint="@string/hint_watts"
             android:inputType="numberDecimal" />
+        <LinearLayout style="@style/FilaSugerido">
+            <TextView
+                android:id="@+id/tv_watts_estandar"
+                style="@style/TextoSugerido" />
+            <Button
+                android:id="@+id/btn_usar_watts_estandar"
+                style="@style/BotonUsar" />
+        </LinearLayout>
+        <LinearLayout style="@style/FilaSugerido">
+            <TextView
+                android:id="@+id/tv_watts_alto"
+                style="@style/TextoSugerido" />
+            <Button
+                android:id="@+id/btn_usar_watts_alto"
+                style="@style/BotonUsar" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/tv_watts_fuente"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/watts_fuente"
+            android:textColor="@color/texto_suave"
+            android:textSize="11sp" />
 
-        <TextView style="@style/Etiqueta" android:text="@string/lbl_precio_kwh" />
+        <!-- Precio del kWh (un solo campo) y sus ayudas -->
+        <TextView style="@style/Etiqueta" android:layout_marginTop="18dp" android:text="@string/lbl_precio_kwh" />
         <EditText
             android:id="@+id/et_precio_kwh"
             style="@style/Campo"
             android:hint="@string/hint_precio_kwh"
             android:inputType="numberDecimal" />
 
-        <!-- Ayuda: precio del kWh según la región -->
-        <TextView style="@style/Subtitulo" android:text="@string/sub_region" />
-
         <Spinner
             android:id="@+id/sp_region"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="6dp" />
 
         <Button
             android:id="@+id/btn_detectar"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="2dp"
             android:text="@string/btn_detectar" />
 
         <TextView
@@ -143,7 +166,6 @@
                 style="@style/BotonUsar" />
         </LinearLayout>
 
-        <!-- Ayuda: precio del kWh desde la boleta -->
         <TextView style="@style/Subtitulo" android:text="@string/sub_boleta" />
 
         <LinearLayout
@@ -192,52 +214,22 @@
                 style="@style/BotonUsar" />
         </LinearLayout>
 
-        <!-- ENTRADAS: IMPRESORA -->
-        <TextView style="@style/Seccion" android:text="@string/sec_impresora" />
-
-        <TextView style="@style/Etiqueta" android:text="@string/lbl_precio_impresora" />
-        <EditText
-            android:id="@+id/et_precio_impresora"
-            style="@style/Campo"
-            android:hint="@string/hint_precio_impresora"
-            android:inputType="numberDecimal" />
-        <LinearLayout style="@style/FilaSugerido">
+        <!-- Tarifa guardada: se conserva al cerrar la app, solo si el usuario toca GUARDAR -->
+        <LinearLayout style="@style/FilaSugerido" android:layout_marginTop="14dp">
             <TextView
-                android:id="@+id/tv_sug_precio_impresora"
-                style="@style/TextoSugerido" />
+                android:id="@+id/tv_tarifa_guardada"
+                style="@style/TextoSugerido"
+                android:text="@string/tarifa_vacia"
+                android:textColor="@color/texto" />
             <Button
-                android:id="@+id/btn_usar_precio_impresora"
-                style="@style/BotonUsar" />
-        </LinearLayout>
-
-        <TextView style="@style/Etiqueta" android:text="@string/lbl_vida_util" />
-        <EditText
-            android:id="@+id/et_vida_util"
-            style="@style/Campo"
-            android:hint="@string/hint_vida_util"
-            android:inputType="numberDecimal" />
-        <LinearLayout style="@style/FilaSugerido">
-            <TextView
-                android:id="@+id/tv_sug_vida_util"
-                style="@style/TextoSugerido" />
+                android:id="@+id/btn_guardar_tarifa"
+                style="@style/BotonUsar"
+                android:contentDescription="@string/btn_guardar"
+                android:text="@string/btn_guardar" />
             <Button
-                android:id="@+id/btn_usar_vida_util"
-                style="@style/BotonUsar" />
-        </LinearLayout>
-
-        <TextView style="@style/Etiqueta" android:text="@string/lbl_mantenimiento" />
-        <EditText
-            android:id="@+id/et_mantenimiento"
-            style="@style/Campo"
-            android:hint="@string/hint_mantenimiento"
-            android:inputType="numberDecimal" />
-        <LinearLayout style="@style/FilaSugerido">
-            <TextView
-                android:id="@+id/tv_sug_mantenimiento"
-                style="@style/TextoSugerido" />
-            <Button
-                android:id="@+id/btn_usar_mantenimiento"
-                style="@style/BotonUsar" />
+                android:id="@+id/btn_usar_tarifa"
+                style="@style/BotonUsar"
+                android:layout_marginStart="6dp" />
         </LinearLayout>
 
         <!-- ENTRADAS: EXTRAS OPCIONALES -->
@@ -403,6 +395,14 @@
                     android:text="@string/vacio"
                     android:textSize="20sp" />
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_fijos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="@color/texto_suave"
+                android:textSize="12sp" />
         </LinearLayout>
 
         <!-- PRECIO DE VENTA (solo si se indica margen) -->

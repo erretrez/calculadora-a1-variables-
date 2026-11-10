@@ -2,12 +2,11 @@
 <resources>
     <string name="app_name">Calculadora Costos 3D</string>
     <string name="titulo">Costo de impresión 3D</string>
-    <string name="subtitulo">Ingresa todos los valores. Ningún campo viene precargado.</string>
+    <string name="subtitulo">Ingresa los valores de tu impresión. Ningún campo viene precargado.</string>
 
     <string name="sec_material">Material</string>
     <string name="sec_tiempo">Tiempo de impresión</string>
     <string name="sec_electricidad">Electricidad</string>
-    <string name="sec_impresora">Impresora</string>
     <string name="sec_extras">Extras (opcionales)</string>
     <string name="sec_resultados">Resultados</string>
     <string name="sec_venta">Precio de venta</string>
@@ -19,9 +18,6 @@
     <string name="lbl_minutos">Minutos</string>
     <string name="lbl_watts">Consumo de la impresora (watts)</string>
     <string name="lbl_precio_kwh">Precio de electricidad por kWh</string>
-    <string name="lbl_precio_impresora">Precio de compra de la impresora</string>
-    <string name="lbl_vida_util">Vida útil estimada (horas)</string>
-    <string name="lbl_mantenimiento">Mantenimiento estimado por hora</string>
 
     <string name="lbl_horas_trabajo">Mano de obra: horas de trabajo (lijado, pintura, armado)</string>
     <string name="lbl_costo_hora_trabajo">Mano de obra: costo por hora de trabajo</string>
@@ -37,9 +33,6 @@
     <string name="hint_minutos">Minutos</string>
     <string name="hint_watts">Watts</string>
     <string name="hint_precio_kwh">Monto por kWh</string>
-    <string name="hint_precio_impresora">Monto de compra</string>
-    <string name="hint_vida_util">Horas de vida útil</string>
-    <string name="hint_mantenimiento">Monto por hora</string>
     <string name="hint_horas_trabajo">Horas</string>
     <string name="hint_costo_hora_trabajo">Monto por hora</string>
     <string name="hint_merma">Porcentaje</string>
@@ -50,16 +43,17 @@
     <string name="btn_calcular">CALCULAR</string>
     <string name="btn_limpiar">LIMPIAR</string>
     <string name="btn_usar">USAR</string>
+    <string name="btn_guardar">GUARDAR</string>
     <string name="btn_detectar">DETECTAR MI REGIÓN</string>
-    <string name="desc_usar">Usar el valor sugerido</string>
+    <string name="desc_usar">Usar el valor indicado</string>
 
-    <string name="sug_precio_impresora">Sugerido: %1$s</string>
-    <string name="sug_vida_util">Sugerido: %1$s horas</string>
-    <string name="sug_mantenimiento">Sugerido: %1$s por hora</string>
+    <!-- Consumo de la Bambu Lab A1 Combo (sin otros dígitos en estas líneas: se prueban en CI) -->
+    <string name="watts_estandar">Estándar (PLA): %1$s–%2$s W</string>
+    <string name="watts_alto">Alto consumo (ABS, alta temperatura): ~%1$s W</string>
+    <string name="watts_fuente">Bambu Lab A1 Combo. Estándar: promedio en PLA según la wiki de Bambu Lab (95 W) y mediciones de usuarios (70–80 W). Alto consumo: unos 200 W en ABS, según mediciones de usuarios. El pico de calentamiento (hasta 1.300 W a 220 V según la hoja técnica) dura poco y no es el consumo promedio. Son valores referenciales: un enchufe medidor da el dato exacto de tu equipo.</string>
 
-    <!-- Precio del kWh según la región -->
-    <string name="sub_region">Precio del kWh según tu región</string>
-    <string name="region_placeholder">Selecciona tu región</string>
+    <!-- Precio del kWh: región -->
+    <string name="region_placeholder">Elige tu región (valor referencial)</string>
     <string name="region_info_inicial">Elige tu región o toca DETECTAR MI REGIÓN.</string>
     <string name="region_detectada">Región detectada (aprox.): %1$s</string>
     <string name="region_ref_ninguna">Elige una región para ver un valor referencial.</string>
@@ -72,20 +66,26 @@
     <string name="ubicacion_fuera_chile">Tu ubicación parece estar fuera de Chile. Elige tu región manualmente.</string>
     <string name="ubicacion_antigua">Se usó tu última ubicación conocida (puede no ser la actual).</string>
 
-    <!-- Calculadora de boleta -->
-    <string name="sub_boleta">Calcular el precio del kWh desde tu boleta</string>
+    <!-- Precio del kWh: boleta -->
+    <string name="sub_boleta">O calcúlalo con tu boleta</string>
     <string name="lbl_boleta_monto">Monto total de la boleta</string>
     <string name="lbl_boleta_kwh">kWh consumidos</string>
     <string name="boleta_ayuda">Ingresa el monto total y los kWh de tu boleta.</string>
     <string name="boleta_resultado">Precio efectivo: %1$s por kWh (incluye cargos fijos)</string>
 
-    <string name="status_inicial">Completa todos los campos para ver el resultado.</string>
+    <!-- Tarifa guardada (se conserva al cerrar la app; solo si el usuario toca GUARDAR) -->
+    <string name="tarifa_vacia">Mi tarifa: aún no guardas una. Ingresa el precio del kWh y toca GUARDAR.</string>
+    <string name="tarifa_guardada">Mi tarifa guardada: %1$s por kWh</string>
+    <string name="tarifa_guardada_region">Mi tarifa guardada: %1$s por kWh (%2$s)</string>
+    <string name="tarifa_error">Ingresa un precio del kWh válido para guardarlo.</string>
+
+    <string name="status_inicial">Completa los campos obligatorios para ver el resultado.</string>
     <string name="status_incompleto">Faltan datos o hay valores inválidos. Revisa los campos marcados.</string>
     <string name="status_ok">Cálculo actualizado.</string>
 
     <string name="res_material">Material</string>
     <string name="res_electricidad">Electricidad</string>
-    <string name="res_depreciacion">Depreciación</string>
+    <string name="res_depreciacion">Depreciación de la impresora</string>
     <string name="res_mantenimiento">Mantenimiento</string>
     <string name="res_mano_obra">Mano de obra</string>
     <string name="res_merma">Merma / fallos</string>
@@ -95,6 +95,8 @@
     <string name="res_precio_iva">Precio de venta unitario con IVA</string>
     <string name="res_ganancia">Ganancia del lote (sin IVA)</string>
     <string name="vacio">—</string>
+
+    <string name="fijos_resumen">Valores fijos incluidos (no editables): depreciación con impresora de %1$s y vida útil de %2$s horas; mantenimiento de %3$s por hora.</string>
 
     <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos. La merma se calcula sobre material, electricidad, depreciación y mantenimiento. El margen es sobre el costo unitario. Los valores referenciales de kWh no son oficiales: confirma el precio con tu boleta.</string>
 </resources>

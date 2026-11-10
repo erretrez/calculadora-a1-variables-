@@ -40,9 +40,11 @@ data class CostInputs(
     val minutos: Double?,
     val watts: Double?,
     val precioKwh: Double?,
-    val precioImpresora: Double?,
-    val vidaUtilHoras: Double?,
-    val mantenimientoPorHora: Double?,
+    // Desde la v1.3 la app no pide estos tres datos: usa los valores fijos de `Suggested`
+    // y solo los muestra en el resumen. El motor sigue validándolos si se entregan otros.
+    val precioImpresora: Double? = Suggested.PRECIO_IMPRESORA,
+    val vidaUtilHoras: Double? = Suggested.VIDA_UTIL_HORAS,
+    val mantenimientoPorHora: Double? = Suggested.MANTENIMIENTO_POR_HORA,
     // Opcionales (v1.2). Vacío = no aplica.
     val horasTrabajo: Double? = null,
     val costoHoraTrabajo: Double? = null,
@@ -81,8 +83,24 @@ sealed class Outcome {
 }
 
 /**
- * Valores sugeridos (fijos). Solo se muestran como referencia; el usuario decide si
- * los copia al campo con el botón USAR. Los campos siempre parten vacíos.
+ * Consumo eléctrico de referencia de la Bambu Lab A1 Combo (ver README, sección Fuentes).
+ * El pico de calentamiento (hasta 1.300 W a 220 V según la hoja técnica) dura poco y NO es
+ * un consumo promedio, por eso no se ofrece como valor.
+ */
+object ImpresoraA1 {
+    /** Límite inferior del rango estándar: promedios de 70–80 W medidos por usuarios en PLA. */
+    const val WATTS_ESTANDAR_MIN = 70.0
+
+    /** Promedio en PLA publicado por Bambu Lab (wiki, 220 V): 95 W. */
+    const val WATTS_ESTANDAR = 95.0
+
+    /** Consumo alto: unos 200 W en ABS / materiales de alta temperatura (mediciones de usuarios). */
+    const val WATTS_ALTO = 200.0
+}
+
+/**
+ * Valores fijos de la impresora: se suman automáticamente al costo (depreciación y
+ * mantenimiento) y solo aparecen en el resumen; no se editan en pantalla.
  */
 object Suggested {
     const val PRECIO_IMPRESORA = 450000.0

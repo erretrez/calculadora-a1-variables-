@@ -3,6 +3,7 @@ package cl.erretrez.calculadora
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
@@ -39,7 +40,7 @@ class MainActivity : Activity() {
     private lateinit var tvGanancia: TextView
     private lateinit var cbIva: CheckBox
 
-    // Precio del kWh: región y boleta
+    // Precio del kWh: región, boleta y tarifa guardada
     private lateinit var spRegion: Spinner
     private lateinit var tvRegionInfo: TextView
     private lateinit var tvRegionRef: TextView
@@ -48,7 +49,12 @@ class MainActivity : Activity() {
     private lateinit var etBoletaKwh: EditText
     private lateinit var tvBoletaResultado: TextView
     private lateinit var btnUsarBoleta: Button
+    private lateinit var tvTarifaGuardada: TextView
+    private lateinit var btnUsarTarifa: Button
+    private lateinit var prefs: SharedPreferences
     private var boletaPrecio: Double? = null
+    private var tarifaPrecio: Double? = null
+    private var tarifaRegion: String? = null
 
     // Ubicación (solo se usa al tocar DETECTAR MI REGIÓN)
     private val handler = Handler(Looper.getMainLooper())
@@ -83,6 +89,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
         inputs = linkedMapOf(
             Field.PRECIO_KG to findViewById<EditText>(R.id.et_precio_kg),
@@ -92,9 +99,6 @@ class MainActivity : Activity() {
             Field.MINUTOS to findViewById<EditText>(R.id.et_minutos),
             Field.WATTS to findViewById<EditText>(R.id.et_watts),
             Field.PRECIO_KWH to findViewById<EditText>(R.id.et_precio_kwh),
-            Field.PRECIO_IMPRESORA to findViewById<EditText>(R.id.et_precio_impresora),
-            Field.VIDA_UTIL to findViewById<EditText>(R.id.et_vida_util),
-            Field.MANTENIMIENTO to findViewById<EditText>(R.id.et_mantenimiento),
             Field.HORAS_TRABAJO to findViewById<EditText>(R.id.et_horas_trabajo),
             Field.COSTO_HORA_TRABAJO to findViewById<EditText>(R.id.et_costo_hora_trabajo),
             Field.MERMA to findViewById<EditText>(R.id.et_merma),
@@ -127,22 +131,18 @@ class MainActivity : Activity() {
             if (!suspendWatchers) recalculate(showErrors = false)
         }
 
-        // Valores sugeridos: texto fijo de referencia + botón USAR que lo copia al campo (editable).
-        findViewById<TextView>(R.id.tv_sug_precio_impresora).text = getString(
-            R.string.sug_precio_impresora, CostCalculator.formatClp(Suggested.PRECIO_IMPRESORA)
+        // Valores fijos de la impresora: solo se muestran en el resumen de resultados.
+        findViewById<TextView>(R.id.tv_fijos).text = getString(
+            R.string.fijos_resumen,
+            CostCalculator.formatClp(Suggested.PRECIO_IMPRESORA),
+            Suggested.grouped(Suggested.VIDA_UTIL_HORAS),
+            CostCalculator.formatClp(Suggested.MANTENIMIENTO_POR_HORA)
         )
-        findViewById<TextView>(R.id.tv_sug_vida_util).text = getString(
-            R.string.sug_vida_util, Suggested.grouped(Suggested.VIDA_UTIL_HORAS)
-        )
-        findViewById<TextView>(R.id.tv_sug_mantenimiento).text = getString(
-            R.string.sug_mantenimiento, CostCalculator.formatClp(Suggested.MANTENIMIENTO_POR_HORA)
-        )
-        bindUsar(R.id.btn_usar_precio_impresora, Field.PRECIO_IMPRESORA, Suggested.PRECIO_IMPRESORA)
-        bindUsar(R.id.btn_usar_vida_util, Field.VIDA_UTIL, Suggested.VIDA_UTIL_HORAS)
-        bindUsar(R.id.btn_usar_mantenimiento, Field.MANTENIMIENTO, Suggested.MANTENIMIENTO_POR_HORA)
 
+        setupWatts()
         setupRegion()
         setupBoleta()
+        setupTarifa()
 
         findViewById<Button>(R.id.btn_calcular).setOnClickListener {
             hideKeyboard()
@@ -167,6 +167,7 @@ class MainActivity : Activity() {
             .filter { it.optional && !raw(it).isNullOrBlank() && value(it) == null }
             .toSet()
 
+        // precioImpresora, vidaUtilHoras y mantenimientoPorHora usan sus valores fijos.
         return CostInputs(
             precioKg = value(Field.PRECIO_KG),
             gramos = value(Field.GRAMOS),
@@ -175,9 +176,6 @@ class MainActivity : Activity() {
             minutos = value(Field.MINUTOS),
             watts = value(Field.WATTS),
             precioKwh = value(Field.PRECIO_KWH),
-            precioImpresora = value(Field.PRECIO_IMPRESORA),
-            vidaUtilHoras = value(Field.VIDA_UTIL),
-            mantenimientoPorHora = value(Field.MANTENIMIENTO),
             horasTrabajo = value(Field.HORAS_TRABAJO),
             costoHoraTrabajo = value(Field.COSTO_HORA_TRABAJO),
             mermaPct = value(Field.MERMA),
@@ -203,10 +201,10 @@ class MainActivity : Activity() {
                 clearResults()
                 if (showErrors) {
                     outcome.fieldErrors.forEach { (field, message) ->
-                        inputs.getValue(field).error = message
+                        inputs[field]?.error = message
                     }
                     tvStatus.text = outcome.general ?: getString(R.string.status_incompleto)
-                    outcome.fieldErrors.keys.firstOrNull()?.let { inputs.getValue(it).requestFocus() }
+                    outcome.fieldErrors.keys.firstNotNullOfOrNull { inputs[it] }?.requestFocus()
                 } else {
                     tvStatus.text = outcome.general ?: getString(R.string.status_inicial)
                 }
@@ -247,7 +245,7 @@ class MainActivity : Activity() {
         etBoletaMonto.setText("")
         etBoletaKwh.setText("")
         cbIva.isChecked = false
-        spRegion.setSelection(0)
+        selectSavedRegionOrNone()
         suspendWatchers = false
         refreshBoleta()
         updateRegionRef()
@@ -258,18 +256,29 @@ class MainActivity : Activity() {
         inputs.getValue(Field.PRECIO_KG).requestFocus()
     }
 
-    // ------------------------------------------------- sugeridos (impresora)
-
-    private fun bindUsar(buttonId: Int, field: Field, value: Double) {
-        findViewById<Button>(buttonId).setOnClickListener {
-            putInField(field, Suggested.plain(value))
-        }
-    }
-
     private fun putInField(field: Field, text: String) {
         val editText = inputs.getValue(field)
         editText.setText(text)
         editText.setSelection(editText.text.length)
+    }
+
+    // ------------------------------------------------- consumo (watts) de la A1
+
+    private fun setupWatts() {
+        findViewById<TextView>(R.id.tv_watts_estandar).text = getString(
+            R.string.watts_estandar,
+            Suggested.plain(ImpresoraA1.WATTS_ESTANDAR_MIN),
+            Suggested.plain(ImpresoraA1.WATTS_ESTANDAR)
+        )
+        findViewById<TextView>(R.id.tv_watts_alto).text = getString(
+            R.string.watts_alto, Suggested.plain(ImpresoraA1.WATTS_ALTO)
+        )
+        findViewById<Button>(R.id.btn_usar_watts_estandar).setOnClickListener {
+            putInField(Field.WATTS, Suggested.plain(ImpresoraA1.WATTS_ESTANDAR))
+        }
+        findViewById<Button>(R.id.btn_usar_watts_alto).setOnClickListener {
+            putInField(Field.WATTS, Suggested.plain(ImpresoraA1.WATTS_ALTO))
+        }
     }
 
     // ------------------------------------------------- precio kWh: región
@@ -346,6 +355,7 @@ class MainActivity : Activity() {
         etBoletaMonto.addTextChangedListener(watcher)
         etBoletaKwh.addTextChangedListener(watcher)
 
+        btnUsarBoleta.setText(R.string.btn_usar)
         btnUsarBoleta.setOnClickListener {
             boletaPrecio?.let { putInField(Field.PRECIO_KWH, Suggested.plainRounded(it)) }
         }
@@ -365,6 +375,63 @@ class MainActivity : Activity() {
             else -> getString(R.string.boleta_ayuda)
         }
         btnUsarBoleta.isEnabled = price != null
+    }
+
+    // ------------------------------------------------- tarifa guardada
+
+    private fun setupTarifa() {
+        tvTarifaGuardada = findViewById(R.id.tv_tarifa_guardada)
+        btnUsarTarifa = findViewById(R.id.btn_usar_tarifa)
+
+        val price = prefs.getString(KEY_PRICE, null)?.let { CostCalculator.parseNumber(it) }
+        tarifaPrecio = if (price != null && price >= 0.0) price else null
+        tarifaRegion = prefs.getString(KEY_REGION, null)?.takeIf { name -> Regiones.todas.any { it.nombre == name } }
+
+        findViewById<Button>(R.id.btn_guardar_tarifa).setOnClickListener {
+            hideKeyboard()
+            guardarTarifa()
+        }
+        btnUsarTarifa.setText(R.string.btn_usar)
+        btnUsarTarifa.setOnClickListener {
+            tarifaPrecio?.let { putInField(Field.PRECIO_KWH, Suggested.plainRounded(it)) }
+        }
+
+        selectSavedRegionOrNone()
+        refreshTarifa()
+    }
+
+    private fun guardarTarifa() {
+        val price = CostCalculator.parseNumber(inputs.getValue(Field.PRECIO_KWH).text?.toString())
+        if (price == null || price < 0.0) {
+            tvTarifaGuardada.setText(R.string.tarifa_error)
+            return
+        }
+        val region = selectedRegion()?.nombre
+        // commit(): son dos valores diminutos y así quedan en disco aunque la app se cierre al instante.
+        prefs.edit()
+            .putString(KEY_PRICE, Suggested.plainRounded(price))
+            .putString(KEY_REGION, region)
+            .commit()
+        tarifaPrecio = CostCalculator.parseNumber(Suggested.plainRounded(price))
+        tarifaRegion = region
+        refreshTarifa()
+    }
+
+    private fun refreshTarifa() {
+        val price = tarifaPrecio
+        val region = tarifaRegion
+        tvTarifaGuardada.text = when {
+            price == null -> getString(R.string.tarifa_vacia)
+            region == null -> getString(R.string.tarifa_guardada, CostCalculator.formatClp(price))
+            else -> getString(R.string.tarifa_guardada_region, CostCalculator.formatClp(price), region)
+        }
+        btnUsarTarifa.isEnabled = price != null
+    }
+
+    /** Deja seleccionada la región de la tarifa guardada, o el texto "Elige tu región" si no hay. */
+    private fun selectSavedRegionOrNone() {
+        val index = Regiones.todas.indexOfFirst { it.nombre == tarifaRegion }
+        spRegion.setSelection(if (index >= 0) index + 1 else 0)
     }
 
     // ------------------------------------------------- ubicación
@@ -486,5 +553,8 @@ class MainActivity : Activity() {
         const val REQ_LOCATION = 1001
         const val RECENT_MS = 2L * 60L * 60L * 1000L   // 2 horas
         const val SEARCH_TIMEOUT_MS = 30_000L
+        const val PREFS = "tarifa"
+        const val KEY_PRICE = "precio_kwh"
+        const val KEY_REGION = "region"
     }
 }

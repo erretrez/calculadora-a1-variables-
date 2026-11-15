@@ -453,7 +453,7 @@ class CostCalculatorTest {
     @Test
     fun textoParaCompartirTraeLosTotales() {
         val i = sinDatosDeImpresora().copy(otrosPorPieza = 500.0)
-        val t = Compartir.texto(success(i), i, "PLA", "Metropolitana de Santiago")
+        val t = Compartir.texto(success(i), i, "Soporte", "PLA", "Metropolitana de Santiago", "15-11-2026 14:30:00")
         assertTrue(t, t.contains("COSTO TOTAL: " + CostCalculator.formatClp(3889.99)))
         assertTrue(t, t.contains("COSTO UNITARIO: " + CostCalculator.formatClp(1944.995)))
         assertTrue(t, t.contains("Otros costos: " + CostCalculator.formatClp(1000.0)))

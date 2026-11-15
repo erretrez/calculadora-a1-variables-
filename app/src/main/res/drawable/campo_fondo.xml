@@ -2,6 +2,13 @@
 <!-- Fondo de los campos: sigue el tema (claro/oscuro). Enfocado = borde de acento;
      activado (el campo ya tiene un valor) = fondo y borde verdes. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true" android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/cCampoLleno" />
+            <stroke android:width="2dp" android:color="?attr/cAcento" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
     <item android:state_focused="true">
         <shape android:shape="rectangle">
             <solid android:color="?attr/cCampo" />

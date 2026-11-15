@@ -7,6 +7,10 @@
          La ubicación se procesa en el teléfono, no se guarda ni se envía a ningún lado. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Solo Android 9 o anterior: guardar la imagen en la galería. Desde Android 10 no se necesita. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
 
     <!-- La app es plenamente usable sin ubicación: el selector de región es manual. -->
     <uses-feature

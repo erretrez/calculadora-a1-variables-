@@ -50,6 +50,14 @@
             android:textColor="?attr/cTextoSuave"
             android:textSize="13sp" />
 
+        <!-- Nombre del cálculo: identifica el objeto en la imagen guardada -->
+        <TextView style="@style/Etiqueta" android:layout_marginTop="16dp" android:text="@string/lbl_nombre" />
+        <EditText
+            android:id="@+id/et_nombre"
+            style="@style/Campo"
+            android:hint="@string/hint_nombre"
+            android:inputType="textCapSentences" />
+
         <!-- ENTRADAS: MATERIAL -->
         <TextView style="@style/Seccion" android:text="@string/sec_material" />
 
@@ -485,7 +493,7 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <!-- PRECIO DE VENTA (solo si se indica margen) -->
+        <!-- GANANCIA Y PRECIO DE VENTA (solo si se indica el porcentaje de ganancia) -->
         <TextView style="@style/Seccion" android:text="@string/sec_venta" />
 
         <LinearLayout
@@ -494,6 +502,30 @@
             android:background="?attr/cTarjeta"
             android:orientation="vertical"
             android:padding="14dp">
+
+            <TextView
+                android:id="@+id/tv_venta_ayuda"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/venta_ayuda"
+                android:textColor="?attr/cTextoSuave"
+                android:textSize="13sp" />
+
+            <LinearLayout style="@style/FilaResultado" android:layout_marginTop="6dp">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_ganancia_unit" />
+                <TextView
+                    android:id="@+id/tv_ganancia_unit"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_ganancia" />
+                <TextView
+                    android:id="@+id/tv_ganancia"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
 
             <LinearLayout style="@style/FilaResultado">
                 <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_precio_venta" />
@@ -512,21 +544,36 @@
             </LinearLayout>
 
             <LinearLayout style="@style/FilaResultado">
-                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_ganancia" />
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_venta_lote" />
                 <TextView
-                    android:id="@+id/tv_ganancia"
+                    android:id="@+id/tv_venta_lote"
                     style="@style/ResultadoValor"
                     android:text="@string/vacio" />
             </LinearLayout>
         </LinearLayout>
 
+        <TextView style="@style/Seccion" android:text="@string/sec_respaldo" />
+        <Button
+            android:id="@+id/btn_guardar_imagen"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="6dp"
+            android:enabled="false"
+            android:text="@string/btn_guardar_imagen"
+            android:textStyle="bold" />
         <Button
             android:id="@+id/btn_compartir"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="4dp"
             android:enabled="false"
             android:text="@string/btn_compartir" />
+        <Button
+            android:id="@+id/btn_copiar"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:enabled="false"
+            android:text="@string/btn_copiar" />
 
         <TextView
             android:layout_width="match_parent"

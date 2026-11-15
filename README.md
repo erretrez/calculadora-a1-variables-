@@ -10,17 +10,17 @@ Obligatorios: precio del filamento por kg, gramos usados, piezas, tiempo (horas 
 **material** (menú, define los watts) y **región** (tabla, define el precio del kWh).
 Opcionales: mano de obra, merma, otros costos por pieza, margen e IVA (ver más abajo).
 
-## Valores fijos de la impresora (desde la v1.3)
+## Valores fijos de la impresora (actualizados en la v1.6)
 
-La depreciación y el mantenimiento se suman **automáticamente** con valores fijos, que no se editan
-y solo aparecen en el resumen de resultados:
+La depreciación y el mantenimiento se suman **automáticamente** con valores fijos, que no se editan y solo aparecen en el resumen:
 
-- Precio de la impresora: **$450.000**
-- Vida útil estimada: **5.000 horas**
-- Mantenimiento: **$100 por hora**
+| Valor | Cifra | Origen |
+|---|---|---|
+| Precio de la Bambu Lab A1 Combo | **$489.990** | Precio de mercado en Chile (con IVA) al 15-nov-2026: todotoner.cl, disponible. **pcfactory.cl no se pudo leer** (bloquea la lectura automática); otra tienda (makerschile.cl) lo mostraba en $567.000 sin stock. Si me indicas el precio de PCFactory se actualiza. |
+| Vida útil para depreciar | **5.000 h** | **Estimación.** Bambu Lab no publica una vida útil; un usuario de su foro usa 5.000 h como un año de uso muy intenso. |
+| Mantenimiento | **$50 por hora** | **Estimación** de reserva para repuestos: hotend ~$12/h + placa PEI ~$17/h + lubricación y piezas menores ~$21/h. Único precio verificado: hotend A1 de Bambu Lab a 10,99 EUR (tienda oficial UE). |
 
-Las constantes están en `Suggested` (`CostCalculator.kt`). El motor de cálculo sigue admitiendo otros
-valores y validándolos; solo la pantalla dejó de pedirlos.
+Depreciación por hora = $489.990 / 5.000 h = $97,998; mantenimiento = $50. Las constantes están en `Suggested` (`CostCalculator.kt`).
 
 ## Fórmulas
 
@@ -28,8 +28,8 @@ valores y validándolos; solo la pantalla dejó de pedirlos.
 |---|---|
 | Material | (precio por kg / 1000) × gramos usados |
 | Electricidad | (watts / 1000) × horas × precio kWh |
-| Depreciación | ($450.000 / 5.000 h) × horas |
-| Mantenimiento | $100 × horas |
+| Depreciación | ($489.990 / 5.000 h) × horas |
+| Mantenimiento | $50 × horas |
 | **Total** | material + electricidad + depreciación + mantenimiento (+ mano de obra y merma si se indican) |
 | **Unitario** | total / cantidad de piezas |
 
@@ -106,7 +106,7 @@ Vacíos = no aplican; con todos vacíos el resultado es idéntico al base.
 |---|---|
 | Mano de obra | horas de trabajo × costo por hora (se exigen ambos datos) |
 | Merma / fallos (%) | % × (material + electricidad + depreciación + mantenimiento); debe ser menor que 100 |
-| Margen de ganancia (%) | precio de venta unitario = costo unitario × (1 + margen) |
+| Ganancia deseada (%) | ganancia por pieza = costo unitario × %; precio de venta unitario = costo unitario × (1 + %). **No cambia el costo total**: se muestra aparte, en la sección "Ganancia y precio de venta" |
 | IVA 19 % (interruptor) | precio de venta con IVA = precio de venta × 1,19 |
 
 El costo total incluye mano de obra y merma. Se muestran además el precio de venta unitario, el precio con IVA (si está activado) y la ganancia del lote sin IVA.
@@ -131,3 +131,10 @@ GitHub Actions (`.github/workflows/build-apk.yml`) en cada push a `main`:
 Local: `./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`.
 Compatible con Android 7.0+ (minSdk 24), incluido el Redmi Note 13 5G.
 Para instalar el APK hay que permitir "instalar apps de orígenes desconocidos".
+
+## Ganancia, nombre del cálculo y respaldo en imagen (v1.6)
+
+- **Ganancia aparte:** al escribir el % de ganancia sobre el costo, la sección *Ganancia y precio de venta* muestra la ganancia por pieza, la ganancia del lote, el precio de venta unitario (con y sin IVA) y el precio de venta del lote. El costo total no cambia. La barra fija inferior también muestra el precio de venta unitario.
+- **Campos con valor:** el fondo verde aparece apenas se escribe un valor, también en el campo que tiene el foco (antes el campo enfocado no se veía verde).
+- **Nombre del cálculo:** campo arriba de todo para indicar qué objeto es; encabeza la imagen y es parte del nombre del archivo.
+- **Respaldo:** *GUARDAR IMAGEN EN LA GALERÍA* guarda un PNG con el detalle completo en `Pictures/CalculadoraCostos3D` (nombre de archivo = nombre del cálculo + fecha y hora; sin nombre se usa "calculo"). *COMPARTIR IMAGEN Y RESUMEN* guarda y abre el selector de Android; *COPIAR RESUMEN COMO TEXTO* copia el texto. En Android 9 o anterior se pide permiso de almacenamiento; desde Android 10 no.

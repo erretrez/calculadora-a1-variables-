@@ -27,14 +27,16 @@ STATE = os.path.join(tempfile.gettempdir(), "ui_helper_last")
 
 # Orden de arriba hacia abajo en la pantalla: sirve para decidir hacia dónde desplazarse.
 ORDER = [
-    "sw_oscuro", "et_precio_kg", "et_gramos", "et_piezas", "et_horas", "et_minutos",
+    "sw_oscuro", "et_nombre", "et_precio_kg", "et_gramos", "et_piezas", "et_horas", "et_minutos",
     "sp_material", "tv_material_info", "et_watts", "sp_region", "btn_detectar", "tv_region_info",
     "tv_region_ref", "btn_tabla", "et_precio_kwh", "et_boleta_monto", "et_boleta_kwh",
     "tv_boleta_resultado", "btn_usar_boleta", "et_horas_trabajo", "et_costo_hora_trabajo",
-    "et_merma", "et_otros", "et_margen", "cb_iva", "btn_calcular", "btn_limpiar", "tv_status", "tv_material",
-    "tv_electricidad", "tv_depreciacion", "tv_mantenimiento", "tv_mano_obra", "tv_merma", "tv_otros",
-    "tv_total", "tv_unitario", "tv_por_gramo", "tv_por_hora", "tv_calculado_con", "tv_cuadra", "tv_fijos", "tv_precio_venta",
-    "tv_precio_iva", "tv_ganancia", "btn_compartir",
+    "et_merma", "et_otros", "et_margen", "cb_iva", "btn_calcular", "btn_limpiar", "tv_status",
+    "tv_material", "tv_electricidad", "tv_depreciacion", "tv_mantenimiento", "tv_mano_obra",
+    "tv_merma", "tv_otros", "tv_total", "tv_unitario", "tv_por_gramo", "tv_por_hora",
+    "tv_calculado_con", "tv_cuadra", "tv_fijos", "tv_venta_ayuda", "tv_ganancia_unit",
+    "tv_ganancia", "tv_precio_venta", "tv_precio_iva", "tv_venta_lote", "btn_guardar_imagen",
+    "btn_compartir", "btn_copiar",
 ]
 
 
@@ -149,7 +151,7 @@ def all_ids():
             break
         prev = ids
         swipe_to_see_below()
-    write_last("btn_compartir")
+    write_last("btn_copiar")
     return seen
 
 

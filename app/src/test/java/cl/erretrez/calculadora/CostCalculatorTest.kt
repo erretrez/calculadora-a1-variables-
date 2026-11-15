@@ -271,10 +271,10 @@ class CostCalculatorTest {
     @Test
     fun sinDatosDeImpresoraSeUsanLosValoresFijos() {
         val b = success(sinDatosDeImpresora())
-        assertEquals(450.0, b.depreciacion, delta)   // 450000 / 5000 x 5 h
-        assertEquals(500.0, b.mantenimiento, delta)  // 100 x 5 h
-        assertEquals(3100.0, b.total, delta)         // 2000 + 150 + 450 + 500
-        assertEquals(1550.0, b.unitario, delta)
+        assertEquals(489.99, b.depreciacion, 1e-9)   // 489990 / 5000 x 5 h
+        assertEquals(250.0, b.mantenimiento, delta)  // 50 x 5 h
+        assertEquals(2889.99, b.total, 1e-9)         // 2000 + 150 + 489,99 + 250
+        assertEquals(1444.995, b.unitario, 1e-9)
     }
 
     @Test
@@ -285,12 +285,15 @@ class CostCalculatorTest {
                 mermaPct = 20.0, margenPct = 30.0, incluirIva = true
             )
         )
-        assertEquals(620.0, b.merma, 1e-6)             // 20% de 3100
-        assertEquals(9720.0, b.total, 1e-6)            // 3100 + 6000 + 620
-        assertEquals(4860.0, b.unitario, 1e-6)
-        assertEquals(6318.0, b.precioVenta!!, 1e-6)    // 4860 x 1,30
-        assertEquals(7518.42, b.precioConIva!!, 1e-6)  // 6318 + 19% (1200,42)
-        assertEquals(2916.0, b.gananciaLote!!, 1e-6)   // (6318 - 4860) x 2
+        assertEquals(577.998, b.merma, 1e-6)           // 20% de 2889,99
+        assertEquals(9467.988, b.total, 1e-6)          // 2889,99 + 6000 + 577,998
+        assertEquals(4733.994, b.unitario, 1e-6)
+        assertEquals(6154.1922, b.precioVenta!!, 1e-6) // 4733,994 x 1,30
+        assertEquals(7323.488718, b.precioConIva!!, 1e-6) // x 1,19
+        assertEquals(2840.3964, b.gananciaLote!!, 1e-6)   // (6154,1922 - 4733,994) x 2
+        assertEquals(1420.1982, b.gananciaUnitaria!!, 1e-6)  // 30% del costo unitario
+        assertEquals(12308.3844, b.precioVentaLote!!, 1e-6)  // 6154,1922 x 2 piezas
+        assertEquals(30.0, b.margenPct!!, 1e-9)
     }
 
     @Test
@@ -406,22 +409,22 @@ class CostCalculatorTest {
     fun otrosCostosPorPiezaSeMultiplicanPorLasPiezas() {
         val b = success(sinDatosDeImpresora().copy(otrosPorPieza = 500.0))
         assertEquals(1000.0, b.otros, 1e-9)       // 500 x 2 piezas
-        assertEquals(4100.0, b.total, 1e-9)       // 3100 + 1000
-        assertEquals(2050.0, b.unitario, 1e-9)
+        assertEquals(3889.99, b.total, 1e-9)      // 2889,99 + 1000
+        assertEquals(1944.995, b.unitario, 1e-9)
         assertTrue(Resumen.partesSumanElTotal(b))
     }
 
     @Test
     fun laMermaNoSeCalculaSobreLosOtrosCostos() {
         val b = success(sinDatosDeImpresora().copy(otrosPorPieza = 500.0, mermaPct = 10.0))
-        assertEquals(310.0, b.merma, 1e-9)        // 10% de 3100, no de 4100
-        assertEquals(4410.0, b.total, 1e-9)
+        assertEquals(288.999, b.merma, 1e-9)      // 10% de 2889,99, no de 3889,99
+        assertEquals(4178.989, b.total, 1e-9)
         assertTrue(Resumen.partesSumanElTotal(b))
     }
 
     @Test
     fun sinOtrosCostosElTotalNoCambia() {
-        assertEquals(3100.0, success(sinDatosDeImpresora()).total, 1e-9)
+        assertEquals(2889.99, success(sinDatosDeImpresora()).total, 1e-9)
         assertEquals(0.0, success(sinDatosDeImpresora()).otros, 1e-9)
     }
 
@@ -436,8 +439,8 @@ class CostCalculatorTest {
     @Test
     fun costoPorGramoYPorHora() {
         val b = success(sinDatosDeImpresora())
-        assertEquals(31.0, b.costoPorGramo!!, 1e-9)   // 3100 / 100 g
-        assertEquals(620.0, b.costoPorHora, 1e-9)     // 3100 / 5 h
+        assertEquals(28.8999, b.costoPorGramo!!, 1e-9)   // 2889,99 / 100 g
+        assertEquals(577.998, b.costoPorHora, 1e-9)      // 2889,99 / 5 h
     }
 
     @Test
@@ -451,12 +454,84 @@ class CostCalculatorTest {
     fun textoParaCompartirTraeLosTotales() {
         val i = sinDatosDeImpresora().copy(otrosPorPieza = 500.0)
         val t = Compartir.texto(success(i), i, "PLA", "Metropolitana de Santiago")
-        assertTrue(t, t.contains("COSTO TOTAL: " + CostCalculator.formatClp(4100.0)))
-        assertTrue(t, t.contains("COSTO UNITARIO: " + CostCalculator.formatClp(2050.0)))
+        assertTrue(t, t.contains("COSTO TOTAL: " + CostCalculator.formatClp(3889.99)))
+        assertTrue(t, t.contains("COSTO UNITARIO: " + CostCalculator.formatClp(1944.995)))
         assertTrue(t, t.contains("Otros costos: " + CostCalculator.formatClp(1000.0)))
         assertTrue(t, t.contains("100 g de PLA"))
         assertFalse(t, t.contains("Mano de obra"))
         assertFalse(t, t.contains("Precio de venta"))
+    }
+
+    // ---------- v1.6: ganancia aparte, nombre del cálculo, imagen ----------
+
+    private val fecha = "15-11-2026 14:30:00"
+
+    @Test
+    fun laGananciaSeCalculaSobreElCostoYNoCambiaElCostoTotal() {
+        val sin = success(sinDatosDeImpresora())
+        val con = success(sinDatosDeImpresora().copy(margenPct = 25.0))
+        assertEquals(sin.total, con.total, 1e-9)                       // el costo no cambia
+        assertEquals(sin.unitario * 0.25, con.gananciaUnitaria!!, 1e-9) // la ganancia es 25% del costo unitario
+        assertEquals(sin.unitario * 1.25, con.precioVenta!!, 1e-9)
+        assertEquals(con.gananciaUnitaria!! * 2.0, con.gananciaLote!!, 1e-9)
+        assertNull(sin.gananciaUnitaria)
+        assertNull(sin.precioVenta)
+    }
+
+    @Test
+    fun conCeroPorCientoDeGananciaElPrecioDeVentaEsElCosto() {
+        val b = success(sinDatosDeImpresora().copy(margenPct = 0.0))
+        assertEquals(b.unitario, b.precioVenta!!, 1e-9)
+        assertEquals(0.0, b.gananciaUnitaria!!, 1e-9)
+    }
+
+    @Test
+    fun elImporteDeGananciaApareceAparteEnElResumen() {
+        val i = sinDatosDeImpresora().copy(margenPct = 30.0)
+        val filas = Compartir.filas(success(i), i, "Soporte", "PLA", null, fecha)
+        val etiquetas = filas.map { it.etiqueta }
+        assertTrue(etiquetas.any { it.contains("30% sobre el costo") })
+        val gan = filas.first { it.etiqueta == "Ganancia por pieza" }
+        assertEquals(Estilo.GANANCIA, gan.estilo)
+        assertEquals(CostCalculator.formatClp(1444.995 * 0.3), gan.valor)
+        assertTrue(filas.indexOfFirst { it.etiqueta == "COSTO UNITARIO" } < filas.indexOf(gan))
+        assertTrue(etiquetas.contains("Precio de venta unitario (sin IVA)"))
+        assertTrue(etiquetas.contains("Precio de venta del lote (sin IVA)"))
+    }
+
+    @Test
+    fun sinPorcentajeDeGananciaElResumenNoTrajeSeccionDeGanancia() {
+        val i = sinDatosDeImpresora()
+        val etiquetas = Compartir.filas(success(i), i, "Soporte", "PLA", null, fecha).map { it.etiqueta }
+        assertTrue(etiquetas.none { it.contains("Ganancia") })
+    }
+
+    @Test
+    fun elNombreDelCalculoEncabezaElResumen() {
+        val i = sinDatosDeImpresora()
+        val filas = Compartir.filas(success(i), i, "  Soporte de audífonos  ", "PLA", null, fecha)
+        assertEquals("Soporte de audífonos", filas.first().etiqueta)
+        assertEquals(Estilo.TITULO, filas.first().estilo)
+        assertTrue(Compartir.texto(success(i), i, "Soporte de audífonos", "PLA", null, fecha).startsWith("Soporte de audífonos"))
+        assertEquals(Compartir.SIN_NOMBRE, Compartir.filas(success(i), i, "   ", null, null, fecha).first().etiqueta)
+        assertEquals(Compartir.SIN_NOMBRE, Compartir.filas(success(i), i, null, null, null, fecha).first().etiqueta)
+    }
+
+    @Test
+    fun nombreDeArchivoIdentificaElObjetoYEsSeguro() {
+        assertEquals("Soporte_de_audífonos_20261115_143000", Compartir.nombreArchivo("Soporte de audífonos", "20261115_143000"))
+        assertEquals("Llavero_Erretrez_20261115_143000", Compartir.nombreArchivo("Llavero/Erretrez?*", "20261115_143000"))
+        assertEquals("calculo_20261115_143000", Compartir.nombreArchivo("   ", "20261115_143000"))
+        assertEquals("calculo_x", Compartir.nombreArchivo(null, "x"))
+        assertTrue(Compartir.nombreArchivo("a".repeat(200), "x").length <= 42)
+    }
+
+    @Test
+    fun laNotaDelResumenDiceQueImpresoraSeUso() {
+        val i = sinDatosDeImpresora()
+        val nota = Compartir.filas(success(i), i, "X", null, null, fecha).last().etiqueta
+        assertTrue(nota, nota.contains("489.990"))
+        assertTrue(nota, nota.contains("5.000 h"))
     }
 
     // ---------- v1.2: regiones y ubicación ----------
@@ -548,24 +623,24 @@ class CostCalculatorTest {
 
     @Test
     fun valoresSugeridosSonLosPedidos() {
-        assertEquals(450000.0, Suggested.PRECIO_IMPRESORA, delta)
+        assertEquals(489990.0, Suggested.PRECIO_IMPRESORA, delta)
         assertEquals(5000.0, Suggested.VIDA_UTIL_HORAS, delta)
-        assertEquals(100.0, Suggested.MANTENIMIENTO_POR_HORA, delta)
+        assertEquals(50.0, Suggested.MANTENIMIENTO_POR_HORA, delta)
     }
 
     @Test
     fun textoPlanoDeSugeridosSeInterpretaComoElMismoNumero() {
-        assertEquals("450000", Suggested.plain(Suggested.PRECIO_IMPRESORA))
+        assertEquals("489990", Suggested.plain(Suggested.PRECIO_IMPRESORA))
         assertEquals("5000", Suggested.plain(Suggested.VIDA_UTIL_HORAS))
         assertEquals("100", Suggested.plain(Suggested.MANTENIMIENTO_POR_HORA))
-        assertEquals(450000.0, CostCalculator.parseNumber(Suggested.plain(Suggested.PRECIO_IMPRESORA))!!, delta)
+        assertEquals(489990.0, CostCalculator.parseNumber(Suggested.plain(Suggested.PRECIO_IMPRESORA))!!, delta)
         assertEquals(5000.0, CostCalculator.parseNumber(Suggested.plain(Suggested.VIDA_UTIL_HORAS))!!, delta)
-        assertEquals(100.0, CostCalculator.parseNumber(Suggested.plain(Suggested.MANTENIMIENTO_POR_HORA))!!, delta)
+        assertEquals(50.0, CostCalculator.parseNumber(Suggested.plain(Suggested.MANTENIMIENTO_POR_HORA))!!, delta)
     }
 
     @Test
     fun calcularConLosSugeridosEsValidoYCorrecto() {
-        // 10 h: depreciación = 450000/5000*10 = 900; mantenimiento = 100*10 = 1000
+        // 10 h: depreciación = 489990/5000*10 = 979,98; mantenimiento = 50*10 = 500
         val b = success(
             valid().copy(
                 horas = 10.0,
@@ -575,15 +650,15 @@ class CostCalculatorTest {
                 mantenimientoPorHora = Suggested.MANTENIMIENTO_POR_HORA
             )
         )
-        assertEquals(900.0, b.depreciacion, delta)
-        assertEquals(1000.0, b.mantenimiento, delta)
+        assertEquals(979.98, b.depreciacion, 1e-9)
+        assertEquals(500.0, b.mantenimiento, delta)
     }
 
     @Test
     fun sugeridosConSeparadorDeMilesChileno() {
         assertEquals("5.000", Suggested.grouped(5000.0))
-        assertEquals("450.000", Suggested.grouped(450000.0))
-        assertEquals("100", Suggested.grouped(100.0))
+        assertEquals("489.990", Suggested.grouped(489990.0))
+        assertEquals("50", Suggested.grouped(50.0))
     }
 
     @Test

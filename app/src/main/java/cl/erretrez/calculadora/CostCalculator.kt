@@ -82,7 +82,13 @@ data class CostBreakdown(
     /** Costo total por gramo de filamento usado. null si los gramos son 0. */
     val costoPorGramo: Double? = null,
     /** Costo total por hora de impresión. */
-    val costoPorHora: Double = 0.0
+    val costoPorHora: Double = 0.0,
+    /** Ganancia por pieza = costo unitario x margen. null si no se indicó margen. */
+    val gananciaUnitaria: Double? = null,
+    /** Precio de venta de todo el lote sin IVA. null si no se indicó margen. */
+    val precioVentaLote: Double? = null,
+    /** Margen aplicado (%), para mostrarlo junto a la ganancia. */
+    val margenPct: Double? = null
 )
 
 sealed class Outcome {
@@ -134,9 +140,27 @@ object Materiales {
  * mantenimiento) y solo aparecen en el resumen; no se editan en pantalla.
  */
 object Suggested {
-    const val PRECIO_IMPRESORA = 450000.0
+    /**
+     * Bambu Lab A1 Combo (con AMS Lite), precio de mercado en Chile con IVA, 15-nov-2026:
+     * $489.990 en todotoner.cl (disponible). No se pudo leer pcfactory.cl (bloquea la lectura
+     * automática); otra tienda (makerschile.cl) lo listaba en $567.000 sin stock.
+     */
+    const val PRECIO_IMPRESORA = 489990.0
+    const val PRECIO_FECHA = "15-nov-2026"
+
+    /**
+     * Vida útil estimada para depreciar. Bambu Lab no publica una vida útil; en su foro un usuario
+     * toma 5.000 h como un año de uso muy intenso. Es una estimación, no un dato del fabricante.
+     */
     const val VIDA_UTIL_HORAS = 5000.0
-    const val MANTENIMIENTO_POR_HORA = 100.0
+
+    /**
+     * Mantenimiento por hora (estimación): reserva para repuestos que se gastan. Único precio
+     * verificado: hotend A1 de Bambu Lab, 10,99 EUR (tienda oficial UE), de duración de meses con
+     * PLA; el resto (placa PEI, grasa, piezas menores) es estimado.
+     * Desglose: hotend ~$12/h + placa PEI ~$17/h + lubricación y piezas menores ~$21/h.
+     */
+    const val MANTENIMIENTO_POR_HORA = 50.0
 
     /** Texto plano numérico (sin separador de miles) para copiar a un campo editable. */
     fun plain(value: Double): String =
@@ -238,25 +262,74 @@ object Regiones {
     }
 }
 
-/** Texto del resumen que se comparte desde la app. */
+/** Estilo de una línea del resumen (para el texto y para la imagen). */
+enum class Estilo { TITULO, SUBTITULO_ENC, SECCION, NORMAL, TOTAL, GANANCIA, VENTA, NOTA, SEPARADOR }
+
+data class Fila(val etiqueta: String, val valor: String = "", val estilo: Estilo = Estilo.NORMAL)
+
+/** Resumen del cálculo: el mismo contenido sirve para el texto copiado y para la imagen guardada. */
 object Compartir {
-    fun texto(b: CostBreakdown, i: CostInputs, material: String?, region: String?): String {
+    const val SIN_NOMBRE = "Cálculo sin nombre"
+
+    fun filas(
+        b: CostBreakdown,
+        i: CostInputs,
+        nombre: String?,
+        material: String?,
+        region: String?,
+        fechaHora: String
+    ): List<Fila> {
         val f = CostCalculator::formatClp
-        val l = mutableListOf<String>()
-        l += "Costo de impresión 3D"
-        l += "Datos: " + Resumen.entradas(i, material, region)
-        l += "Material: " + f(b.material)
-        l += "Electricidad: " + f(b.electricidad)
-        l += "Depreciación: " + f(b.depreciacion)
-        l += "Mantenimiento: " + f(b.mantenimiento)
-        if (b.manoObra > 0.0) l += "Mano de obra: " + f(b.manoObra)
-        if (b.merma > 0.0) l += "Merma: " + f(b.merma)
-        if (b.otros > 0.0) l += "Otros costos: " + f(b.otros)
-        l += "COSTO TOTAL: " + f(b.total)
-        l += "COSTO UNITARIO: " + f(b.unitario)
-        b.precioVenta?.let { l += "Precio de venta unitario (sin IVA): " + f(it) }
-        b.precioConIva?.let { l += "Precio de venta unitario con IVA: " + f(it) }
-        return l.joinToString("\n")
+        val l = mutableListOf<Fila>()
+        l += Fila(nombre?.trim().takeUnless { it.isNullOrEmpty() } ?: SIN_NOMBRE, estilo = Estilo.TITULO)
+        l += Fila("Costo de impresión 3D · $fechaHora", estilo = Estilo.SUBTITULO_ENC)
+        l += Fila("Calculado con: " + Resumen.entradas(i, material, region), estilo = Estilo.NOTA)
+        l += Fila("Costos", estilo = Estilo.SECCION)
+        l += Fila("Material", f(b.material))
+        l += Fila("Electricidad", f(b.electricidad))
+        l += Fila("Depreciación de la impresora", f(b.depreciacion))
+        l += Fila("Mantenimiento", f(b.mantenimiento))
+        if (b.manoObra > 0.0) l += Fila("Mano de obra", f(b.manoObra))
+        if (b.merma > 0.0) l += Fila("Merma / fallos", f(b.merma))
+        if (b.otros > 0.0) l += Fila("Otros costos", f(b.otros))
+        l += Fila("COSTO TOTAL", f(b.total), Estilo.TOTAL)
+        l += Fila("COSTO UNITARIO", f(b.unitario), Estilo.TOTAL)
+        b.costoPorGramo?.let { l += Fila("Costo por gramo de filamento", f(it)) }
+        l += Fila("Costo por hora de impresión", f(b.costoPorHora))
+        val pv = b.precioVenta
+        if (pv != null) {
+            val pct = b.margenPct?.let { Suggested.plainRounded(it) + "% " } ?: ""
+            l += Fila("Ganancia estimada (" + pct + "sobre el costo)", estilo = Estilo.SECCION)
+            b.gananciaUnitaria?.let { l += Fila("Ganancia por pieza", f(it), Estilo.GANANCIA) }
+            b.gananciaLote?.let { l += Fila("Ganancia del lote", f(it), Estilo.GANANCIA) }
+            l += Fila("Precio de venta unitario (sin IVA)", f(pv), Estilo.VENTA)
+            b.precioConIva?.let { l += Fila("Precio de venta unitario con IVA", f(it), Estilo.VENTA) }
+            b.precioVentaLote?.let { l += Fila("Precio de venta del lote (sin IVA)", f(it)) }
+        }
+        l += Fila(
+            "Incluye depreciación (impresora de " + f(Suggested.PRECIO_IMPRESORA) + ", " +
+                Suggested.grouped(Suggested.VIDA_UTIL_HORAS) + " h) y mantenimiento (" +
+                f(Suggested.MANTENIMIENTO_POR_HORA) + "/h). Valores en pesos chilenos.",
+            estilo = Estilo.NOTA
+        )
+        return l
+    }
+
+    fun texto(
+        b: CostBreakdown, i: CostInputs, nombre: String?, material: String?, region: String?, fechaHora: String
+    ): String = filas(b, i, nombre, material, region, fechaHora).joinToString("\n") {
+        when (it.estilo) {
+            Estilo.SECCION -> "\n" + it.etiqueta.uppercase(Locale.forLanguageTag("es-CL"))
+            Estilo.TITULO, Estilo.SUBTITULO_ENC, Estilo.NOTA -> it.etiqueta
+            else -> it.etiqueta + ": " + it.valor
+        }
+    }
+
+    /** Nombre de archivo seguro: solo letras, números y guion bajo, con la marca de tiempo al final. */
+    fun nombreArchivo(nombre: String?, marca: String): String {
+        val limpio = (nombre ?: "").trim()
+            .replace(Regex("[^\\p{L}\\p{N}]+"), "_").trim('_').take(40)
+        return (if (limpio.isEmpty()) "calculo" else limpio) + "_" + marca
     }
 }
 
@@ -425,13 +498,15 @@ object CostCalculator {
         val precioVenta = if (margen != null) unitario * (1.0 + margen / 100.0) else null
         val precioConIva = if (i.incluirIva && precioVenta != null) precioVenta * (1.0 + IVA_RATE) else null
         val gananciaLote = if (precioVenta != null) (precioVenta - unitario) * n else null
+        val gananciaUnitaria = if (precioVenta != null) precioVenta - unitario else null
+        val precioVentaLote = if (precioVenta != null) precioVenta * n else null
         val gramosUsados = i.gramos
         val costoPorGramo = if (gramosUsados > 0.0) total / gramosUsados else null
         val costoPorHora = total / horasTotales
 
         val all = listOfNotNull(
             material, electricidad, depreciacion, mantenimiento, manoObra, costoMerma,
-            total, unitario, precioVenta, precioConIva, gananciaLote, otros, costoPorHora
+            total, unitario, precioVenta, precioConIva, gananciaLote, otros, costoPorHora, gananciaUnitaria, precioVentaLote
         ) + listOfNotNull(costoPorGramo)
         if (all.any { !it.isFinite() }) {
             return Outcome.Failure(emptyMap(), MSG_OVERFLOW)
@@ -453,7 +528,10 @@ object CostCalculator {
                 gananciaLote = gananciaLote,
                 otros = otros,
                 costoPorGramo = costoPorGramo,
-                costoPorHora = costoPorHora
+                costoPorHora = costoPorHora,
+                gananciaUnitaria = gananciaUnitaria,
+                precioVentaLote = precioVentaLote,
+                margenPct = margen
             )
         )
     }

@@ -5,7 +5,16 @@ import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.ContentValues
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.widget.Toast
+import java.io.File
 import android.content.res.Configuration
 import android.graphics.Typeface
 import android.location.Location
@@ -56,8 +65,15 @@ class MainActivity : Activity() {
     private lateinit var tvBarraTotal: TextView
     private lateinit var tvBarraDetalle: TextView
     private lateinit var tvBarraHora: TextView
+    private lateinit var tvGananciaUnit: TextView
+    private lateinit var tvVentaLote: TextView
+    private lateinit var tvVentaAyuda: TextView
+    private lateinit var etNombre: EditText
+    private lateinit var btnGuardarImagen: Button
     private lateinit var btnCompartir: Button
-    private var textoCompartir: String? = null
+    private lateinit var btnCopiar: Button
+    private var ultimoResultado: Triple<CostBreakdown, CostInputs, String>? = null
+    private var accionPendiente: Int = 0
     private lateinit var tvCuadra: TextView
     private lateinit var cbIva: CheckBox
     private lateinit var prefs: SharedPreferences
@@ -163,8 +179,16 @@ class MainActivity : Activity() {
         tvBarraTotal = findViewById(R.id.tv_barra_total)
         tvBarraDetalle = findViewById(R.id.tv_barra_detalle)
         tvBarraHora = findViewById(R.id.tv_barra_hora)
+        tvGananciaUnit = findViewById(R.id.tv_ganancia_unit)
+        tvVentaLote = findViewById(R.id.tv_venta_lote)
+        tvVentaAyuda = findViewById(R.id.tv_venta_ayuda)
+        etNombre = findViewById(R.id.et_nombre)
+        btnGuardarImagen = findViewById(R.id.btn_guardar_imagen)
         btnCompartir = findViewById(R.id.btn_compartir)
-        btnCompartir.setOnClickListener { compartir() }
+        btnCopiar = findViewById(R.id.btn_copiar)
+        btnGuardarImagen.setOnClickListener { respaldo(ACCION_GUARDAR) }
+        btnCompartir.setOnClickListener { respaldo(ACCION_COMPARTIR) }
+        btnCopiar.setOnClickListener { copiarTexto() }
         showBar(null, 0, null)
         tvCuadra = findViewById(R.id.tv_cuadra)
         cbIva = findViewById(R.id.cb_iva)
@@ -188,7 +212,7 @@ class MainActivity : Activity() {
 
         // Un campo con valor cambia de color (estado "activado" del fondo): se ve de un vistazo qué ya se ingresó.
         val marcarLlenos = listOf(
-            findViewById<EditText>(R.id.et_boleta_monto), findViewById<EditText>(R.id.et_boleta_kwh)
+            findViewById<EditText>(R.id.et_boleta_monto), findViewById<EditText>(R.id.et_boleta_kwh), etNombre
         ) + inputs.values
         marcarLlenos.forEach { box ->
             box.isActivated = !box.text.isNullOrBlank()
@@ -209,7 +233,8 @@ class MainActivity : Activity() {
             R.string.fijos_resumen,
             CostCalculator.formatClp(Suggested.PRECIO_IMPRESORA),
             Suggested.grouped(Suggested.VIDA_UTIL_HORAS),
-            CostCalculator.formatClp(Suggested.MANTENIMIENTO_POR_HORA)
+            CostCalculator.formatClp(Suggested.MANTENIMIENTO_POR_HORA),
+            Suggested.PRECIO_FECHA
         )
 
         setupMaterial()
@@ -297,9 +322,10 @@ class MainActivity : Activity() {
                 val ok = Resumen.partesSumanElTotal(b)
                 tvCuadra.setText(if (ok) R.string.cuadra_ok else R.string.cuadra_mal)
                 flashResults()
-                showBar(b, calcCount, clock.format(Date()))
-                textoCompartir = Compartir.texto(b, inputsNow, materialName(), regionName())
-                btnCompartir.isEnabled = true
+                val hora = clock.format(Date())
+                showBar(b, calcCount, hora)
+                ultimoResultado = Triple(b, inputsNow, hora)
+                listOf(btnGuardarImagen, btnCompartir, btnCopiar).forEach { it.isEnabled = true }
             }
             is Outcome.Failure -> {
                 clearResults()
@@ -343,6 +369,10 @@ class MainActivity : Activity() {
         tvPrecioVenta.text = b.precioVenta?.let { CostCalculator.formatClp(it) } ?: empty
         tvPrecioIva.text = b.precioConIva?.let { CostCalculator.formatClp(it) } ?: empty
         tvGanancia.text = b.gananciaLote?.let { CostCalculator.formatClp(it) } ?: empty
+        tvGananciaUnit.text = b.gananciaUnitaria?.let { CostCalculator.formatClp(it) } ?: empty
+        tvVentaLote.text = b.precioVentaLote?.let { CostCalculator.formatClp(it) } ?: empty
+        tvVentaAyuda.text = b.margenPct?.let { getString(R.string.venta_aplicada, Suggested.plainRounded(it)) }
+            ?: getString(R.string.venta_ayuda)
         tvOtros.text = CostCalculator.formatClp(b.otros)
         tvPorGramo.text = b.costoPorGramo?.let { CostCalculator.formatClp(it) } ?: empty
         tvPorHora.text = CostCalculator.formatClp(b.costoPorHora)
@@ -358,29 +388,104 @@ class MainActivity : Activity() {
             tvBarraTotal.text = getString(
                 R.string.barra_total, CostCalculator.formatClp(b.total), CostCalculator.formatClp(b.unitario)
             )
-            tvBarraDetalle.text = getString(R.string.barra_detalle, n)
+            tvBarraDetalle.text = b.precioVenta?.let {
+                getString(R.string.barra_venta, n, CostCalculator.formatClp(it))
+            } ?: getString(R.string.barra_detalle, n)
             tvBarraHora.text = hora
         }
     }
 
-    private fun compartir() {
-        val text = textoCompartir ?: return
-        val send = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, text)
+    // ------------------------------------------------- respaldo: imagen, compartir, copiar
+
+    private fun filasActuales(): List<Fila>? {
+        val (b, i, hora) = ultimoResultado ?: return null
+        val fecha = SimpleDateFormat("dd-MM-yyyy", Locale.forLanguageTag("es-CL")).format(Date()) + " " + hora
+        return Compartir.filas(b, i, etNombre.text?.toString(), materialName(), regionName(), fecha)
+    }
+
+    private fun copiarTexto() {
+        val (b, i, hora) = ultimoResultado ?: return
+        val fecha = SimpleDateFormat("dd-MM-yyyy", Locale.forLanguageTag("es-CL")).format(Date()) + " " + hora
+        val text = Compartir.texto(b, i, etNombre.text?.toString(), materialName(), regionName(), fecha)
+        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+            .setPrimaryClip(ClipData.newPlainText(getString(R.string.compartir_titulo), text))
+        Toast.makeText(this, R.string.texto_copiado, Toast.LENGTH_SHORT).show()
+    }
+
+    /** Guarda la imagen del detalle en la galería y, si se pidió, la comparte junto con el texto. */
+    private fun respaldo(accion: Int) {
+        if (ultimoResultado == null) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            accionPendiente = accion
+            requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), REQ_STORAGE)
+            return
         }
-        startActivity(Intent.createChooser(send, getString(R.string.compartir_titulo)))
+        val filas = filasActuales() ?: return
+        val marca = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        val archivo = Compartir.nombreArchivo(etNombre.text?.toString(), marca) + ".png"
+        val uri = try {
+            guardarPng(ResumenImagen.render(filas), archivo)
+        } catch (e: Exception) {
+            null
+        }
+        if (uri == null) {
+            Toast.makeText(this, R.string.imagen_error, Toast.LENGTH_LONG).show()
+            return
+        }
+        Toast.makeText(this, getString(R.string.imagen_guardada, archivo), Toast.LENGTH_LONG).show()
+        if (accion == ACCION_COMPARTIR) {
+            val (b, i, hora) = ultimoResultado ?: return
+            val texto = Compartir.texto(b, i, etNombre.text?.toString(), materialName(), regionName(), hora)
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_TEXT, texto)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(send, getString(R.string.compartir_titulo)))
+        }
+    }
+
+    private fun guardarPng(bmp: android.graphics.Bitmap, nombre: String): Uri? {
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, nombre)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CalculadoraCostos3D")
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            } else {
+                @Suppress("DEPRECATION")
+                val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "CalculadoraCostos3D")
+                dir.mkdirs()
+                @Suppress("DEPRECATION")
+                put(MediaStore.Images.Media.DATA, File(dir, nombre).absolutePath)
+            }
+        }
+        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return null
+        val ok = contentResolver.openOutputStream(uri)?.use { bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) } ?: false
+        if (!ok) {
+            contentResolver.delete(uri, null, null)
+            return null
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            contentResolver.update(uri, ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) }, null, null)
+        }
+        return uri
     }
 
     private fun clearResults() {
         val empty = getString(R.string.vacio)
         listOf(
             tvMaterial, tvElectricidad, tvDepreciacion, tvMantenimiento, tvManoObra, tvMerma,
-            tvTotal, tvUnitario, tvPrecioVenta, tvPrecioIva, tvGanancia, tvOtros, tvPorGramo, tvPorHora
+            tvTotal, tvUnitario, tvPrecioVenta, tvPrecioIva, tvGanancia, tvOtros, tvPorGramo, tvPorHora,
+            tvGananciaUnit, tvVentaLote
         ).forEach { it.text = empty }
+        tvVentaAyuda.setText(R.string.venta_ayuda)
         showBar(null, 0, null)
-        textoCompartir = null
-        btnCompartir.isEnabled = false
+        ultimoResultado = null
+        listOf(btnGuardarImagen, btnCompartir, btnCopiar).forEach { it.isEnabled = false }
         tvCalculadoCon.text = ""
         tvCuadra.text = ""
     }
@@ -394,6 +499,7 @@ class MainActivity : Activity() {
         }
         etBoletaMonto.setText("")
         etBoletaKwh.setText("")
+        etNombre.setText("")
         cbIva.isChecked = false
         // El material es de cada impresión: se vacía. La región es un ajuste que se recuerda: se conserva.
         spMaterial.setSelection(0)
@@ -709,6 +815,14 @@ class MainActivity : Activity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_STORAGE) {
+            if (grantResults.any { it == PackageManager.PERMISSION_GRANTED }) {
+                respaldo(accionPendiente)
+            } else {
+                Toast.makeText(this, R.string.imagen_sin_permiso, Toast.LENGTH_LONG).show()
+            }
+            return
+        }
         if (requestCode != REQ_LOCATION) return
         if (grantResults.any { it == PackageManager.PERMISSION_GRANTED }) {
             startLocationSearch()
@@ -803,6 +917,9 @@ class MainActivity : Activity() {
 
     private companion object {
         const val REQ_LOCATION = 1001
+        const val REQ_STORAGE = 1002
+        const val ACCION_GUARDAR = 1
+        const val ACCION_COMPARTIR = 2
         const val RECENT_MS = 2L * 60L * 60L * 1000L   // 2 horas
         const val SEARCH_TIMEOUT_MS = 30_000L
         const val PREFS = "ajustes"

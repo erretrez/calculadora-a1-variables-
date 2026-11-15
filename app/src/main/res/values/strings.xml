@@ -9,7 +9,6 @@
     <string name="sec_electricidad">Electricidad</string>
     <string name="sec_extras">Extras (opcionales)</string>
     <string name="sec_resultados">Resultados</string>
-    <string name="sec_venta">Precio de venta</string>
 
     <string name="lbl_precio_kg">Precio del filamento por kilogramo</string>
     <string name="lbl_gramos">Filamento utilizado (gramos)</string>
@@ -21,7 +20,6 @@
     <string name="lbl_horas_trabajo">Mano de obra: horas de trabajo (lijado, pintura, armado)</string>
     <string name="lbl_costo_hora_trabajo">Mano de obra: costo por hora de trabajo</string>
     <string name="lbl_merma">Merma / impresiones fallidas (%)</string>
-    <string name="lbl_margen">Margen de ganancia sobre el costo (%)</string>
     <string name="cb_iva">Mostrar el precio de venta con IVA (19%)</string>
 
     <!-- Los hints no contienen dígitos a propósito: son solo texto guía, no valores. -->
@@ -75,12 +73,7 @@
     <string name="res_merma">Merma / fallos</string>
     <string name="res_total">COSTO TOTAL</string>
     <string name="res_unitario">COSTO UNITARIO</string>
-    <string name="res_precio_venta">Precio de venta unitario (sin IVA)</string>
-    <string name="res_precio_iva">Precio de venta unitario con IVA</string>
-    <string name="res_ganancia">Ganancia del lote (sin IVA)</string>
     <string name="vacio">—</string>
-
-    <string name="fijos_resumen">Valores fijos incluidos (no editables): depreciación con impresora de %1$s y vida útil de %2$s horas; mantenimiento de %3$s por hora.</string>
 
     <string name="modo_oscuro">Modo oscuro</string>
 
@@ -127,10 +120,32 @@
     <string name="res_otros">Otros costos (por pieza x piezas)</string>
     <string name="res_por_gramo">Costo por gramo de filamento</string>
     <string name="res_por_hora">Costo por hora de impresión</string>
-    <string name="btn_compartir">COMPARTIR / COPIAR RESUMEN</string>
     <string name="compartir_titulo">Resumen de costos</string>
     <string name="barra_total">Total %1$s · Unitario %2$s</string>
     <string name="barra_detalle">Cálculo n.º %1$d</string>
     <string name="barra_vacia">Total — · Unitario —</string>
     <string name="barra_sin_calculo">Sin cálculo aún</string>
+
+    <!-- v1.6 -->
+    <string name="lbl_nombre">Nombre del cálculo (qué objeto estás calculando)</string>
+    <string name="hint_nombre">Nombre del objeto</string>
+    <string name="sec_venta">Ganancia y precio de venta</string>
+    <string name="lbl_margen">Ganancia que quieres obtener sobre el costo (%)</string>
+    <string name="venta_ayuda">Escribe el porcentaje de ganancia en Extras para ver aquí cuánto ganas y a qué precio vender. Es aparte del costo total.</string>
+    <string name="res_ganancia_unit">Ganancia por pieza</string>
+    <string name="venta_aplicada">Ganancia de %1$s%% sobre el costo, aparte del costo total.</string>
+    <string name="res_ganancia">Ganancia del lote (sin IVA)</string>
+    <string name="res_precio_venta">Precio de venta unitario (sin IVA)</string>
+    <string name="res_precio_iva">Precio de venta unitario con IVA</string>
+    <string name="res_venta_lote">Precio de venta del lote (sin IVA)</string>
+    <string name="sec_respaldo">Respaldo del cálculo</string>
+    <string name="btn_guardar_imagen">GUARDAR IMAGEN EN LA GALERÍA</string>
+    <string name="btn_compartir">COMPARTIR IMAGEN Y RESUMEN</string>
+    <string name="btn_copiar">COPIAR RESUMEN COMO TEXTO</string>
+    <string name="imagen_guardada">Imagen guardada en la galería (Pictures/CalculadoraCostos3D): %1$s</string>
+    <string name="imagen_error">No se pudo guardar la imagen.</string>
+    <string name="imagen_sin_permiso">Sin permiso para guardar la imagen.</string>
+    <string name="texto_copiado">Resumen copiado.</string>
+    <string name="barra_venta">Cálculo n.º %1$d · Venta unitaria %2$s</string>
+    <string name="fijos_resumen">Valores fijos incluidos (no editables): depreciación con impresora Bambu Lab A1 Combo de %1$s (precio de mercado en Chile, %4$s) y vida útil estimada de %2$s horas; mantenimiento estimado de %3$s por hora.</string>
 </resources>

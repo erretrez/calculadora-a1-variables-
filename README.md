@@ -8,7 +8,7 @@ que calcula el costo de fabricación de una impresión 3D con una Bambu Lab A1 C
 
 Obligatorios: precio del filamento por kg, gramos usados, piezas, tiempo (horas y/o minutos),
 **material** (menú, define los watts) y **región** (tabla, define el precio del kWh).
-Opcionales: mano de obra, merma, margen e IVA (ver más abajo).
+Opcionales: mano de obra, merma, otros costos por pieza, margen e IVA (ver más abajo).
 
 ## Valores fijos de la impresora (desde la v1.3)
 
@@ -81,10 +81,22 @@ Constantes en `Regiones` (`CostCalculator.kt`).
 - **Calculado con:** una línea con los datos que entraron (material, gramos, piezas, tiempo, watts, precio y región, extras).
 - **Verificado:** control interno de que material + electricidad + depreciación + mantenimiento + mano de obra + merma = total.
 
-## Modo oscuro (v1.4)
+## Modo oscuro (v1.4, campos corregidos en v1.5)
 
 Interruptor arriba a la derecha. La elección se guarda y se mantiene al reiniciar; los datos escritos no se pierden al cambiar de tema.
-La primera vez sigue el modo del teléfono.
+La primera vez sigue el modo del teléfono. Desde la v1.5 los campos tienen fondo propio por tema: oscuros con texto blanco en modo oscuro.
+
+## Campos con valor (v1.5)
+
+Un campo vacío tiene fondo neutro; en cuanto tiene un valor, su fondo y borde se vuelven **verdes** (legibles en ambos temas); el campo enfocado lleva borde azul.
+
+## Mejoras de la v1.5
+
+- **Barra fija inferior** con total, unitario, número de cálculo y hora: el total queda a la vista mientras se editan los datos.
+- **Otros costos por pieza** (embalaje, envío, etiqueta): se suman al total (por piezas); la merma no se calcula sobre ellos.
+- **Costo por gramo** de filamento y **costo por hora** de impresión.
+- **Compartir / copiar resumen**: abre el selector de Android con el desglose en texto.
+- **Ícono nuevo** basado en el logo ERRETREZ con colores vivos (ícono adaptativo; versión clásica para Android 7).
 
 ## Extras opcionales
 

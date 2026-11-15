@@ -120,4 +120,17 @@
     <string name="cuadra_mal">✗ Atención: las partes no suman el total. No uses este resultado.</string>
 
     <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos, por eso una suma de cifras redondeadas puede diferir en $1 o $2. La merma se calcula sobre material, electricidad, depreciación y mantenimiento. El margen es sobre el costo unitario. Los precios del kWh de la tabla no son oficiales: confirma con tu boleta.</string>
+
+    <!-- v1.5 -->
+    <string name="lbl_otros">Otros costos por pieza (embalaje, envío, etiqueta)</string>
+    <string name="hint_otros">Monto por pieza</string>
+    <string name="res_otros">Otros costos (por pieza x piezas)</string>
+    <string name="res_por_gramo">Costo por gramo de filamento</string>
+    <string name="res_por_hora">Costo por hora de impresión</string>
+    <string name="btn_compartir">COMPARTIR / COPIAR RESUMEN</string>
+    <string name="compartir_titulo">Resumen de costos</string>
+    <string name="barra_total">Total %1$s · Unitario %2$s</string>
+    <string name="barra_detalle">Cálculo n.º %1$d</string>
+    <string name="barra_vacia">Total — · Unitario —</string>
+    <string name="barra_sin_calculo">Sin cálculo aún</string>
 </resources>

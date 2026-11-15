@@ -28,7 +28,10 @@ enum class Field(val optional: Boolean = false) {
     HORAS_TRABAJO(true),
     COSTO_HORA_TRABAJO(true),
     MERMA(true),
-    MARGEN(true)
+    MARGEN(true),
+
+    // v1.5
+    OTROS_PIEZA(true)
 }
 
 /** Valores ingresados por el usuario. null = campo vacío o no numérico. */
@@ -50,6 +53,8 @@ data class CostInputs(
     val costoHoraTrabajo: Double? = null,
     val mermaPct: Double? = null,
     val margenPct: Double? = null,
+    /** Otros costos por pieza (embalaje, envío, etiqueta…). Vacío = no aplica. */
+    val otrosPorPieza: Double? = null,
     val incluirIva: Boolean = false,
     /** Campos opcionales con texto escrito pero que no es un número válido. */
     val invalidOptional: Set<Field> = emptySet()
@@ -71,7 +76,13 @@ data class CostBreakdown(
     /** Precio de venta unitario con IVA. null si no se indicó margen o no se pidió IVA. */
     val precioConIva: Double? = null,
     /** Ganancia estimada del lote completo, sin IVA. null si no se indicó margen. */
-    val gananciaLote: Double? = null
+    val gananciaLote: Double? = null,
+    /** Otros costos del lote (otros por pieza x piezas). */
+    val otros: Double = 0.0,
+    /** Costo total por gramo de filamento usado. null si los gramos son 0. */
+    val costoPorGramo: Double? = null,
+    /** Costo total por hora de impresión. */
+    val costoPorHora: Double = 0.0
 )
 
 sealed class Outcome {
@@ -227,11 +238,33 @@ object Regiones {
     }
 }
 
+/** Texto del resumen que se comparte desde la app. */
+object Compartir {
+    fun texto(b: CostBreakdown, i: CostInputs, material: String?, region: String?): String {
+        val f = CostCalculator::formatClp
+        val l = mutableListOf<String>()
+        l += "Costo de impresión 3D"
+        l += "Datos: " + Resumen.entradas(i, material, region)
+        l += "Material: " + f(b.material)
+        l += "Electricidad: " + f(b.electricidad)
+        l += "Depreciación: " + f(b.depreciacion)
+        l += "Mantenimiento: " + f(b.mantenimiento)
+        if (b.manoObra > 0.0) l += "Mano de obra: " + f(b.manoObra)
+        if (b.merma > 0.0) l += "Merma: " + f(b.merma)
+        if (b.otros > 0.0) l += "Otros costos: " + f(b.otros)
+        l += "COSTO TOTAL: " + f(b.total)
+        l += "COSTO UNITARIO: " + f(b.unitario)
+        b.precioVenta?.let { l += "Precio de venta unitario (sin IVA): " + f(it) }
+        b.precioConIva?.let { l += "Precio de venta unitario con IVA: " + f(it) }
+        return l.joinToString("\n")
+    }
+}
+
 /** Textos y comprobaciones que ayudan a ver con qué datos se hizo cada cálculo. */
 object Resumen {
     /** Las partes del desglose deben sumar exactamente el total (control interno). */
     fun partesSumanElTotal(b: CostBreakdown): Boolean {
-        val suma = b.material + b.electricidad + b.depreciacion + b.mantenimiento + b.manoObra + b.merma
+        val suma = b.material + b.electricidad + b.depreciacion + b.mantenimiento + b.manoObra + b.merma + b.otros
         return Math.abs(suma - b.total) <= 1e-9 * Math.max(1.0, Math.abs(b.total))
     }
 
@@ -253,6 +286,7 @@ object Resumen {
             partes += "mano de obra " + Suggested.plainRounded(i.horasTrabajo) + " h x " +
                 CostCalculator.formatClp(i.costoHoraTrabajo)
         }
+        i.otrosPorPieza?.let { partes += "otros " + CostCalculator.formatClp(it) + "/pieza" }
         i.mermaPct?.let { partes += "merma " + Suggested.plainRounded(it) + "%" }
         i.margenPct?.let { partes += "margen " + Suggested.plainRounded(it) + "%" }
         if (i.incluirIva) partes += "con IVA"
@@ -365,6 +399,7 @@ object CostCalculator {
         val merma = i.mermaPct
         if (merma != null && (merma < 0.0 || merma >= 100.0)) errors[Field.MERMA] = MSG_PCT
         optionalNonNegative(Field.MARGEN, i.margenPct)
+        optionalNonNegative(Field.OTROS_PIEZA, i.otrosPorPieza)
 
         if (errors.isNotEmpty()) return Outcome.Failure(errors)
 
@@ -382,18 +417,22 @@ object CostCalculator {
         val manoObra = (horasTrabajo ?: 0.0) * (costoHora ?: 0.0)
         val costoMerma = base * ((merma ?: 0.0) / 100.0)
 
-        val total = base + manoObra + costoMerma
+        val otros = (i.otrosPorPieza ?: 0.0) * n
+        val total = base + manoObra + costoMerma + otros
         val unitario = total / n
 
         val margen = i.margenPct
         val precioVenta = if (margen != null) unitario * (1.0 + margen / 100.0) else null
         val precioConIva = if (i.incluirIva && precioVenta != null) precioVenta * (1.0 + IVA_RATE) else null
         val gananciaLote = if (precioVenta != null) (precioVenta - unitario) * n else null
+        val gramosUsados = i.gramos
+        val costoPorGramo = if (gramosUsados > 0.0) total / gramosUsados else null
+        val costoPorHora = total / horasTotales
 
         val all = listOfNotNull(
             material, electricidad, depreciacion, mantenimiento, manoObra, costoMerma,
-            total, unitario, precioVenta, precioConIva, gananciaLote
-        )
+            total, unitario, precioVenta, precioConIva, gananciaLote, otros, costoPorHora
+        ) + listOfNotNull(costoPorGramo)
         if (all.any { !it.isFinite() }) {
             return Outcome.Failure(emptyMap(), MSG_OVERFLOW)
         }
@@ -411,7 +450,10 @@ object CostCalculator {
                 merma = costoMerma,
                 precioVenta = precioVenta,
                 precioConIva = precioConIva,
-                gananciaLote = gananciaLote
+                gananciaLote = gananciaLote,
+                otros = otros,
+                costoPorGramo = costoPorGramo,
+                costoPorHora = costoPorHora
             )
         )
     }

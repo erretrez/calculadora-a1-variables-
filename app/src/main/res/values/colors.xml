@@ -9,6 +9,11 @@
     <color name="linea">#D5DBE2</color>
     <color name="error">#B3261E</color>
 
+    <color name="campo">#FFFFFF</color>
+    <color name="campo_lleno">#DDF3E0</color>
+    <color name="borde_lleno">#2E9E4F</color>
+    <color name="icono_fondo">#0B1220</color>
+
     <!-- Tema oscuro -->
     <color name="fondo_oscuro">#101418</color>
     <color name="tarjeta_oscuro">#1B2128</color>
@@ -17,4 +22,7 @@
     <color name="acento_oscuro">#6EA8FF</color>
     <color name="linea_oscuro">#2C3640</color>
     <color name="error_oscuro">#FF8A80</color>
+    <color name="campo_oscuro">#0C1015</color>
+    <color name="campo_lleno_oscuro">#16382A</color>
+    <color name="borde_lleno_oscuro">#4ADE80</color>
 </resources>

@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/cFondo"
+    android:orientation="vertical">
+
+<ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
     android:fillViewport="true"
     android:scrollbars="vertical">
 
@@ -283,6 +289,13 @@
             android:hint="@string/hint_merma"
             android:inputType="numberDecimal" />
 
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_otros" />
+        <EditText
+            android:id="@+id/et_otros"
+            style="@style/Campo"
+            android:hint="@string/hint_otros"
+            android:inputType="numberDecimal" />
+
         <TextView style="@style/Etiqueta" android:text="@string/lbl_margen" />
         <EditText
             android:id="@+id/et_margen"
@@ -392,6 +405,14 @@
                     android:text="@string/vacio" />
             </LinearLayout>
 
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_otros" />
+                <TextView
+                    android:id="@+id/tv_otros"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
@@ -421,6 +442,22 @@
                     style="@style/ResultadoValor"
                     android:text="@string/vacio"
                     android:textSize="20sp" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado" android:layout_marginTop="6dp">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_por_gramo" />
+                <TextView
+                    android:id="@+id/tv_por_gramo"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_por_hora" />
+                <TextView
+                    android:id="@+id/tv_por_hora"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
             </LinearLayout>
 
             <TextView
@@ -483,6 +520,14 @@
             </LinearLayout>
         </LinearLayout>
 
+        <Button
+            android:id="@+id/btn_compartir"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="14dp"
+            android:enabled="false"
+            android:text="@string/btn_compartir" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -493,3 +538,47 @@
             android:textSize="12sp" />
     </LinearLayout>
 </ScrollView>
+
+    <!-- Barra fija: el total siempre a la vista mientras se editan los datos -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/cTarjeta"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_barra_total"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/cTexto"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_barra_detalle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/cTextoSuave"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_barra_hora"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/cAcento"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

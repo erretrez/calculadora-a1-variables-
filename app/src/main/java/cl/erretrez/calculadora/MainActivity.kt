@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Typeface
 import android.location.Location
@@ -49,6 +50,14 @@ class MainActivity : Activity() {
     private lateinit var tvPrecioIva: TextView
     private lateinit var tvGanancia: TextView
     private lateinit var tvCalculadoCon: TextView
+    private lateinit var tvOtros: TextView
+    private lateinit var tvPorGramo: TextView
+    private lateinit var tvPorHora: TextView
+    private lateinit var tvBarraTotal: TextView
+    private lateinit var tvBarraDetalle: TextView
+    private lateinit var tvBarraHora: TextView
+    private lateinit var btnCompartir: Button
+    private var textoCompartir: String? = null
     private lateinit var tvCuadra: TextView
     private lateinit var cbIva: CheckBox
     private lateinit var prefs: SharedPreferences
@@ -131,6 +140,7 @@ class MainActivity : Activity() {
             Field.HORAS_TRABAJO to findViewById<EditText>(R.id.et_horas_trabajo),
             Field.COSTO_HORA_TRABAJO to findViewById<EditText>(R.id.et_costo_hora_trabajo),
             Field.MERMA to findViewById<EditText>(R.id.et_merma),
+            Field.OTROS_PIEZA to findViewById<EditText>(R.id.et_otros),
             Field.MARGEN to findViewById<EditText>(R.id.et_margen)
         )
 
@@ -147,6 +157,15 @@ class MainActivity : Activity() {
         tvPrecioIva = findViewById(R.id.tv_precio_iva)
         tvGanancia = findViewById(R.id.tv_ganancia)
         tvCalculadoCon = findViewById(R.id.tv_calculado_con)
+        tvOtros = findViewById(R.id.tv_otros)
+        tvPorGramo = findViewById(R.id.tv_por_gramo)
+        tvPorHora = findViewById(R.id.tv_por_hora)
+        tvBarraTotal = findViewById(R.id.tv_barra_total)
+        tvBarraDetalle = findViewById(R.id.tv_barra_detalle)
+        tvBarraHora = findViewById(R.id.tv_barra_hora)
+        btnCompartir = findViewById(R.id.btn_compartir)
+        btnCompartir.setOnClickListener { compartir() }
+        showBar(null, 0, null)
         tvCuadra = findViewById(R.id.tv_cuadra)
         cbIva = findViewById(R.id.cb_iva)
 
@@ -166,6 +185,21 @@ class MainActivity : Activity() {
             }
         }
         inputs.values.forEach { it.addTextChangedListener(watcher) }
+
+        // Un campo con valor cambia de color (estado "activado" del fondo): se ve de un vistazo qué ya se ingresó.
+        val marcarLlenos = listOf(
+            findViewById<EditText>(R.id.et_boleta_monto), findViewById<EditText>(R.id.et_boleta_kwh)
+        ) + inputs.values
+        marcarLlenos.forEach { box ->
+            box.isActivated = !box.text.isNullOrBlank()
+            box.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                override fun afterTextChanged(s: Editable?) {
+                    box.isActivated = !s.isNullOrBlank()
+                }
+            })
+        }
         cbIva.setOnCheckedChangeListener { _, _ ->
             if (!suspendWatchers) recalculate(showErrors = false)
         }
@@ -218,6 +252,7 @@ class MainActivity : Activity() {
             costoHoraTrabajo = value(Field.COSTO_HORA_TRABAJO),
             mermaPct = value(Field.MERMA),
             margenPct = value(Field.MARGEN),
+            otrosPorPieza = value(Field.OTROS_PIEZA),
             incluirIva = cbIva.isChecked,
             invalidOptional = invalidOptional
         )
@@ -262,6 +297,9 @@ class MainActivity : Activity() {
                 val ok = Resumen.partesSumanElTotal(b)
                 tvCuadra.setText(if (ok) R.string.cuadra_ok else R.string.cuadra_mal)
                 flashResults()
+                showBar(b, calcCount, clock.format(Date()))
+                textoCompartir = Compartir.texto(b, inputsNow, materialName(), regionName())
+                btnCompartir.isEnabled = true
             }
             is Outcome.Failure -> {
                 clearResults()
@@ -305,14 +343,44 @@ class MainActivity : Activity() {
         tvPrecioVenta.text = b.precioVenta?.let { CostCalculator.formatClp(it) } ?: empty
         tvPrecioIva.text = b.precioConIva?.let { CostCalculator.formatClp(it) } ?: empty
         tvGanancia.text = b.gananciaLote?.let { CostCalculator.formatClp(it) } ?: empty
+        tvOtros.text = CostCalculator.formatClp(b.otros)
+        tvPorGramo.text = b.costoPorGramo?.let { CostCalculator.formatClp(it) } ?: empty
+        tvPorHora.text = CostCalculator.formatClp(b.costoPorHora)
+    }
+
+    /** Barra fija inferior: total y unitario siempre visibles, con el número de cálculo y su hora. */
+    private fun showBar(b: CostBreakdown?, n: Int, hora: String?) {
+        if (b == null) {
+            tvBarraTotal.setText(R.string.barra_vacia)
+            tvBarraDetalle.setText(R.string.barra_sin_calculo)
+            tvBarraHora.text = ""
+        } else {
+            tvBarraTotal.text = getString(
+                R.string.barra_total, CostCalculator.formatClp(b.total), CostCalculator.formatClp(b.unitario)
+            )
+            tvBarraDetalle.text = getString(R.string.barra_detalle, n)
+            tvBarraHora.text = hora
+        }
+    }
+
+    private fun compartir() {
+        val text = textoCompartir ?: return
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        startActivity(Intent.createChooser(send, getString(R.string.compartir_titulo)))
     }
 
     private fun clearResults() {
         val empty = getString(R.string.vacio)
         listOf(
             tvMaterial, tvElectricidad, tvDepreciacion, tvMantenimiento, tvManoObra, tvMerma,
-            tvTotal, tvUnitario, tvPrecioVenta, tvPrecioIva, tvGanancia
+            tvTotal, tvUnitario, tvPrecioVenta, tvPrecioIva, tvGanancia, tvOtros, tvPorGramo, tvPorHora
         ).forEach { it.text = empty }
+        showBar(null, 0, null)
+        textoCompartir = null
+        btnCompartir.isEnabled = false
         tvCalculadoCon.text = ""
         tvCuadra.text = ""
     }

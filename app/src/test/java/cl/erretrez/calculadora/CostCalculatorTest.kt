@@ -400,6 +400,65 @@ class CostCalculatorTest {
         assertTrue(t, t.contains("con IVA"))
     }
 
+    // ---------- v1.5: otros costos por pieza, costo por gramo y por hora, compartir ----------
+
+    @Test
+    fun otrosCostosPorPiezaSeMultiplicanPorLasPiezas() {
+        val b = success(sinDatosDeImpresora().copy(otrosPorPieza = 500.0))
+        assertEquals(1000.0, b.otros, 1e-9)       // 500 x 2 piezas
+        assertEquals(4100.0, b.total, 1e-9)       // 3100 + 1000
+        assertEquals(2050.0, b.unitario, 1e-9)
+        assertTrue(Resumen.partesSumanElTotal(b))
+    }
+
+    @Test
+    fun laMermaNoSeCalculaSobreLosOtrosCostos() {
+        val b = success(sinDatosDeImpresora().copy(otrosPorPieza = 500.0, mermaPct = 10.0))
+        assertEquals(310.0, b.merma, 1e-9)        // 10% de 3100, no de 4100
+        assertEquals(4410.0, b.total, 1e-9)
+        assertTrue(Resumen.partesSumanElTotal(b))
+    }
+
+    @Test
+    fun sinOtrosCostosElTotalNoCambia() {
+        assertEquals(3100.0, success(sinDatosDeImpresora()).total, 1e-9)
+        assertEquals(0.0, success(sinDatosDeImpresora()).otros, 1e-9)
+    }
+
+    @Test
+    fun otrosCostosNegativosOInvalidosSeRechazan() {
+        val neg = failure(sinDatosDeImpresora().copy(otrosPorPieza = -1.0))
+        assertEquals(CostCalculator.MSG_NEGATIVE, neg.fieldErrors[Field.OTROS_PIEZA])
+        val inv = failure(sinDatosDeImpresora().copy(invalidOptional = setOf(Field.OTROS_PIEZA)))
+        assertEquals(CostCalculator.MSG_REQUIRED, inv.fieldErrors[Field.OTROS_PIEZA])
+    }
+
+    @Test
+    fun costoPorGramoYPorHora() {
+        val b = success(sinDatosDeImpresora())
+        assertEquals(31.0, b.costoPorGramo!!, 1e-9)   // 3100 / 100 g
+        assertEquals(620.0, b.costoPorHora, 1e-9)     // 3100 / 5 h
+    }
+
+    @Test
+    fun conCeroGramosNoHayCostoPorGramoNiDivisionPorCero() {
+        val b = success(sinDatosDeImpresora().copy(gramos = 0.0))
+        assertNull(b.costoPorGramo)
+        assertTrue(b.costoPorHora.isFinite())
+    }
+
+    @Test
+    fun textoParaCompartirTraeLosTotales() {
+        val i = sinDatosDeImpresora().copy(otrosPorPieza = 500.0)
+        val t = Compartir.texto(success(i), i, "PLA", "Metropolitana de Santiago")
+        assertTrue(t, t.contains("COSTO TOTAL: " + CostCalculator.formatClp(4100.0)))
+        assertTrue(t, t.contains("COSTO UNITARIO: " + CostCalculator.formatClp(2050.0)))
+        assertTrue(t, t.contains("Otros costos: " + CostCalculator.formatClp(1000.0)))
+        assertTrue(t, t.contains("100 g de PLA"))
+        assertFalse(t, t.contains("Mano de obra"))
+        assertFalse(t, t.contains("Precio de venta"))
+    }
+
     // ---------- v1.2: regiones y ubicación ----------
 
     @Test

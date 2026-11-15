@@ -8,4 +8,7 @@
     <attr name="cAcento" format="color" />
     <attr name="cLinea" format="color" />
     <attr name="cError" format="color" />
+    <attr name="cCampo" format="color" />
+    <attr name="cCampoLleno" format="color" />
+    <attr name="cBordeLleno" format="color" />
 </resources>

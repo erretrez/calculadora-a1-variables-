@@ -77,7 +77,7 @@ expect_light "tema inicial (el emulador parte en modo claro)"
 ALL_IDS=$($H ids)
 echo "$ALL_IDS" | grep -qx "et_precio_kg" || fail "recorrido incompleto: no vio et_precio_kg"
 echo "$ALL_IDS" | grep -qx "tv_ganancia" || fail "recorrido incompleto: no llegó a tv_ganancia"
-for id in sp_material sp_region btn_tabla sw_oscuro tv_calculado_con; do
+for id in sp_material sp_region btn_tabla sw_oscuro tv_calculado_con tv_barra_total btn_compartir; do
   echo "$ALL_IDS" | grep -qx "$id" || fail "debería existir $id"; echo "OK: existe $id"
 done
 for id in et_precio_impresora et_vida_util et_mantenimiento et_watts et_precio_kwh \
@@ -106,6 +106,11 @@ expect_digits "merma sin extras" "$(get tv_merma)" 0
 expect_digits "total" "$(get tv_total)" 3026
 expect_digits "unitario" "$(get tv_unitario)" 1513
 expect_empty "precio de venta sin margen" "$(get tv_precio_venta)"
+expect_digits "costo por gramo (3026 / 100 g)" "$(get tv_por_gramo)" 30
+expect_digits "costo por hora (3026 / 5 h)" "$(get tv_por_hora)" 605
+BARRA=$(get tv_barra_total)
+expect_contains "barra fija: total" "$BARRA" '3.026'
+expect_contains "barra fija: unitario" "$BARRA" '1.513'
 FIJOS=$(get tv_fijos)
 expect_contains "resumen de valores fijos (impresora)" "$FIJOS" '$450.000'
 expect_contains "resumen de valores fijos (vida útil)" "$FIJOS" '5.000'
@@ -133,6 +138,23 @@ echo "OK: al cambiar un valor se recalculó (cálculo n.º $N1 -> n.º $N2, '$ST
 expect_contains "calculado con refleja el cambio" "$(get tv_calculado_con)" "200 g de PLA"
 fill et_gramos 100
 expect_digits "total al volver a 100 g" "$(get tv_total)" 3026
+
+echo "== Otros costos por pieza (embalaje, envío)"
+fill et_otros 500
+expect_digits "otros costos (500 x 2 piezas)" "$(get tv_otros)" 1000
+expect_digits "total con otros costos" "$(get tv_total)" 4026
+expect_digits "unitario con otros costos" "$(get tv_unitario)" 2013
+expect_contains "barra fija sigue al total" "$(get tv_barra_total)" '4.026'
+expect_contains "calculado con incluye otros costos" "$(get tv_calculado_con)" "otros"
+fill et_otros ""
+expect_digits "total sin otros costos" "$(get tv_total)" 3026
+
+echo "== Colores de los campos (modo claro): vacío blanco, con valor verde"
+read -r R G B <<< "$($H bgrgb et_otros)"; echo "campo vacío: $R $G $B"
+[ $((R+G+B)) -gt 700 ] || fail "el campo vacío debía verse claro ($R $G $B)"
+read -r R G B <<< "$($H bgrgb et_precio_kg)"; echo "campo con valor: $R $G $B"
+[ $((G-R)) -gt 10 ] || fail "el campo con valor debía verse verdoso ($R $G $B)"
+echo "OK: campo vacío claro y campo con valor verdoso en modo claro"
 
 echo "== Otros materiales del menú"
 pick sp_material "ABS"
@@ -168,6 +190,14 @@ expect_contains "calculado con incluye los extras" "$(get tv_calculado_con)" "me
 expect_contains "verificación de suma con extras" "$(get tv_cuadra)" "Verificado"
 shot pantalla_extras
 
+echo "== Compartir resumen (solo se comprueba que abre el selector y la app sigue viva)"
+tap btn_compartir
+sleep 3
+adb shell input keyevent 4
+sleep 2
+adb shell pidof "$PKG" > /dev/null || fail "la app se cerró al compartir"
+expect_digits "el total sigue visible tras compartir" "$(get tv_total)" 9631
+
 echo "== Validación: piezas = 0 no debe dar resultado ni dividir por cero"
 fill et_piezas 0
 tap btn_calcular
@@ -182,6 +212,14 @@ tap sw_oscuro
 sleep 3
 expect_dark "tras activar el modo oscuro"
 shot pantalla_oscuro
+read -r R G B <<< "$($H bgrgb et_otros)"; echo "campo vacío (oscuro): $R $G $B"
+[ $((R+G+B)) -lt 150 ] || fail "el campo vacío debía verse oscuro en modo oscuro ($R $G $B)"
+read -r R G B <<< "$($H bgrgb et_precio_kg)"; echo "campo con valor (oscuro): $R $G $B"
+[ $((R+G+B)) -lt 250 ] || fail "el campo con valor debía seguir oscuro ($R $G $B)"
+[ $((G-R)) -gt 20 ] || fail "el campo con valor debía verse verdoso ($R $G $B)"
+ML=$($H maxluma et_precio_kg); echo "luminosidad máxima del texto ingresado: $ML"
+[ "$ML" -gt 200 ] || fail "el texto ingresado debía verse blanco en modo oscuro (luminosidad $ML)"
+echo "OK: en modo oscuro los campos son oscuros, el texto ingresado es blanco y el campo con valor se ve verdoso"
 expect_digits "el total sobrevive al cambio de tema" "$(get tv_total)" 9631
 expect_contains "el material sobrevive al cambio de tema" "$(get tv_calculado_con)" "PLA"
 adb shell am force-stop "$PKG"; sleep 2
@@ -242,7 +280,7 @@ fill et_horas 5
 tap btn_calcular
 expect_contains "falta elegir material" "$(get tv_material_info)" "Elige un material"
 tap btn_limpiar
-for id in et_precio_kg et_gramos et_piezas et_horas et_minutos et_horas_trabajo \
+for id in et_precio_kg et_gramos et_piezas et_horas et_minutos et_horas_trabajo et_otros \
           et_costo_hora_trabajo et_merma et_margen et_boleta_monto et_boleta_kwh; do
   expect_empty "$id tras LIMPIAR" "$(get $id)"
 done
@@ -252,6 +290,11 @@ for id in tv_material tv_electricidad tv_depreciacion tv_mantenimiento tv_mano_o
 done
 [ "$(get cb_iva checked)" = "false" ] || fail "el IVA debía quedar desmarcado tras LIMPIAR"
 echo "OK: IVA desmarcado"
+[ "$(get btn_compartir enabled)" = "false" ] || fail "COMPARTIR debía quedar desactivado sin resultado"
+echo "OK: COMPARTIR desactivado sin resultado"
+expect_contains "barra fija vacía tras LIMPIAR" "$(get tv_barra_total)" "—"
+expect_empty "otros costos tras LIMPIAR" "$(get tv_otros)"
+expect_empty "costo por gramo tras LIMPIAR" "$(get tv_por_gramo)"
 expect_contains "el material vuelve a vacío" "$(get tv_material_info)" "Elige un material"
 expect_contains "la región se conserva tras LIMPIAR" "$(get tv_region_ref)" "no tiene precio"
 

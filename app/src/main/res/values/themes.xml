@@ -11,6 +11,9 @@
         <item name="cAcento">@color/acento</item>
         <item name="cLinea">@color/linea</item>
         <item name="cError">@color/error</item>
+        <item name="cCampo">@color/campo</item>
+        <item name="cCampoLleno">@color/campo_lleno</item>
+        <item name="cBordeLleno">@color/borde_lleno</item>
         <item name="android:colorAccent">@color/acento</item>
         <item name="android:colorPrimary">@color/acento</item>
         <item name="android:statusBarColor">@color/fondo</item>
@@ -26,6 +29,9 @@
         <item name="cAcento">@color/acento_oscuro</item>
         <item name="cLinea">@color/linea_oscuro</item>
         <item name="cError">@color/error_oscuro</item>
+        <item name="cCampo">@color/campo_oscuro</item>
+        <item name="cCampoLleno">@color/campo_lleno_oscuro</item>
+        <item name="cBordeLleno">@color/borde_lleno_oscuro</item>
         <item name="android:colorAccent">@color/acento_oscuro</item>
         <item name="android:colorPrimary">@color/acento_oscuro</item>
         <item name="android:statusBarColor">@color/fondo_oscuro</item>
@@ -65,7 +71,9 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">52dp</item>
         <item name="android:layout_marginTop">4dp</item>
-        <item name="android:background">@android:drawable/edit_text</item>
+        <item name="android:background">@drawable/campo_fondo</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
         <item name="android:imeOptions">actionNext</item>
         <item name="android:maxLines">1</item>
         <item name="android:selectAllOnFocus">true</item>

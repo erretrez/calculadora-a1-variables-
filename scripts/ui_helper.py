@@ -8,6 +8,8 @@ Uso:
   ui_helper.py ids                 # recorre toda la pantalla y lista los ids que existen
   ui_helper.py taptext <texto>     # toca el elemento cuyo texto contiene <texto> (p. ej. en un menú)
   ui_helper.py hastext <texto>     # sale con 0 si hay un elemento visible/desplazable con ese texto
+  ui_helper.py bgrgb <id>          # color (r g b) del fondo de un campo, leído de una captura
+  ui_helper.py maxluma <id>        # luminosidad máxima (0-255) dentro del elemento (p. ej. su texto)
   ui_helper.py luma                # luminosidad (0-255) del fondo de la app, leída de una captura
 
 <id> es el id sin prefijo (por ejemplo: btn_limpiar). Sale con código 1 si no se encuentra.
@@ -29,10 +31,10 @@ ORDER = [
     "sp_material", "tv_material_info", "et_watts", "sp_region", "btn_detectar", "tv_region_info",
     "tv_region_ref", "btn_tabla", "et_precio_kwh", "et_boleta_monto", "et_boleta_kwh",
     "tv_boleta_resultado", "btn_usar_boleta", "et_horas_trabajo", "et_costo_hora_trabajo",
-    "et_merma", "et_margen", "cb_iva", "btn_calcular", "btn_limpiar", "tv_status", "tv_material",
-    "tv_electricidad", "tv_depreciacion", "tv_mantenimiento", "tv_mano_obra", "tv_merma",
-    "tv_total", "tv_unitario", "tv_calculado_con", "tv_cuadra", "tv_fijos", "tv_precio_venta",
-    "tv_precio_iva", "tv_ganancia",
+    "et_merma", "et_otros", "et_margen", "cb_iva", "btn_calcular", "btn_limpiar", "tv_status", "tv_material",
+    "tv_electricidad", "tv_depreciacion", "tv_mantenimiento", "tv_mano_obra", "tv_merma", "tv_otros",
+    "tv_total", "tv_unitario", "tv_por_gramo", "tv_por_hora", "tv_calculado_con", "tv_cuadra", "tv_fijos", "tv_precio_venta",
+    "tv_precio_iva", "tv_ganancia", "btn_compartir",
 ]
 
 
@@ -104,6 +106,12 @@ def write_last(rid):
 
 def locate(rid, max_steps=34):
     """Desplaza la pantalla hasta que el elemento sea visible y lo devuelve."""
+    if rid.startswith("tv_barra_"):  # la barra inferior es fija: siempre está en pantalla
+        for _ in range(3):
+            node = find_in(dump(), rid)
+            if node is not None:
+                return node
+        return None
     below = True  # por defecto buscar hacia abajo
     last = read_last()
     if last in ORDER and rid in ORDER:
@@ -141,7 +149,7 @@ def all_ids():
             break
         prev = ids
         swipe_to_see_below()
-    write_last("tv_ganancia")
+    write_last("btn_compartir")
     return seen
 
 
@@ -163,6 +171,29 @@ def find_text(sub, max_steps=12):
     return None
 
 
+def grab():
+    """Captura cruda de pantalla: devuelve (bytes, ancho, alto, tamaño del encabezado)."""
+    raw = subprocess.run(["adb", "exec-out", "screencap"], capture_output=True).stdout
+    w, h = int.from_bytes(raw[0:4], "little"), int.from_bytes(raw[4:8], "little")
+    return raw, w, h, len(raw) - w * h * 4
+
+
+def px(raw, w, header, x, y):
+    off = header + (y * w + x) * 4
+    return raw[off], raw[off + 1], raw[off + 2]
+
+
+def field_pixels(rid):
+    """(raw, w, header, caja) de un elemento tras desplazarse hasta él."""
+    node = locate(rid)
+    if node is None:
+        print(f"no se encontró {rid}", file=sys.stderr)
+        sys.exit(1)
+    raw, w, h, header = grab()
+    a, b, c, d = map(int, re.findall(r"\d+", node.get("bounds")))
+    return raw, w, header, (max(a, 0), max(b, 0), min(c, w), min(d, h))
+
+
 def luma():
     """Luminosidad del fondo: un píxel del margen izquierdo, donde solo se ve el fondo de la app."""
     raw = subprocess.run(["adb", "exec-out", "screencap"], capture_output=True).stdout
@@ -181,6 +212,20 @@ def luma():
 
 
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "bgrgb":
+        raw, w, header, (a, b, c, d) = field_pixels(sys.argv[2])
+        r, g, bl = px(raw, w, header, c - 40, (b + d) // 2)  # lado derecho: nunca tiene texto
+        print(r, g, bl)
+        return
+    if len(sys.argv) == 3 and sys.argv[1] == "maxluma":
+        raw, w, header, (a, b, c, d) = field_pixels(sys.argv[2])
+        best = 0
+        for y in range(b + 4, d - 4, 2):
+            for x in range(a + 4, c - 4, 2):
+                r, g, bl = px(raw, w, header, x, y)
+                best = max(best, int(0.299 * r + 0.587 * g + 0.114 * bl))
+        print(best)
+        return
     if len(sys.argv) == 2 and sys.argv[1] == "luma":
         print(luma())
         return

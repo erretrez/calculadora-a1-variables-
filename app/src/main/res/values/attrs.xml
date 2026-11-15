@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores semánticos: cada tema (claro/oscuro) les asigna su valor. -->
+    <attr name="cFondo" format="color" />
+    <attr name="cTarjeta" format="color" />
+    <attr name="cTexto" format="color" />
+    <attr name="cTextoSuave" format="color" />
+    <attr name="cAcento" format="color" />
+    <attr name="cLinea" format="color" />
+    <attr name="cError" format="color" />
+</resources>

@@ -5,6 +5,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.graphics.Typeface
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -13,15 +15,23 @@ import android.os.Handler
 import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Spinner
+import android.widget.Switch
 import android.widget.TextView
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : Activity() {
 
@@ -38,23 +48,35 @@ class MainActivity : Activity() {
     private lateinit var tvPrecioVenta: TextView
     private lateinit var tvPrecioIva: TextView
     private lateinit var tvGanancia: TextView
+    private lateinit var tvCalculadoCon: TextView
+    private lateinit var tvCuadra: TextView
     private lateinit var cbIva: CheckBox
+    private lateinit var prefs: SharedPreferences
 
-    // Precio del kWh: región, boleta y tarifa guardada
+    // Material (consumo de la impresora)
+    private lateinit var spMaterial: Spinner
+    private lateinit var tvMaterialInfo: TextView
+    private lateinit var llWattsOtro: View
+    private var wattsAuto = false
+
+    // Precio del kWh: región (tabla) y, solo si hace falta, precio manual / boleta
     private lateinit var spRegion: Spinner
     private lateinit var tvRegionInfo: TextView
     private lateinit var tvRegionRef: TextView
-    private lateinit var btnUsarRegion: Button
+    private lateinit var llKwhManual: View
+    private lateinit var llTabla: LinearLayout
+    private lateinit var btnTabla: Button
     private lateinit var etBoletaMonto: EditText
     private lateinit var etBoletaKwh: EditText
     private lateinit var tvBoletaResultado: TextView
     private lateinit var btnUsarBoleta: Button
-    private lateinit var tvTarifaGuardada: TextView
-    private lateinit var btnUsarTarifa: Button
-    private lateinit var prefs: SharedPreferences
     private var boletaPrecio: Double? = null
-    private var tarifaPrecio: Double? = null
-    private var tarifaRegion: String? = null
+    private var kwhAuto = false
+    private var settingPrice = false
+    private val filasTabla = mutableListOf<Pair<TextView, TextView>>()
+
+    private var calcCount = 0
+    private val clock = SimpleDateFormat("HH:mm:ss", Locale.forLanguageTag("es-CL"))
 
     // Ubicación (solo se usa al tocar DETECTAR MI REGIÓN)
     private val handler = Handler(Looper.getMainLooper())
@@ -88,8 +110,15 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
         prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val dark = if (prefs.contains(KEY_DARK)) {
+            prefs.getBoolean(KEY_DARK, false)
+        } else {
+            // Primera vez: se sigue el modo del teléfono; desde que el usuario toca el interruptor se recuerda su elección.
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        }
+        setTheme(if (dark) R.style.TemaOscuro else R.style.TemaClaro)
+        setContentView(R.layout.activity_main)
 
         inputs = linkedMapOf(
             Field.PRECIO_KG to findViewById<EditText>(R.id.et_precio_kg),
@@ -117,7 +146,17 @@ class MainActivity : Activity() {
         tvPrecioVenta = findViewById(R.id.tv_precio_venta)
         tvPrecioIva = findViewById(R.id.tv_precio_iva)
         tvGanancia = findViewById(R.id.tv_ganancia)
+        tvCalculadoCon = findViewById(R.id.tv_calculado_con)
+        tvCuadra = findViewById(R.id.tv_cuadra)
         cbIva = findViewById(R.id.cb_iva)
+
+        val swOscuro = findViewById<Switch>(R.id.sw_oscuro)
+        swOscuro.isChecked = dark
+        swOscuro.setOnCheckedChangeListener { _, checked ->
+            // commit(): queda en disco antes de recrear la pantalla con el otro tema.
+            prefs.edit().putBoolean(KEY_DARK, checked).commit()
+            recreate()
+        }
 
         val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -139,10 +178,9 @@ class MainActivity : Activity() {
             CostCalculator.formatClp(Suggested.MANTENIMIENTO_POR_HORA)
         )
 
-        setupWatts()
-        setupRegion()
+        setupMaterial()
         setupBoleta()
-        setupTarifa()
+        setupRegion()
 
         findViewById<Button>(R.id.btn_calcular).setOnClickListener {
             hideKeyboard()
@@ -185,30 +223,72 @@ class MainActivity : Activity() {
         )
     }
 
+    private fun themeColor(attr: Int): Int {
+        val tv = TypedValue()
+        theme.resolveAttribute(attr, tv, true)
+        return tv.data
+    }
+
+    private fun selectedMaterial(): Material? = Materiales.todos.getOrNull(spMaterial.selectedItemPosition - 1)
+
+    /** Nombre para mostrar en "Calculado con": el material elegido (no la opción "Otro"). */
+    private fun materialName(): String? = selectedMaterial()?.takeIf { it.watts != null }?.nombre
+
+    private fun regionName(): String? = when (spRegion.selectedItemPosition) {
+        0 -> null
+        MANUAL_POS -> getString(R.string.region_otra).substringBefore(" (")
+        else -> selectedRegion()?.nombre
+    }
+
     /**
      * @param showErrors true al pulsar CALCULAR: marca cada campo inválido.
      * En el cálculo automático (al escribir) solo se actualiza el resultado, sin marcar errores.
      */
     private fun recalculate(showErrors: Boolean) {
         inputs.values.forEach { it.error = null }
+        val inputsNow = readInputs()
+        showRegionRefText(error = false)
+        showMaterialInfo(error = false)
 
-        when (val outcome = CostCalculator.calculate(readInputs())) {
+        when (val outcome = CostCalculator.calculate(inputsNow)) {
             is Outcome.Success -> {
-                showResults(outcome.breakdown)
-                tvStatus.setText(R.string.status_ok)
+                val b = outcome.breakdown
+                showResults(b)
+                calcCount++
+                tvStatus.text = getString(R.string.status_ok, calcCount, clock.format(Date()))
+                tvCalculadoCon.text = getString(
+                    R.string.calculado_con, Resumen.entradas(inputsNow, materialName(), regionName())
+                )
+                val ok = Resumen.partesSumanElTotal(b)
+                tvCuadra.setText(if (ok) R.string.cuadra_ok else R.string.cuadra_mal)
+                flashResults()
             }
             is Outcome.Failure -> {
                 clearResults()
                 if (showErrors) {
                     outcome.fieldErrors.forEach { (field, message) ->
-                        inputs[field]?.error = message
+                        val box = inputs[field]
+                        when {
+                            box != null && box.isShown -> box.error = message
+                            field == Field.WATTS -> showMaterialInfo(error = true)
+                            field == Field.PRECIO_KWH -> showRegionRefText(error = true)
+                        }
                     }
                     tvStatus.text = outcome.general ?: getString(R.string.status_incompleto)
-                    outcome.fieldErrors.keys.firstNotNullOfOrNull { inputs[it] }?.requestFocus()
+                    outcome.fieldErrors.keys.firstNotNullOfOrNull { f -> inputs[f]?.takeIf { it.isShown } }?.requestFocus()
                 } else {
                     tvStatus.text = outcome.general ?: getString(R.string.status_inicial)
                 }
             }
+        }
+    }
+
+    /** Parpadeo breve de los totales: señal visual de que se acaba de recalcular. */
+    private fun flashResults() {
+        listOf(tvTotal, tvUnitario).forEach {
+            it.animate().cancel()
+            it.alpha = 0.25f
+            it.animate().alpha(1f).setDuration(450).start()
         }
     }
 
@@ -233,6 +313,8 @@ class MainActivity : Activity() {
             tvMaterial, tvElectricidad, tvDepreciacion, tvMantenimiento, tvManoObra, tvMerma,
             tvTotal, tvUnitario, tvPrecioVenta, tvPrecioIva, tvGanancia
         ).forEach { it.text = empty }
+        tvCalculadoCon.text = ""
+        tvCuadra.text = ""
     }
 
     private fun clearAll() {
@@ -245,10 +327,12 @@ class MainActivity : Activity() {
         etBoletaMonto.setText("")
         etBoletaKwh.setText("")
         cbIva.isChecked = false
-        selectSavedRegionOrNone()
+        // El material es de cada impresión: se vacía. La región es un ajuste que se recuerda: se conserva.
+        spMaterial.setSelection(0)
         suspendWatchers = false
+        applyMaterialState()
         refreshBoleta()
-        updateRegionRef()
+        applyRegionState()
         tvRegionInfo.setText(R.string.region_info_inicial)
         clearResults()
         tvStatus.setText(R.string.status_inicial)
@@ -262,82 +346,239 @@ class MainActivity : Activity() {
         editText.setSelection(editText.text.length)
     }
 
-    // ------------------------------------------------- consumo (watts) de la A1
+    // ------------------------------------------------- material → consumo (watts)
 
-    private fun setupWatts() {
-        findViewById<TextView>(R.id.tv_watts_estandar).text = getString(
-            R.string.watts_estandar,
-            Suggested.plain(ImpresoraA1.WATTS_ESTANDAR_MIN),
-            Suggested.plain(ImpresoraA1.WATTS_ESTANDAR)
-        )
-        findViewById<TextView>(R.id.tv_watts_alto).text = getString(
-            R.string.watts_alto, Suggested.plain(ImpresoraA1.WATTS_ALTO)
-        )
-        findViewById<Button>(R.id.btn_usar_watts_estandar).setOnClickListener {
-            putInField(Field.WATTS, Suggested.plain(ImpresoraA1.WATTS_ESTANDAR))
+    private fun setupMaterial() {
+        spMaterial = findViewById(R.id.sp_material)
+        tvMaterialInfo = findViewById(R.id.tv_material_info)
+        llWattsOtro = findViewById(R.id.ll_watts_otro)
+
+        val names = listOf(getString(R.string.material_placeholder)) + Materiales.todos.map { Materiales.etiqueta(it) }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, names)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spMaterial.adapter = adapter
+        spMaterial.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                applyMaterialState()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                applyMaterialState()
+            }
         }
-        findViewById<Button>(R.id.btn_usar_watts_alto).setOnClickListener {
-            putInField(Field.WATTS, Suggested.plain(ImpresoraA1.WATTS_ALTO))
-        }
+        showMaterialInfo(error = false)
     }
 
-    // ------------------------------------------------- precio kWh: región
+    /** Aplica el material elegido: pone sus watts, o muestra el campo propio con "Otro". */
+    private fun applyMaterialState() {
+        val m = selectedMaterial()
+        val watts = m?.watts
+        val field = inputs.getValue(Field.WATTS)
+        when {
+            m == null -> {
+                llWattsOtro.visibility = View.GONE
+                if (wattsAuto || field.text.isNullOrEmpty().not()) field.setText("")
+                wattsAuto = false
+            }
+            watts != null -> {
+                llWattsOtro.visibility = View.GONE
+                val text = Suggested.plain(watts)
+                if (field.text?.toString() != text) field.setText(text)
+                wattsAuto = true
+            }
+            else -> {
+                llWattsOtro.visibility = View.VISIBLE
+                if (wattsAuto) field.setText("")
+                wattsAuto = false
+            }
+        }
+        showMaterialInfo(error = false)
+    }
+
+    private fun showMaterialInfo(error: Boolean) {
+        val m = selectedMaterial()
+        val watts = m?.watts
+        tvMaterialInfo.text = when {
+            error -> getString(R.string.material_falta)
+            m == null -> getString(R.string.material_info_ninguno)
+            watts == null -> getString(R.string.material_info_otro)
+            else -> getString(R.string.material_info, Suggested.plain(watts), m.fuente)
+        }
+        tvMaterialInfo.setTextColor(themeColor(if (error) R.attr.cError else R.attr.cTextoSuave))
+    }
+
+    // ------------------------------------------------- precio kWh: tabla por región
 
     private fun setupRegion() {
         spRegion = findViewById(R.id.sp_region)
         tvRegionInfo = findViewById(R.id.tv_region_info)
         tvRegionRef = findViewById(R.id.tv_region_ref)
-        btnUsarRegion = findViewById(R.id.btn_usar_region)
+        llKwhManual = findViewById(R.id.ll_kwh_manual)
+        llTabla = findViewById(R.id.ll_tabla)
+        btnTabla = findViewById(R.id.btn_tabla)
 
-        val names = listOf(getString(R.string.region_placeholder)) + Regiones.todas.map { it.nombre }
+        val sinDato = getString(R.string.region_sin_dato_corto)
+        val names = listOf(getString(R.string.region_placeholder)) +
+            Regiones.todas.map { r ->
+                r.nombre + " \u2014 " + (r.referenciaKwh?.let { CostCalculator.formatClp(it) } ?: sinDato)
+            } + getString(R.string.region_otra)
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, names)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spRegion.adapter = adapter
+
+        // La región elegida se recuerda entre usos (así no hay que elegirla en cada cálculo).
+        val saved = prefs.getString(KEY_REGION, null)
+        val pos = when {
+            saved == MANUAL_TOKEN -> MANUAL_POS
+            else -> Regiones.todas.indexOfFirst { it.nombre == saved }.let { if (it >= 0) it + 1 else 0 }
+        }
+        spRegion.setSelection(pos)
         spRegion.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                updateRegionRef()
+                applyRegionState()
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {
-                updateRegionRef()
+                applyRegionState()
             }
         }
 
-        btnUsarRegion.setText(R.string.btn_usar)
-        btnUsarRegion.setOnClickListener {
-            selectedRegion()?.referenciaKwh?.let { putInField(Field.PRECIO_KWH, Suggested.plain(it)) }
-        }
+        // Precio manual: se recuerda solo mientras se usa el modo manual.
+        inputs.getValue(Field.PRECIO_KWH).addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (settingPrice || kwhAuto || llKwhManual.visibility != View.VISIBLE) return
+                val text = s?.toString()?.trim().orEmpty()
+                prefs.edit().apply {
+                    if (text.isEmpty()) remove(KEY_MANUAL) else putString(KEY_MANUAL, text)
+                }.commit()
+            }
+        })
+
         findViewById<Button>(R.id.btn_detectar).setOnClickListener {
             hideKeyboard()
             detectRegion()
         }
-        updateRegionRef()
+        buildTable()
+        btnTabla.setOnClickListener {
+            val show = llTabla.visibility != View.VISIBLE
+            llTabla.visibility = if (show) View.VISIBLE else View.GONE
+            btnTabla.setText(if (show) R.string.btn_ocultar_tabla else R.string.btn_ver_tabla)
+        }
+        applyRegionState()
     }
 
     private fun selectedRegion(): Region? = Regiones.todas.getOrNull(spRegion.selectedItemPosition - 1)
 
-    private fun updateRegionRef() {
+    private fun setPrice(text: String) {
+        val field = inputs.getValue(Field.PRECIO_KWH)
+        if (field.text?.toString() == text) return
+        settingPrice = true
+        field.setText(text)
+        settingPrice = false
+    }
+
+    /** Pone el precio del kWh según la región elegida y muestra u oculta el campo manual. */
+    private fun applyRegionState() {
+        val pos = spRegion.selectedItemPosition
         val region = selectedRegion()
         val ref = region?.referenciaKwh
+        val manualMode = pos == MANUAL_POS || (region != null && ref == null)
+        llKwhManual.visibility = if (manualMode) View.VISIBLE else View.GONE
+
         when {
-            region == null -> {
-                tvRegionRef.setText(R.string.region_ref_ninguna)
-                btnUsarRegion.isEnabled = false
+            ref != null -> {
+                setPrice(Suggested.plain(ref))
+                kwhAuto = true
             }
-            ref == null -> {
-                tvRegionRef.setText(R.string.region_ref_sin_dato)
-                btnUsarRegion.isEnabled = false
+            manualMode -> {
+                if (kwhAuto || inputs.getValue(Field.PRECIO_KWH).text.isNullOrEmpty()) {
+                    setPrice(prefs.getString(KEY_MANUAL, null).orEmpty())
+                }
+                kwhAuto = false
             }
             else -> {
-                tvRegionRef.text = getString(
-                    R.string.region_ref, CostCalculator.formatClp(ref), Regiones.REFERENCIA_FECHA
-                )
-                btnUsarRegion.isEnabled = true
+                setPrice("")
+                kwhAuto = false
             }
+        }
+
+        // Se recuerda la región (o "Otra tarifa"); sin elección no se guarda nada.
+        val token = when {
+            pos == MANUAL_POS -> MANUAL_TOKEN
+            region != null -> region.nombre
+            else -> null
+        }
+        prefs.edit().apply { if (token == null) remove(KEY_REGION) else putString(KEY_REGION, token) }.commit()
+
+        showRegionRefText(error = false)
+        refreshTable()
+        if (!suspendWatchers) recalculate(showErrors = false)
+    }
+
+    private fun showRegionRefText(error: Boolean) {
+        val region = selectedRegion()
+        val ref = region?.referenciaKwh
+        tvRegionRef.text = when {
+            error -> getString(R.string.region_falta)
+            spRegion.selectedItemPosition == MANUAL_POS -> getString(R.string.region_ref_otra)
+            region == null -> getString(R.string.region_ref_ninguna)
+            ref == null -> getString(R.string.region_ref_sin_dato)
+            else -> getString(R.string.region_ref, CostCalculator.formatClp(ref), Regiones.REFERENCIA_FECHA)
+        }
+        tvRegionRef.setTextColor(themeColor(if (error) R.attr.cError else R.attr.cTextoSuave))
+    }
+
+    /** Cuadro de valores por región: una fila por región; tocarla la elige. */
+    private fun buildTable() {
+        val dp = resources.displayMetrics.density
+        llTabla.removeAllViews()
+        filasTabla.clear()
+        val title = TextView(this).apply {
+            text = getString(R.string.tabla_titulo, Regiones.REFERENCIA_FECHA)
+            setTextColor(themeColor(R.attr.cTextoSuave))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        }
+        llTabla.addView(title)
+        Regiones.todas.forEachIndexed { index, r ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                minimumHeight = (44 * dp).toInt()
+                isClickable = true
+                setOnClickListener { spRegion.setSelection(index + 1) }
+            }
+            val name = TextView(this).apply {
+                text = r.nombre
+                setTextColor(themeColor(R.attr.cTexto))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val price = TextView(this).apply {
+                text = r.referenciaKwh?.let { CostCalculator.formatClp(it) } ?: getString(R.string.tabla_sin_dato)
+                setTextColor(themeColor(if (r.referenciaKwh != null) R.attr.cTexto else R.attr.cTextoSuave))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                gravity = Gravity.END
+            }
+            row.addView(name)
+            row.addView(price)
+            llTabla.addView(row)
+            filasTabla += name to price
         }
     }
 
-    // ------------------------------------------------- precio kWh: boleta
+    /** Resalta en negrita la fila de la región elegida. */
+    private fun refreshTable() {
+        val selected = spRegion.selectedItemPosition - 1
+        filasTabla.forEachIndexed { i, (name, price) ->
+            val style = if (i == selected) Typeface.BOLD else Typeface.NORMAL
+            name.setTypeface(null, style)
+            price.setTypeface(null, style)
+        }
+    }
+
+    // ------------------------------------------------- precio kWh: boleta (solo en modo manual)
 
     private fun setupBoleta() {
         etBoletaMonto = findViewById(R.id.et_boleta_monto)
@@ -375,63 +616,6 @@ class MainActivity : Activity() {
             else -> getString(R.string.boleta_ayuda)
         }
         btnUsarBoleta.isEnabled = price != null
-    }
-
-    // ------------------------------------------------- tarifa guardada
-
-    private fun setupTarifa() {
-        tvTarifaGuardada = findViewById(R.id.tv_tarifa_guardada)
-        btnUsarTarifa = findViewById(R.id.btn_usar_tarifa)
-
-        val price = prefs.getString(KEY_PRICE, null)?.let { CostCalculator.parseNumber(it) }
-        tarifaPrecio = if (price != null && price >= 0.0) price else null
-        tarifaRegion = prefs.getString(KEY_REGION, null)?.takeIf { name -> Regiones.todas.any { it.nombre == name } }
-
-        findViewById<Button>(R.id.btn_guardar_tarifa).setOnClickListener {
-            hideKeyboard()
-            guardarTarifa()
-        }
-        btnUsarTarifa.setText(R.string.btn_usar)
-        btnUsarTarifa.setOnClickListener {
-            tarifaPrecio?.let { putInField(Field.PRECIO_KWH, Suggested.plainRounded(it)) }
-        }
-
-        selectSavedRegionOrNone()
-        refreshTarifa()
-    }
-
-    private fun guardarTarifa() {
-        val price = CostCalculator.parseNumber(inputs.getValue(Field.PRECIO_KWH).text?.toString())
-        if (price == null || price < 0.0) {
-            tvTarifaGuardada.setText(R.string.tarifa_error)
-            return
-        }
-        val region = selectedRegion()?.nombre
-        // commit(): son dos valores diminutos y así quedan en disco aunque la app se cierre al instante.
-        prefs.edit()
-            .putString(KEY_PRICE, Suggested.plainRounded(price))
-            .putString(KEY_REGION, region)
-            .commit()
-        tarifaPrecio = CostCalculator.parseNumber(Suggested.plainRounded(price))
-        tarifaRegion = region
-        refreshTarifa()
-    }
-
-    private fun refreshTarifa() {
-        val price = tarifaPrecio
-        val region = tarifaRegion
-        tvTarifaGuardada.text = when {
-            price == null -> getString(R.string.tarifa_vacia)
-            region == null -> getString(R.string.tarifa_guardada, CostCalculator.formatClp(price))
-            else -> getString(R.string.tarifa_guardada_region, CostCalculator.formatClp(price), region)
-        }
-        btnUsarTarifa.isEnabled = price != null
-    }
-
-    /** Deja seleccionada la región de la tarifa guardada, o el texto "Elige tu región" si no hay. */
-    private fun selectSavedRegionOrNone() {
-        val index = Regiones.todas.indexOfFirst { it.nombre == tarifaRegion }
-        spRegion.setSelection(if (index >= 0) index + 1 else 0)
     }
 
     // ------------------------------------------------- ubicación
@@ -539,8 +723,8 @@ class MainActivity : Activity() {
             return
         }
         spRegion.setSelection(Regiones.todas.indexOf(region) + 1)
+        applyRegionState()
         tvRegionInfo.text = getString(R.string.region_detectada, region.nombre)
-        updateRegionRef()
     }
 
     private fun hideKeyboard() {
@@ -553,8 +737,12 @@ class MainActivity : Activity() {
         const val REQ_LOCATION = 1001
         const val RECENT_MS = 2L * 60L * 60L * 1000L   // 2 horas
         const val SEARCH_TIMEOUT_MS = 30_000L
-        const val PREFS = "tarifa"
-        const val KEY_PRICE = "precio_kwh"
+        const val PREFS = "ajustes"
+        const val KEY_DARK = "oscuro"
         const val KEY_REGION = "region"
+        const val KEY_MANUAL = "precio_manual"
+        const val MANUAL_TOKEN = "__manual__"
+        /** Última opción del menú de regiones: 0 = sin elegir, 1..16 = regiones, 17 = otra tarifa. */
+        val MANUAL_POS = Regiones.todas.size + 1
     }
 }

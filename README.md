@@ -7,7 +7,7 @@ que calcula el costo de fabricación de una impresión 3D con una Bambu Lab A1 C
 ## Datos que se ingresan
 
 Obligatorios: precio del filamento por kg, gramos usados, piezas, tiempo (horas y/o minutos),
-consumo de la impresora (watts) y precio de la electricidad por kWh.
+**material** (menú, define los watts) y **región** (tabla, define el precio del kWh).
 Opcionales: mano de obra, merma, margen e IVA (ver más abajo).
 
 ## Valores fijos de la impresora (desde la v1.3)
@@ -43,29 +43,48 @@ valores y validándolos; solo la pantalla dejó de pedirlos.
 - Se rechazan textos no numéricos y resultados no finitos.
 - Punto o coma como decimal; sin separador de miles.
 
-## Consumo de la impresora (watts)
+## Consumo de la impresora: menú de materiales (v1.4)
 
-Bajo el campo se muestran dos referencias para la Bambu Lab A1 Combo, con botón **USAR** (el valor queda editable):
+En vez de escribir los watts, se elige el material y la app usa el consumo promedio de la A1 con ese material:
 
-| Referencia | Valor | Fuente |
+| Material | Watts | Origen |
 |---|---|---|
-| Estándar (PLA) | 70–95 W (USAR = 95 W) | Wiki de Bambu Lab: promedio de 95 W en PLA a 220 V; usuarios miden 70–80 W en promedio |
-| Alto consumo (ABS, alta temperatura) | ~200 W | Mediciones de usuarios en ABS (foro de Bambu Lab) |
+| PLA | 95 W | Wiki de Bambu Lab (promedio, 220 V) |
+| ABS | 200 W | Wiki de Bambu Lab (promedio, 220 V) |
+| PETG | 120 W | **Estimado** (cama y boquilla más calientes que en PLA) |
+| TPU | 95 W | **Estimado** (temperaturas similares al PLA) |
+| ASA | 200 W | **Estimado** (similar al ABS) |
+| Otro | lo escribes tú | aparece el campo de watts |
 
-La hoja técnica solo indica la potencia **máxima** (1.300 W a 220 V, 350 W a 110 V), que se alcanza un
-rato breve mientras calienta la cama: no es el consumo promedio y por eso no se ofrece como valor.
-Son valores referenciales; un enchufe medidor da el dato exacto del equipo.
-Las constantes están en `ImpresoraA1` (`CostCalculator.kt`).
+Los valores estimados se marcan "(estimado)" en el menú porque no hay cifra publicada ni medida para ellos.
+El PC no se incluye (la A1 no tiene cámara cerrada). La hoja técnica solo indica la potencia **máxima**
+(1.300 W a 220 V), que dura un rato breve: no es consumo promedio y no se ofrece. Un enchufe medidor da el
+dato exacto. Constantes en `Materiales` (`CostCalculator.kt`).
 
-## Precio de electricidad por kWh
+## Precio del kWh: tabla por región (v1.4)
 
-Un solo campo, con ayudas opcionales debajo (siempre editables):
+La app **no** se conecta a internet (ni a Google ni a Gemini: no hay fuente oficial por región consultable de forma fiable y
+exigiría permiso de Internet). En su lugar hay una **tabla de valores por región** (botón *VER TABLA DE PRECIOS POR REGIÓN*,
+y también en el menú de regiones). Al elegir la región, el precio se aplica solo y la casilla del kWh **no aparece**.
 
-- **Región:** selector de las 16 regiones y botón **DETECTAR MI REGIÓN**, que pide el permiso de ubicación solo al tocarlo y busca la región cuya capital está más cerca (aproximado, sin conexión: no usa límites regionales; la ubicación no se guarda ni se envía). Muestra un valor **referencial** del kWh. Solo hay dato para 8 regiones (Antofagasta, Atacama, Valparaíso, Metropolitana, Biobío, Araucanía, Los Lagos y Magallanes), tomado de un sitio no oficial (cuantomecuesta.com, abril 2026) y anterior al alza de julio de 2026; en las demás la app indica "usa tu boleta" en vez de inventar un valor. Las constantes están en `Regiones` (`CostCalculator.kt`).
-- **Boleta:** monto total de la boleta ÷ kWh consumidos = precio efectivo del kWh (incluye cargos fijos). Es lo más fiable y no se desactualiza.
-- **Mi tarifa guardada:** el botón **GUARDAR** conserva el precio del kWh y la región elegida aunque se cierre la app; **USAR** la copia al campo. Los campos siguen partiendo vacíos: lo guardado solo se aplica al tocar USAR.
+- Hay precio para **8 de 16 regiones** (Antofagasta, Atacama, Valparaíso, Metropolitana, Biobío, Araucanía, Los Lagos y Magallanes), de un sitio no oficial (cuantomecuesta.com, abril 2026, anterior al alza de julio de 2026). Para las otras 8 no se encontró una fuente verificable y la tabla dice "sin dato": no se inventa un valor.
+- Para esas regiones, o con la opción **Otra tarifa**, aparece la casilla del precio por kWh y la calculadora de **boleta** (monto total ÷ kWh consumidos = precio efectivo, incluye cargos fijos). Ese precio manual se recuerda.
+- **DETECTAR MI REGIÓN** pide el permiso de ubicación solo al tocarlo y elige la región cuya capital está más cerca (aproximado, sin conexión; la ubicación no se guarda ni se envía).
+- La región elegida se recuerda entre usos.
 
-La app **no** se sincroniza con internet: no existe una fuente oficial por región que una app pueda consultar de forma fiable (ver el historial de la conversación de desarrollo), y hacerlo implicaría pedir permiso de Internet.
+Constantes en `Regiones` (`CostCalculator.kt`).
+
+## Indicadores de cálculo (v1.4)
+
+- Estado: **"Cálculo n.º N actualizado a las HH:mm:ss"**: el número sube y la hora cambia en cada recálculo.
+- Los totales parpadean brevemente al recalcular.
+- **Calculado con:** una línea con los datos que entraron (material, gramos, piezas, tiempo, watts, precio y región, extras).
+- **Verificado:** control interno de que material + electricidad + depreciación + mantenimiento + mano de obra + merma = total.
+
+## Modo oscuro (v1.4)
+
+Interruptor arriba a la derecha. La elección se guarda y se mantiene al reiniciar; los datos escritos no se pierden al cambiar de tema.
+La primera vez sigue el modo del teléfono.
 
 ## Extras opcionales
 
@@ -82,7 +101,7 @@ El costo total incluye mano de obra y merma. Se muestran además el precio de ve
 
 ## Uso
 
-El resultado se actualiza al escribir y también con el botón **CALCULAR** (que además marca los campos inválidos). **LIMPIAR** vacía todos los campos (la tarifa guardada se conserva).
+El resultado se actualiza al escribir y también con el botón **CALCULAR** (que además marca los campos inválidos). **LIMPIAR** vacía los datos de la impresión y el material; la región y el precio manual guardados se conservan.
 El formato monetario (CLP) está aislado en `CostCalculator.formatClp`; los cálculos no dependen de ninguna moneda.
 
 La app declara los permisos de ubicación aproximada y precisa (solo se usan con el botón DETECTAR); no declara INTERNET.
@@ -94,7 +113,7 @@ GitHub Actions (`.github/workflows/build-apk.yml`) en cada push a `main`:
 1. Pruebas unitarias (`./gradlew testDebugUnitTest`).
 2. `./gradlew assembleDebug`.
 3. Verifica en el APK: paquete, `MainActivity` como launcher, `MainActivity` presente en `classes.dex`, ausencia de permiso `INTERNET` y firma.
-4. Instala el APK en un emulador Android, abre la app, comprueba que los campos estén vacíos, ingresa datos y valida los resultados, incluida la detección de región con ubicación simulada y la tarifa guardada tras reiniciar la app (`scripts/emulator-smoke-test.sh`).
+4. Instala el APK en un emulador Android, abre la app, comprueba que los campos estén vacíos, ingresa datos y valida los resultados, incluidos el menú de materiales, la tabla por región, los indicadores de cálculo, el modo oscuro (comprobado por el color real de la pantalla y tras reiniciar) y la detección de región con ubicación simulada (`scripts/emulator-smoke-test.sh`).
 5. Solo si todo lo anterior pasa, publica el APK en **Releases** (tag `apk-latest`) y como artefacto del workflow.
 
 Local: `./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`.

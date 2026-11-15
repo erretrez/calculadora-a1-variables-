@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+    <!-- Tema que usa Android antes de que la app elija entre claro y oscuro (ver values-night). -->
+    <style name="AppTheme" parent="TemaClaro" />
+
+    <style name="TemaClaro" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="cFondo">@color/fondo</item>
+        <item name="cTarjeta">@color/tarjeta</item>
+        <item name="cTexto">@color/texto</item>
+        <item name="cTextoSuave">@color/texto_suave</item>
+        <item name="cAcento">@color/acento</item>
+        <item name="cLinea">@color/linea</item>
+        <item name="cError">@color/error</item>
         <item name="android:colorAccent">@color/acento</item>
         <item name="android:colorPrimary">@color/acento</item>
         <item name="android:statusBarColor">@color/fondo</item>
@@ -8,11 +18,27 @@
         <item name="android:windowBackground">@color/fondo</item>
     </style>
 
+    <style name="TemaOscuro" parent="android:Theme.Material.NoActionBar">
+        <item name="cFondo">@color/fondo_oscuro</item>
+        <item name="cTarjeta">@color/tarjeta_oscuro</item>
+        <item name="cTexto">@color/texto_oscuro</item>
+        <item name="cTextoSuave">@color/texto_suave_oscuro</item>
+        <item name="cAcento">@color/acento_oscuro</item>
+        <item name="cLinea">@color/linea_oscuro</item>
+        <item name="cError">@color/error_oscuro</item>
+        <item name="android:colorAccent">@color/acento_oscuro</item>
+        <item name="android:colorPrimary">@color/acento_oscuro</item>
+        <item name="android:statusBarColor">@color/fondo_oscuro</item>
+        <item name="android:navigationBarColor">@color/fondo_oscuro</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/fondo_oscuro</item>
+    </style>
+
     <style name="Seccion">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">22dp</item>
-        <item name="android:textColor">@color/acento</item>
+        <item name="android:textColor">?attr/cAcento</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textAllCaps">true</item>
@@ -22,7 +48,7 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">18dp</item>
-        <item name="android:textColor">@color/texto</item>
+        <item name="android:textColor">?attr/cTexto</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
     </style>
@@ -31,7 +57,7 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">10dp</item>
-        <item name="android:textColor">@color/texto</item>
+        <item name="android:textColor">?attr/cTexto</item>
         <item name="android:textSize">14sp</item>
     </style>
 
@@ -44,8 +70,8 @@
         <item name="android:maxLines">1</item>
         <item name="android:selectAllOnFocus">true</item>
         <item name="android:singleLine">true</item>
-        <item name="android:textColor">@color/texto</item>
-        <item name="android:textColorHint">@color/texto_suave</item>
+        <item name="android:textColor">?attr/cTexto</item>
+        <item name="android:textColorHint">?attr/cTextoSuave</item>
         <item name="android:textSize">17sp</item>
     </style>
 
@@ -61,7 +87,7 @@
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_weight">1</item>
-        <item name="android:textColor">@color/texto_suave</item>
+        <item name="android:textColor">?attr/cTextoSuave</item>
         <item name="android:textSize">13sp</item>
     </style>
 
@@ -89,7 +115,7 @@
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_weight">1</item>
-        <item name="android:textColor">@color/texto</item>
+        <item name="android:textColor">?attr/cTexto</item>
         <item name="android:textSize">15sp</item>
     </style>
 
@@ -97,7 +123,7 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:gravity">end</item>
-        <item name="android:textColor">@color/texto</item>
+        <item name="android:textColor">?attr/cTexto</item>
         <item name="android:textSize">16sp</item>
         <item name="android:textStyle">bold</item>
     </style>

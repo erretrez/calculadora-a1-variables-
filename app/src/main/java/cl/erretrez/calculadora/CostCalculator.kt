@@ -83,19 +83,39 @@ sealed class Outcome {
 }
 
 /**
- * Consumo eléctrico de referencia de la Bambu Lab A1 Combo (ver README, sección Fuentes).
- * El pico de calentamiento (hasta 1.300 W a 220 V según la hoja técnica) dura poco y NO es
- * un consumo promedio, por eso no se ofrece como valor.
+ * Material de impresión con el consumo promedio de la Bambu Lab A1 Combo con ese material.
+ * [watts] = null en la opción "Otro": el usuario escribe su propio valor.
+ * [estimado] = true cuando no hay una cifra publicada o medida y el valor es una estimación
+ * (se marca así en pantalla para no hacerla pasar por un dato medido).
  */
-object ImpresoraA1 {
-    /** Límite inferior del rango estándar: promedios de 70–80 W medidos por usuarios en PLA. */
-    const val WATTS_ESTANDAR_MIN = 70.0
+data class Material(
+    val nombre: String,
+    val watts: Double?,
+    val estimado: Boolean,
+    val fuente: String
+)
 
-    /** Promedio en PLA publicado por Bambu Lab (wiki, 220 V): 95 W. */
-    const val WATTS_ESTANDAR = 95.0
+/**
+ * Consumo eléctrico promedio por material de la Bambu Lab A1 Combo (ver README, sección Fuentes).
+ * El pico de calentamiento (hasta 1.300 W a 220 V según la hoja técnica) dura poco y NO es
+ * un consumo promedio, por eso no se ofrece como valor. El PC no se incluye: la A1 no tiene
+ * cámara cerrada y Bambu Lab no lo recomienda en ella.
+ */
+object Materiales {
+    val todos: List<Material> = listOf(
+        Material("PLA", 95.0, false, "promedio publicado en la wiki de Bambu Lab (220 V)"),
+        Material("PETG", 120.0, true, "estimado: la cama y la boquilla trabajan más calientes que en PLA"),
+        Material("TPU", 95.0, true, "estimado: temperaturas similares al PLA"),
+        Material("ABS", 200.0, false, "promedio publicado en la wiki de Bambu Lab (220 V)"),
+        Material("ASA", 200.0, true, "estimado: se imprime con temperaturas similares al ABS"),
+        Material("Otro (ingresar watts)", null, false, "valor que ingreses tú")
+    )
 
-    /** Consumo alto: unos 200 W en ABS / materiales de alta temperatura (mediciones de usuarios). */
-    const val WATTS_ALTO = 200.0
+    /** Texto de cada opción del menú: "PLA — 95 W", "PETG — 120 W (estimado)". */
+    fun etiqueta(m: Material): String {
+        val w = m.watts ?: return m.nombre
+        return m.nombre + " \u2014 " + Suggested.plain(w) + " W" + if (m.estimado) " (estimado)" else ""
+    }
 }
 
 /**
@@ -204,6 +224,39 @@ object Regiones {
         if (lat < -56.0 || lat > -17.0 || lon < -76.0 || lon > -66.0) return null
         val best = todas.minByOrNull { distanciaKm(lat, lon, it.lat, it.lon) } ?: return null
         return if (distanciaKm(lat, lon, best.lat, best.lon) <= MAX_KM) best else null
+    }
+}
+
+/** Textos y comprobaciones que ayudan a ver con qué datos se hizo cada cálculo. */
+object Resumen {
+    /** Las partes del desglose deben sumar exactamente el total (control interno). */
+    fun partesSumanElTotal(b: CostBreakdown): Boolean {
+        val suma = b.material + b.electricidad + b.depreciacion + b.mantenimiento + b.manoObra + b.merma
+        return Math.abs(suma - b.total) <= 1e-9 * Math.max(1.0, Math.abs(b.total))
+    }
+
+    /**
+     * Una línea con los datos que entraron al cálculo, para compararlos de un vistazo con lo
+     * que se escribió. [material] y [region] son opcionales (solo para mostrar).
+     */
+    fun entradas(i: CostInputs, material: String?, region: String?): String {
+        val partes = mutableListOf<String>()
+        i.precioKg?.let { partes += CostCalculator.formatClp(it) + "/kg" }
+        i.gramos?.let { partes += Suggested.plainRounded(it) + " g" + (material?.let { m -> " de $m" } ?: "") }
+        i.piezas?.let { partes += Suggested.plainRounded(it) + (if (it == 1.0) " pieza" else " piezas") }
+        if (i.horas != null || i.minutos != null) {
+            partes += Suggested.plainRounded(i.horas ?: 0.0) + " h " + Suggested.plainRounded(i.minutos ?: 0.0) + " min"
+        }
+        i.watts?.let { partes += Suggested.plainRounded(it) + " W" }
+        i.precioKwh?.let { partes += CostCalculator.formatClp(it) + "/kWh" + (region?.let { r -> " ($r)" } ?: "") }
+        if (i.horasTrabajo != null && i.costoHoraTrabajo != null) {
+            partes += "mano de obra " + Suggested.plainRounded(i.horasTrabajo) + " h x " +
+                CostCalculator.formatClp(i.costoHoraTrabajo)
+        }
+        i.mermaPct?.let { partes += "merma " + Suggested.plainRounded(it) + "%" }
+        i.margenPct?.let { partes += "margen " + Suggested.plainRounded(it) + "%" }
+        if (i.incluirIva) partes += "con IVA"
+        return partes.joinToString(" · ")
     }
 }
 

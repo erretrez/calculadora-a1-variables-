@@ -306,25 +306,98 @@ class CostCalculatorTest {
         assertEquals(CostCalculator.MSG_POSITIVE, f.fieldErrors[Field.VIDA_UTIL])
     }
 
+    // ---------- v1.4: materiales, tabla por región e indicadores ----------
+
+    private fun wattsDe(nombre: String): Double =
+        Materiales.todos.first { it.nombre == nombre }.watts!!
+
     @Test
-    fun referenciasDeConsumoDeLaA1() {
-        assertEquals(70.0, ImpresoraA1.WATTS_ESTANDAR_MIN, delta)
-        assertEquals(95.0, ImpresoraA1.WATTS_ESTANDAR, delta)
-        assertEquals(200.0, ImpresoraA1.WATTS_ALTO, delta)
-        assertTrue(ImpresoraA1.WATTS_ESTANDAR_MIN < ImpresoraA1.WATTS_ESTANDAR)
-        assertTrue(ImpresoraA1.WATTS_ESTANDAR < ImpresoraA1.WATTS_ALTO)
-        // El texto que se copia al campo se interpreta como el mismo número.
-        assertEquals("95", Suggested.plain(ImpresoraA1.WATTS_ESTANDAR))
-        assertEquals("200", Suggested.plain(ImpresoraA1.WATTS_ALTO))
-        assertEquals(95.0, CostCalculator.parseNumber(Suggested.plain(ImpresoraA1.WATTS_ESTANDAR))!!, delta)
+    fun materialesDeLaA1TienenSusWatts() {
+        assertEquals(95.0, wattsDe("PLA"), delta)    // wiki de Bambu Lab
+        assertEquals(200.0, wattsDe("ABS"), delta)   // wiki de Bambu Lab
+        assertEquals(120.0, wattsDe("PETG"), delta)  // estimado
+        assertEquals(95.0, wattsDe("TPU"), delta)    // estimado
+        assertEquals(200.0, wattsDe("ASA"), delta)   // estimado
+        assertTrue(Materiales.todos.none { it.nombre == "PC" })
+    }
+
+    @Test
+    fun soloLosValoresPublicadosSeMarcanComoNoEstimados() {
+        for (m in Materiales.todos.filter { it.watts != null }) {
+            val esperadoEstimado = m.nombre !in setOf("PLA", "ABS")
+            assertEquals(m.nombre, esperadoEstimado, m.estimado)
+            assertEquals(m.nombre, esperadoEstimado, Materiales.etiqueta(m).contains("(estimado)"))
+        }
+    }
+
+    @Test
+    fun laUltimaOpcionEsOtroSinWatts() {
+        assertNull(Materiales.todos.last().watts)
+        assertTrue(Materiales.todos.dropLast(1).all { it.watts != null })
+        assertEquals("PLA \u2014 95 W", Materiales.etiqueta(Materiales.todos.first { it.nombre == "PLA" }))
+    }
+
+    @Test
+    fun losWattsDeCadaMaterialSeInterpretanComoElMismoNumero() {
+        for (m in Materiales.todos.mapNotNull { it.watts }) {
+            assertEquals(m, CostCalculator.parseNumber(Suggested.plain(m))!!, delta)
+        }
     }
 
     @Test
     fun consumoAltoDaMasElectricidadQueElEstandar() {
-        val estandar = success(sinDatosDeImpresora().copy(watts = ImpresoraA1.WATTS_ESTANDAR))
-        val alto = success(sinDatosDeImpresora().copy(watts = ImpresoraA1.WATTS_ALTO))
+        val estandar = success(sinDatosDeImpresora().copy(watts = wattsDe("PLA")))
+        val alto = success(sinDatosDeImpresora().copy(watts = wattsDe("ABS")))
         assertTrue(alto.electricidad > estandar.electricidad)
         assertEquals(0.095 * 5.0 * 150.0, estandar.electricidad, 1e-9)
+    }
+
+    @Test
+    fun tablaDeRegionesPrecioParaLaMetropolitana() {
+        val santiago = Regiones.todas.first { it.nombre == "Metropolitana de Santiago" }
+        assertEquals(160.0, santiago.referenciaKwh!!, delta)
+        // Con el precio de la tabla el cálculo coincide con el de 150/kWh escalado: 0,2 kW x 5 h x 160 = 160
+        val b = success(sinDatosDeImpresora().copy(precioKwh = santiago.referenciaKwh))
+        assertEquals(160.0, b.electricidad, 1e-9)
+    }
+
+    @Test
+    fun lasPartesSumanElTotalConYSinExtras() {
+        assertTrue(Resumen.partesSumanElTotal(success(sinDatosDeImpresora())))
+        val conExtras = success(
+            sinDatosDeImpresora().copy(horasTrabajo = 2.0, costoHoraTrabajo = 3000.0, mermaPct = 20.0, margenPct = 30.0)
+        )
+        assertTrue(Resumen.partesSumanElTotal(conExtras))
+    }
+
+    @Test
+    fun laVerificacionDetectaUnTotalIncorrecto() {
+        val b = success(sinDatosDeImpresora())
+        assertFalse(Resumen.partesSumanElTotal(b.copy(total = b.total + 1.0)))
+    }
+
+    @Test
+    fun resumenDeEntradasMuestraLosDatosUsados() {
+        val t = Resumen.entradas(sinDatosDeImpresora(), "PLA", "Metropolitana de Santiago")
+        assertTrue(t, t.contains("100 g de PLA"))
+        assertTrue(t, t.contains("2 piezas"))
+        assertTrue(t, t.contains("5 h 0 min"))
+        assertTrue(t, t.contains("200 W"))
+        assertTrue(t, t.contains("/kWh (Metropolitana de Santiago)"))
+        assertFalse(t, t.contains("merma"))
+        assertFalse(t, t.contains("IVA"))
+    }
+
+    @Test
+    fun resumenDeEntradasIncluyeLosExtrasSoloSiSeIndican() {
+        val t = Resumen.entradas(
+            sinDatosDeImpresora().copy(horasTrabajo = 2.0, costoHoraTrabajo = 3000.0, mermaPct = 20.0, margenPct = 30.0, incluirIva = true),
+            null, null
+        )
+        assertTrue(t, t.contains("mano de obra 2 h"))
+        assertTrue(t, t.contains("merma 20%"))
+        assertTrue(t, t.contains("margen 30%"))
+        assertTrue(t, t.contains("con IVA"))
     }
 
     // ---------- v1.2: regiones y ubicación ----------

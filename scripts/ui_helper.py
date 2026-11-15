@@ -6,6 +6,9 @@ Uso:
   ui_helper.py fill <id> <texto>   # toca el campo, borra su contenido y escribe
   ui_helper.py get  <id> [attr]    # imprime un atributo del elemento (por defecto: text)
   ui_helper.py ids                 # recorre toda la pantalla y lista los ids que existen
+  ui_helper.py taptext <texto>     # toca el elemento cuyo texto contiene <texto> (p. ej. en un menú)
+  ui_helper.py hastext <texto>     # sale con 0 si hay un elemento visible/desplazable con ese texto
+  ui_helper.py luma                # luminosidad (0-255) del fondo de la app, leída de una captura
 
 <id> es el id sin prefijo (por ejemplo: btn_limpiar). Sale con código 1 si no se encuentra.
 """
@@ -22,15 +25,14 @@ STATE = os.path.join(tempfile.gettempdir(), "ui_helper_last")
 
 # Orden de arriba hacia abajo en la pantalla: sirve para decidir hacia dónde desplazarse.
 ORDER = [
-    "et_precio_kg", "et_gramos", "et_piezas", "et_horas", "et_minutos", "et_watts",
-    "tv_watts_estandar", "btn_usar_watts_estandar", "tv_watts_alto", "btn_usar_watts_alto",
-    "et_precio_kwh", "sp_region", "btn_detectar", "tv_region_info", "tv_region_ref",
-    "btn_usar_region", "et_boleta_monto", "et_boleta_kwh", "tv_boleta_resultado",
-    "btn_usar_boleta", "tv_tarifa_guardada", "btn_guardar_tarifa", "btn_usar_tarifa",
-    "et_horas_trabajo", "et_costo_hora_trabajo", "et_merma", "et_margen", "cb_iva",
-    "btn_calcular", "btn_limpiar", "tv_status", "tv_material", "tv_electricidad",
-    "tv_depreciacion", "tv_mantenimiento", "tv_mano_obra", "tv_merma", "tv_total",
-    "tv_unitario", "tv_fijos", "tv_precio_venta", "tv_precio_iva", "tv_ganancia",
+    "sw_oscuro", "et_precio_kg", "et_gramos", "et_piezas", "et_horas", "et_minutos",
+    "sp_material", "tv_material_info", "et_watts", "sp_region", "btn_detectar", "tv_region_info",
+    "tv_region_ref", "btn_tabla", "et_precio_kwh", "et_boleta_monto", "et_boleta_kwh",
+    "tv_boleta_resultado", "btn_usar_boleta", "et_horas_trabajo", "et_costo_hora_trabajo",
+    "et_merma", "et_margen", "cb_iva", "btn_calcular", "btn_limpiar", "tv_status", "tv_material",
+    "tv_electricidad", "tv_depreciacion", "tv_mantenimiento", "tv_mano_obra", "tv_merma",
+    "tv_total", "tv_unitario", "tv_calculado_con", "tv_cuadra", "tv_fijos", "tv_precio_venta",
+    "tv_precio_iva", "tv_ganancia",
 ]
 
 
@@ -150,7 +152,48 @@ def hide_ime_if_shown():
         time.sleep(0.8)
 
 
+def find_text(sub, max_steps=12):
+    """Busca un elemento por texto, desplazando hacia abajo y luego hacia arriba."""
+    for direction in ("down", "up"):
+        for _ in range(max_steps):
+            for n in dump():
+                if sub in n.get("text", ""):
+                    return n
+            swipe_to_see_below() if direction == "down" else swipe_to_see_above()
+    return None
+
+
+def luma():
+    """Luminosidad del fondo: un píxel del margen izquierdo, donde solo se ve el fondo de la app."""
+    raw = subprocess.run(["adb", "exec-out", "screencap"], capture_output=True).stdout
+    header = len(raw) - W * H * 4  # 12 o 16 bytes según la versión de Android
+    if header not in (12, 16):
+        # La captura puede venir con otra resolución que `wm size`: se toma la del encabezado.
+        w, h = int.from_bytes(raw[0:4], "little"), int.from_bytes(raw[4:8], "little")
+        header = len(raw) - w * h * 4
+        width, height = w, h
+    else:
+        width, height = W, H
+    x, y = 3, height // 2
+    off = header + (y * width + x) * 4
+    r, g, b = raw[off], raw[off + 1], raw[off + 2]
+    return int(0.299 * r + 0.587 * g + 0.114 * b)
+
+
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] == "luma":
+        print(luma())
+        return
+    if len(sys.argv) >= 3 and sys.argv[1] in ("taptext", "hastext"):
+        node = find_text(sys.argv[2])
+        if node is None:
+            print(f"no se encontró el texto {sys.argv[2]!r}", file=sys.stderr)
+            sys.exit(1)
+        if sys.argv[1] == "taptext":
+            x, y = center(node)
+            adb("shell", "input", "tap", str(x), str(y))
+            time.sleep(1.0)
+        return
     if len(sys.argv) == 2 and sys.argv[1] == "ids":
         print("\n".join(sorted(all_ids())))
         return

@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Tema claro -->
     <color name="fondo">#F4F6F8</color>
     <color name="tarjeta">#FFFFFF</color>
     <color name="texto">#1B2430</color>
     <color name="texto_suave">#5B6776</color>
     <color name="acento">#1E6FD9</color>
     <color name="linea">#D5DBE2</color>
+    <color name="error">#B3261E</color>
+
+    <!-- Tema oscuro -->
+    <color name="fondo_oscuro">#101418</color>
+    <color name="tarjeta_oscuro">#1B2128</color>
+    <color name="texto_oscuro">#E8EDF2</color>
+    <color name="texto_suave_oscuro">#9AA7B4</color>
+    <color name="acento_oscuro">#6EA8FF</color>
+    <color name="linea_oscuro">#2C3640</color>
+    <color name="error_oscuro">#FF8A80</color>
 </resources>

@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fondo"
+    android:background="?attr/cFondo"
     android:fillViewport="true"
     android:scrollbars="vertical">
 
@@ -12,20 +12,36 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/titulo"
-            android:textColor="@color/texto"
-            android:textSize="22sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/titulo"
+                android:textColor="?attr/cTexto"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <Switch
+                android:id="@+id/sw_oscuro"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="@string/modo_oscuro"
+                android:textColor="?attr/cTexto"
+                android:textSize="13sp" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/subtitulo"
-            android:textColor="@color/texto_suave"
+            android:textColor="?attr/cTextoSuave"
             android:textSize="13sp" />
 
         <!-- ENTRADAS: MATERIAL -->
@@ -94,51 +110,48 @@
         <!-- ENTRADAS: ELECTRICIDAD -->
         <TextView style="@style/Seccion" android:text="@string/sec_electricidad" />
 
-        <!-- Consumo de la impresora + referencias de la Bambu Lab A1 Combo -->
-        <TextView style="@style/Etiqueta" android:text="@string/lbl_watts" />
-        <EditText
-            android:id="@+id/et_watts"
-            style="@style/Campo"
-            android:hint="@string/hint_watts"
-            android:inputType="numberDecimal" />
-        <LinearLayout style="@style/FilaSugerido">
-            <TextView
-                android:id="@+id/tv_watts_estandar"
-                style="@style/TextoSugerido" />
-            <Button
-                android:id="@+id/btn_usar_watts_estandar"
-                style="@style/BotonUsar" />
-        </LinearLayout>
-        <LinearLayout style="@style/FilaSugerido">
-            <TextView
-                android:id="@+id/tv_watts_alto"
-                style="@style/TextoSugerido" />
-            <Button
-                android:id="@+id/btn_usar_watts_alto"
-                style="@style/BotonUsar" />
-        </LinearLayout>
+        <!-- Consumo: menú de materiales (watts promedio de la A1 con cada material) -->
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_material_menu" />
+        <Spinner
+            android:id="@+id/sp_material"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="4dp"
+            android:prompt="@string/prompt_material"
+            android:spinnerMode="dialog" />
         <TextView
-            android:id="@+id/tv_watts_fuente"
+            android:id="@+id/tv_material_info"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="@string/watts_fuente"
-            android:textColor="@color/texto_suave"
-            android:textSize="11sp" />
+            android:text="@string/material_info_ninguno"
+            android:textColor="?attr/cTextoSuave"
+            android:textSize="12sp" />
 
-        <!-- Precio del kWh (un solo campo) y sus ayudas -->
-        <TextView style="@style/Etiqueta" android:layout_marginTop="18dp" android:text="@string/lbl_precio_kwh" />
-        <EditText
-            android:id="@+id/et_precio_kwh"
-            style="@style/Campo"
-            android:hint="@string/hint_precio_kwh"
-            android:inputType="numberDecimal" />
+        <!-- Solo con la opción "Otro" -->
+        <LinearLayout
+            android:id="@+id/ll_watts_otro"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+            <TextView style="@style/Etiqueta" android:text="@string/lbl_watts" />
+            <EditText
+                android:id="@+id/et_watts"
+                style="@style/Campo"
+                android:hint="@string/hint_watts"
+                android:inputType="numberDecimal" />
+        </LinearLayout>
 
+        <!-- Precio del kWh: sale de la tabla por región -->
+        <TextView style="@style/Etiqueta" android:layout_marginTop="18dp" android:text="@string/lbl_region" />
         <Spinner
             android:id="@+id/sp_region"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:layout_marginTop="6dp" />
+            android:layout_marginTop="4dp"
+            android:prompt="@string/prompt_region"
+            android:spinnerMode="dialog" />
 
         <Button
             android:id="@+id/btn_detectar"
@@ -153,83 +166,97 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:text="@string/region_info_inicial"
-            android:textColor="@color/texto"
+            android:textColor="?attr/cTexto"
             android:textSize="13sp" />
 
-        <LinearLayout style="@style/FilaSugerido">
-            <TextView
-                android:id="@+id/tv_region_ref"
-                style="@style/TextoSugerido"
-                android:text="@string/region_ref_ninguna" />
-            <Button
-                android:id="@+id/btn_usar_region"
-                style="@style/BotonUsar" />
-        </LinearLayout>
-
-        <TextView style="@style/Subtitulo" android:text="@string/sub_boleta" />
-
-        <LinearLayout
+        <TextView
+            android:id="@+id/tv_region_ref"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_marginTop="4dp"
+            android:text="@string/region_ref_ninguna"
+            android:textColor="?attr/cTextoSuave"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_tabla"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="4dp"
+            android:text="@string/btn_ver_tabla" />
+
+        <!-- Tabla de precios por región (se llena desde el código) -->
+        <LinearLayout
+            android:id="@+id/ll_tabla"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/cTarjeta"
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:visibility="gone" />
+
+        <!-- Solo si la región no tiene precio en la tabla, o con "Otra tarifa" -->
+        <LinearLayout
+            android:id="@+id/ll_kwh_manual"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView style="@style/Etiqueta" android:layout_marginTop="14dp" android:text="@string/lbl_precio_kwh_manual" />
+            <EditText
+                android:id="@+id/et_precio_kwh"
+                style="@style/Campo"
+                android:hint="@string/hint_precio_kwh"
+                android:inputType="numberDecimal" />
+
+            <TextView style="@style/Subtitulo" android:text="@string/sub_boleta" />
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="horizontal">
 
-                <TextView style="@style/Etiqueta" android:text="@string/lbl_boleta_monto" />
-                <EditText
-                    android:id="@+id/et_boleta_monto"
-                    style="@style/Campo"
-                    android:hint="@string/hint_boleta_monto"
-                    android:inputType="numberDecimal" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView style="@style/Etiqueta" android:text="@string/lbl_boleta_monto" />
+                    <EditText
+                        android:id="@+id/et_boleta_monto"
+                        style="@style/Campo"
+                        android:hint="@string/hint_boleta_monto"
+                        android:inputType="numberDecimal" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView style="@style/Etiqueta" android:text="@string/lbl_boleta_kwh" />
+                    <EditText
+                        android:id="@+id/et_boleta_kwh"
+                        style="@style/Campo"
+                        android:hint="@string/hint_boleta_kwh"
+                        android:inputType="numberDecimal" />
+                </LinearLayout>
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView style="@style/Etiqueta" android:text="@string/lbl_boleta_kwh" />
-                <EditText
-                    android:id="@+id/et_boleta_kwh"
-                    style="@style/Campo"
-                    android:hint="@string/hint_boleta_kwh"
-                    android:inputType="numberDecimal" />
+            <LinearLayout style="@style/FilaSugerido">
+                <TextView
+                    android:id="@+id/tv_boleta_resultado"
+                    style="@style/TextoSugerido"
+                    android:text="@string/boleta_ayuda" />
+                <Button
+                    android:id="@+id/btn_usar_boleta"
+                    style="@style/BotonUsar" />
             </LinearLayout>
-        </LinearLayout>
-
-        <LinearLayout style="@style/FilaSugerido">
-            <TextView
-                android:id="@+id/tv_boleta_resultado"
-                style="@style/TextoSugerido"
-                android:text="@string/boleta_ayuda" />
-            <Button
-                android:id="@+id/btn_usar_boleta"
-                style="@style/BotonUsar" />
-        </LinearLayout>
-
-        <!-- Tarifa guardada: se conserva al cerrar la app, solo si el usuario toca GUARDAR -->
-        <LinearLayout style="@style/FilaSugerido" android:layout_marginTop="14dp">
-            <TextView
-                android:id="@+id/tv_tarifa_guardada"
-                style="@style/TextoSugerido"
-                android:text="@string/tarifa_vacia"
-                android:textColor="@color/texto" />
-            <Button
-                android:id="@+id/btn_guardar_tarifa"
-                style="@style/BotonUsar"
-                android:contentDescription="@string/btn_guardar"
-                android:text="@string/btn_guardar" />
-            <Button
-                android:id="@+id/btn_usar_tarifa"
-                style="@style/BotonUsar"
-                android:layout_marginStart="6dp" />
         </LinearLayout>
 
         <!-- ENTRADAS: EXTRAS OPCIONALES -->
@@ -270,7 +297,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/cb_iva"
-            android:textColor="@color/texto"
+            android:textColor="?attr/cTexto"
             android:textSize="14sp" />
 
         <!-- BOTONES -->
@@ -304,7 +331,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="@string/status_inicial"
-            android:textColor="@color/texto_suave"
+            android:textColor="?attr/cTextoSuave"
             android:textSize="14sp" />
 
         <!-- RESULTADOS -->
@@ -313,7 +340,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/tarjeta"
+            android:background="?attr/cTarjeta"
             android:orientation="vertical"
             android:padding="14dp">
 
@@ -370,7 +397,7 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="6dp"
-                android:background="@color/linea" />
+                android:background="?attr/cLinea" />
 
             <LinearLayout style="@style/FilaResultado">
                 <TextView
@@ -397,11 +424,27 @@
             </LinearLayout>
 
             <TextView
-                android:id="@+id/tv_fijos"
+                android:id="@+id/tv_calculado_con"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:textColor="@color/texto_suave"
+                android:textColor="?attr/cTexto"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tv_cuadra"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="?attr/cAcento"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tv_fijos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="?attr/cTextoSuave"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -411,7 +454,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/tarjeta"
+            android:background="?attr/cTarjeta"
             android:orientation="vertical"
             android:padding="14dp">
 
@@ -446,7 +489,7 @@
             android:layout_marginTop="12dp"
             android:layout_marginBottom="24dp"
             android:text="@string/nota_formato"
-            android:textColor="@color/texto_suave"
+            android:textColor="?attr/cTextoSuave"
             android:textSize="12sp" />
     </LinearLayout>
 </ScrollView>

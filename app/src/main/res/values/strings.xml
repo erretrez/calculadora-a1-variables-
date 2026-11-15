@@ -16,8 +16,7 @@
     <string name="lbl_piezas">Cantidad de piezas fabricadas</string>
     <string name="lbl_horas">Horas</string>
     <string name="lbl_minutos">Minutos</string>
-    <string name="lbl_watts">Consumo de la impresora (watts)</string>
-    <string name="lbl_precio_kwh">Precio de electricidad por kWh</string>
+    
 
     <string name="lbl_horas_trabajo">Mano de obra: horas de trabajo (lijado, pintura, armado)</string>
     <string name="lbl_costo_hora_trabajo">Mano de obra: costo por hora de trabajo</string>
@@ -43,22 +42,13 @@
     <string name="btn_calcular">CALCULAR</string>
     <string name="btn_limpiar">LIMPIAR</string>
     <string name="btn_usar">USAR</string>
-    <string name="btn_guardar">GUARDAR</string>
     <string name="btn_detectar">DETECTAR MI REGIÓN</string>
     <string name="desc_usar">Usar el valor indicado</string>
 
-    <!-- Consumo de la Bambu Lab A1 Combo (sin otros dígitos en estas líneas: se prueban en CI) -->
-    <string name="watts_estandar">Estándar (PLA): %1$s–%2$s W</string>
-    <string name="watts_alto">Alto consumo (ABS, alta temperatura): ~%1$s W</string>
-    <string name="watts_fuente">Bambu Lab A1 Combo. Estándar: promedio en PLA según la wiki de Bambu Lab (95 W) y mediciones de usuarios (70–80 W). Alto consumo: unos 200 W en ABS, según mediciones de usuarios. El pico de calentamiento (hasta 1.300 W a 220 V según la hoja técnica) dura poco y no es el consumo promedio. Son valores referenciales: un enchufe medidor da el dato exacto de tu equipo.</string>
+    
 
-    <!-- Precio del kWh: región -->
-    <string name="region_placeholder">Elige tu región (valor referencial)</string>
-    <string name="region_info_inicial">Elige tu región o toca DETECTAR MI REGIÓN.</string>
+    
     <string name="region_detectada">Región detectada (aprox.): %1$s</string>
-    <string name="region_ref_ninguna">Elige una región para ver un valor referencial.</string>
-    <string name="region_ref">Referencial: %1$s por kWh (aprox., %2$s, no oficial). Verifica en tu boleta.</string>
-    <string name="region_ref_sin_dato">Sin valor referencial para esta región. Usa el precio de tu boleta.</string>
     <string name="ubicacion_buscando">Buscando tu ubicación…</string>
     <string name="ubicacion_timeout">No se pudo obtener la ubicación. Elige tu región manualmente.</string>
     <string name="ubicacion_desactivada">La ubicación del teléfono está desactivada. Actívala o elige tu región manualmente.</string>
@@ -67,21 +57,15 @@
     <string name="ubicacion_antigua">Se usó tu última ubicación conocida (puede no ser la actual).</string>
 
     <!-- Precio del kWh: boleta -->
-    <string name="sub_boleta">O calcúlalo con tu boleta</string>
     <string name="lbl_boleta_monto">Monto total de la boleta</string>
     <string name="lbl_boleta_kwh">kWh consumidos</string>
     <string name="boleta_ayuda">Ingresa el monto total y los kWh de tu boleta.</string>
     <string name="boleta_resultado">Precio efectivo: %1$s por kWh (incluye cargos fijos)</string>
 
-    <!-- Tarifa guardada (se conserva al cerrar la app; solo si el usuario toca GUARDAR) -->
-    <string name="tarifa_vacia">Mi tarifa: aún no guardas una. Ingresa el precio del kWh y toca GUARDAR.</string>
-    <string name="tarifa_guardada">Mi tarifa guardada: %1$s por kWh</string>
-    <string name="tarifa_guardada_region">Mi tarifa guardada: %1$s por kWh (%2$s)</string>
-    <string name="tarifa_error">Ingresa un precio del kWh válido para guardarlo.</string>
+    
 
     <string name="status_inicial">Completa los campos obligatorios para ver el resultado.</string>
     <string name="status_incompleto">Faltan datos o hay valores inválidos. Revisa los campos marcados.</string>
-    <string name="status_ok">Cálculo actualizado.</string>
 
     <string name="res_material">Material</string>
     <string name="res_electricidad">Electricidad</string>
@@ -98,5 +82,42 @@
 
     <string name="fijos_resumen">Valores fijos incluidos (no editables): depreciación con impresora de %1$s y vida útil de %2$s horas; mantenimiento de %3$s por hora.</string>
 
-    <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos. La merma se calcula sobre material, electricidad, depreciación y mantenimiento. El margen es sobre el costo unitario. Los valores referenciales de kWh no son oficiales: confirma el precio con tu boleta.</string>
+    <string name="modo_oscuro">Modo oscuro</string>
+
+    <!-- Electricidad: material (consumo de la A1) -->
+    <string name="lbl_material_menu">Material del filamento (define el consumo de la impresora)</string>
+    <string name="prompt_material">Material de impresión</string>
+    <string name="material_placeholder">Elige el material</string>
+    <string name="material_info_ninguno">Elige un material para usar el consumo promedio de la Bambu Lab A1 Combo con ese material.</string>
+    <string name="material_info">Consumo usado: %1$s W (%2$s). Referencial: un enchufe medidor da el dato exacto de tu equipo.</string>
+    <string name="material_info_otro">Ingresa el consumo de tu impresora en watts.</string>
+    <string name="material_falta">Elige un material (o "Otro" e ingresa los watts).</string>
+    <string name="lbl_watts">Consumo de la impresora (watts)</string>
+
+    <!-- Electricidad: región y tabla de precios -->
+    <string name="lbl_region">Región (define el precio de la electricidad por kWh)</string>
+    <string name="prompt_region">Región</string>
+    <string name="region_placeholder">Elige tu región</string>
+    <string name="region_otra">Otra tarifa (ingresar el precio a mano)</string>
+    <string name="region_sin_dato_corto">sin dato</string>
+    <string name="region_info_inicial">Elige tu región o toca DETECTAR MI REGIÓN.</string>
+    <string name="region_ref_ninguna">Aún no hay región elegida: sin ella no hay precio del kWh.</string>
+    <string name="region_ref">Precio usado: %1$s por kWh (tabla referencial, %2$s, no oficial). Verifica en tu boleta.</string>
+    <string name="region_ref_sin_dato">Esta región no tiene precio en la tabla: ingresa abajo el precio de tu boleta.</string>
+    <string name="region_ref_otra">Tarifa manual: ingresa abajo el precio por kWh.</string>
+    <string name="region_falta">Elige tu región (o "Otra tarifa") para obtener el precio del kWh.</string>
+    <string name="btn_ver_tabla">VER TABLA DE PRECIOS POR REGIÓN</string>
+    <string name="btn_ocultar_tabla">OCULTAR TABLA DE PRECIOS</string>
+    <string name="tabla_titulo">Precio referencial del kWh por región (%1$s, no oficial). Toca una fila para elegirla.</string>
+    <string name="tabla_sin_dato">sin dato: usa tu boleta</string>
+    <string name="lbl_precio_kwh_manual">Precio de electricidad por kWh (de tu boleta)</string>
+    <string name="sub_boleta">O calcúlalo con tu boleta</string>
+
+    <!-- Indicadores de cálculo -->
+    <string name="status_ok">Cálculo n.º %1$d actualizado a las %2$s</string>
+    <string name="calculado_con">Calculado con: %1$s</string>
+    <string name="cuadra_ok">✓ Verificado: material + electricidad + depreciación + mantenimiento + mano de obra + merma = total.</string>
+    <string name="cuadra_mal">✗ Atención: las partes no suman el total. No uses este resultado.</string>
+
+    <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos, por eso una suma de cifras redondeadas puede diferir en $1 o $2. La merma se calcula sobre material, electricidad, depreciación y mantenimiento. El margen es sobre el costo unitario. Los precios del kWh de la tabla no son oficiales: confirma con tu boleta.</string>
 </resources>

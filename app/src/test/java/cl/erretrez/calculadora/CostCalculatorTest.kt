@@ -632,7 +632,7 @@ class CostCalculatorTest {
     fun textoPlanoDeSugeridosSeInterpretaComoElMismoNumero() {
         assertEquals("489990", Suggested.plain(Suggested.PRECIO_IMPRESORA))
         assertEquals("5000", Suggested.plain(Suggested.VIDA_UTIL_HORAS))
-        assertEquals("100", Suggested.plain(Suggested.MANTENIMIENTO_POR_HORA))
+        assertEquals("50", Suggested.plain(Suggested.MANTENIMIENTO_POR_HORA))
         assertEquals(489990.0, CostCalculator.parseNumber(Suggested.plain(Suggested.PRECIO_IMPRESORA))!!, delta)
         assertEquals(5000.0, CostCalculator.parseNumber(Suggested.plain(Suggested.VIDA_UTIL_HORAS))!!, delta)
         assertEquals(50.0, CostCalculator.parseNumber(Suggested.plain(Suggested.MANTENIMIENTO_POR_HORA))!!, delta)

@@ -386,7 +386,7 @@ class CostCalculatorTest {
     fun resumenDeEntradasMuestraLosDatosUsados() {
         val t = Resumen.entradas(sinDatosDeImpresora(), "PLA", "Metropolitana de Santiago")
         assertTrue(t, t.contains("100 g de PLA"))
-        assertTrue(t, t.contains("2 piezas"))
+        assertTrue(t, t.contains("2 unidades"))
         assertTrue(t, t.contains("5 h 0 min"))
         assertTrue(t, t.contains("200 W"))
         assertTrue(t, t.contains("/kWh (Metropolitana de Santiago)"))
@@ -401,7 +401,7 @@ class CostCalculatorTest {
             null, null
         )
         assertTrue(t, t.contains("mano de obra 2 h"))
-        assertTrue(t, t.contains("1 pieza fallida"))
+        assertTrue(t, t.contains("1 unidad fallida"))
         assertTrue(t, t.contains("margen 30%"))
         assertTrue(t, t.contains("con IVA"))
     }
@@ -733,5 +733,117 @@ class CostCalculatorTest {
         assertTrue("Debe contener el símbolo \$: $s", s.contains("$"))
         assertFalse("No debe tener coma decimal: $s", s.contains(","))
         assertTrue("Debe contener los dígitos: $s", s.replace(".", "").contains("1234567"))
+    }
+
+    // ---------- v1.9: productos de varias piezas (+ AGREGAR PIEZA) ----------
+
+    private val petg = Parte(precioKg = 25000.0, gramos = 50.0, horas = 2.0, minutos = 30.0, watts = 120.0)
+
+    @Test
+    fun dosPiezasIgualesDuplicanLosCostosDelMaterialYElTiempo() {
+        val una = success(sinDatosDeImpresora())
+        val parte = Parte(20000.0, 100.0, 5.0, 0.0, 200.0)
+        val dos = success(sinDatosDeImpresora().copy(partesExtra = listOf(parte)))
+        assertEquals(una.material * 2, dos.material, delta)
+        assertEquals(una.electricidad * 2, dos.electricidad, delta)
+        assertEquals(una.depreciacion * 2, dos.depreciacion, delta)
+        assertEquals(una.mantenimiento * 2, dos.mantenimiento, delta)
+        assertEquals(5779.98, dos.total, 1e-9)
+        assertEquals(10.0, dos.horasTotales, delta)
+        assertEquals(200.0, dos.gramosTotales, delta)
+        assertEquals(2, dos.partes.size)
+        assertEquals(5779.98 / 200.0, dos.costoPorGramo!!, 1e-9)
+    }
+
+    @Test
+    fun cadaPiezaUsaSuPropioMaterialConsumoYTiempo() {
+        val b = success(sinDatosDeImpresora().copy(partesExtra = listOf(petg)))
+        // Pieza 2: material 25000/1000 x 50 = 1250; electricidad 0,12 kW x 2,5 h x 150 = 45;
+        // depreciación 489990/5000 x 2,5 = 244,995; mantenimiento 50 x 2,5 = 125.
+        val p2 = b.partes[1]
+        assertEquals(1250.0, p2.material, 1e-9)
+        assertEquals(45.0, p2.electricidad, 1e-9)
+        assertEquals(244.995, p2.depreciacion, 1e-9)
+        assertEquals(125.0, p2.mantenimiento, 1e-9)
+        assertEquals(1664.995, p2.subtotal, 1e-9)
+        assertEquals(2889.99, b.partes[0].subtotal, 1e-9)
+        assertEquals(4554.985, b.total, 1e-9)
+        assertEquals(7.5, b.horasTotales, delta)
+        assertEquals(150.0, b.gramosTotales, delta)
+        assertTrue(Resumen.partesSumanElTotal(b))
+    }
+
+    @Test
+    fun unaSolaPiezaDaElMismoResultadoDeSiempre() {
+        val b = success(sinDatosDeImpresora())
+        assertEquals(1, b.partes.size)
+        assertEquals(2889.99, b.total, 1e-9)
+        assertEquals(100.0, b.gramosTotales, delta)
+    }
+
+    @Test
+    fun laManoDeObraYLasFallidasSeAplicanAlProductoCompleto() {
+        val i = sinDatosDeImpresora().copy(
+            partesExtra = listOf(petg), horasTrabajo = 1.0, costoHoraTrabajo = 3000.0, piezasFallidas = 1.0
+        )
+        val b = success(i)
+        // Base 4554,985 + 3000 de mano de obra = 7554,985 para 2 unidades: una unidad = 3777,4925.
+        assertEquals(3777.4925, b.costoPiezaFallida, 1e-9)
+        assertEquals(7554.985 + 3777.4925, b.total, 1e-9)
+        assertTrue(Resumen.partesSumanElTotal(b))
+    }
+
+    @Test
+    fun losErroresDeLasPiezasAdicionalesSeIndicanPorPosicion() {
+        val sinGramos = petg.copy(gramos = null)
+        val minutosMal = petg.copy(minutos = 60.0)
+        val f = failure(sinDatosDeImpresora().copy(partesExtra = listOf(petg, sinGramos, minutosMal)))
+        assertTrue(f.fieldErrors.isEmpty())
+        assertEquals(setOf(1, 2), f.parteErrors.keys)
+        assertEquals(CostCalculator.MSG_REQUIRED, f.parteErrors.getValue(1)[Field.GRAMOS])
+        assertEquals(CostCalculator.MSG_MINUTES, f.parteErrors.getValue(2)[Field.MINUTOS])
+    }
+
+    @Test
+    fun unaPiezaVaciaImpideElResultadoPeroNoMarcaLaPrimera() {
+        val vacia = Parte(null, null, null, null, null)
+        val f = failure(sinDatosDeImpresora().copy(partesExtra = listOf(vacia)))
+        assertTrue(f.fieldErrors.isEmpty())
+        assertEquals(
+            setOf(Field.PRECIO_KG, Field.GRAMOS, Field.WATTS, Field.HORAS, Field.MINUTOS),
+            f.parteErrors.getValue(0).keys
+        )
+    }
+
+    @Test
+    fun elTiempoDeUnaPiezaDebeSerMayorQueCero() {
+        val f = failure(sinDatosDeImpresora().copy(partesExtra = listOf(petg.copy(horas = 0.0, minutos = 0.0))))
+        assertEquals(CostCalculator.MSG_TIME_POSITIVE, f.parteErrors.getValue(0)[Field.HORAS])
+    }
+
+    @Test
+    fun elResumenListaCadaPiezaYSuSubtotal() {
+        val i = sinDatosDeImpresora().copy(partesExtra = listOf(petg))
+        val b = success(i)
+        val t = Compartir.texto(b, i, "Soporte grande", "PLA", "Biobío", "10:00:00")
+        assertTrue(t, t.contains("Pieza 1 · 100 g · 5 h: " + CostCalculator.formatClp(2889.99)))
+        assertTrue(t, t.contains("Pieza 2 · 50 g · 2 h 30 min: " + CostCalculator.formatClp(1664.995)))
+        assertTrue(t, t.contains("2 piezas"))
+        assertTrue(t, t.contains("150 g en total"))
+        assertTrue(t, t.contains("7 h 30 min en total"))
+    }
+
+    @Test
+    fun conUnaSolaPiezaElResumenNoTraeSeccionDePiezas() {
+        val i = sinDatosDeImpresora()
+        val t = Compartir.texto(success(i), i, null, "PLA", null, "10:00:00")
+        assertFalse(t, t.contains("Pieza 1"))
+    }
+
+    @Test
+    fun tiempoLegible() {
+        assertEquals("2 h", Resumen.tiempo(2.0))
+        assertEquals("5 h 30 min", Resumen.tiempo(5.5))
+        assertEquals("0 h 10 min", Resumen.tiempo(10.0 / 60.0))
     }
 }

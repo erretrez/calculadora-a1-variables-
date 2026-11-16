@@ -58,8 +58,8 @@
             android:hint="@string/hint_nombre"
             android:inputType="textCapSentences" />
 
-        <!-- ENTRADAS: MATERIAL -->
-        <TextView style="@style/Seccion" android:text="@string/sec_material" />
+        <!-- PIEZA 1: filamento, gramos, tiempo y consumo (material) de un ciclo de la máquina -->
+        <TextView style="@style/Seccion" android:text="@string/sec_pieza1" />
 
         <TextView style="@style/Etiqueta" android:text="@string/lbl_precio_kg" />
         <EditText
@@ -75,20 +75,7 @@
             android:hint="@string/hint_gramos"
             android:inputType="numberDecimal" />
 
-        <TextView style="@style/Etiqueta" android:text="@string/lbl_piezas" />
-        <EditText
-            android:id="@+id/et_piezas"
-            style="@style/Campo"
-            android:hint="@string/hint_piezas"
-            android:inputType="number" />
-        <Button
-            android:id="@+id/btn_mas_pieza"
-            style="@style/BotonRapido"
-            android:text="@string/btn_mas_pieza" />
-
-        <!-- ENTRADAS: TIEMPO -->
-        <TextView style="@style/Seccion" android:text="@string/sec_tiempo" />
-
+        <TextView style="@style/Subtitulo" android:layout_marginTop="14dp" android:text="@string/sub_tiempo" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -133,9 +120,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ENTRADAS: ELECTRICIDAD -->
-        <TextView style="@style/Seccion" android:text="@string/sec_electricidad" />
-
         <!-- Consumo: menú de materiales (watts promedio de la A1 con cada material) -->
         <TextView style="@style/Etiqueta" android:text="@string/lbl_material_menu" />
         <Spinner
@@ -168,6 +152,50 @@
                 android:hint="@string/hint_watts"
                 android:inputType="numberDecimal" />
         </LinearLayout>
+
+        <!-- Piezas adicionales (se agregan desde el código) -->
+        <LinearLayout
+            android:id="@+id/ll_partes_extra"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <Button
+            android:id="@+id/btn_agregar_pieza"
+            style="@style/BotonRapido"
+            android:layout_marginTop="14dp"
+            android:text="@string/btn_agregar_pieza" />
+        <TextView
+            android:id="@+id/tv_ayuda_piezas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/ayuda_piezas"
+            android:textColor="?attr/cTextoSuave"
+            android:textSize="12sp" />
+
+        <!-- UNIDADES A PRODUCIR -->
+        <TextView style="@style/Seccion" android:text="@string/sec_unidades" />
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_piezas" />
+        <EditText
+            android:id="@+id/et_piezas"
+            style="@style/Campo"
+            android:hint="@string/hint_piezas"
+            android:inputType="number" />
+        <Button
+            android:id="@+id/btn_mas_pieza"
+            style="@style/BotonRapido"
+            android:text="@string/btn_mas_pieza" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/unidades_ayuda"
+            android:textColor="?attr/cTextoSuave"
+            android:textSize="12sp" />
+
+        <!-- ENTRADAS: ELECTRICIDAD -->
+        <TextView style="@style/Seccion" android:text="@string/sec_electricidad" />
 
         <!-- Precio del kWh: sale de la tabla por región -->
         <TextView style="@style/Etiqueta" android:layout_marginTop="18dp" android:text="@string/lbl_region" />
@@ -378,6 +406,15 @@
             android:background="@drawable/tarjeta_fondo"
             android:orientation="vertical"
             android:padding="14dp">
+
+            <!-- Solo con 2 o más piezas: costo de cada una (se llena desde el código) -->
+            <LinearLayout
+                android:id="@+id/ll_detalle_partes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:orientation="vertical"
+                android:visibility="gone" />
 
             <LinearLayout style="@style/FilaResultado">
                 <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_material" />

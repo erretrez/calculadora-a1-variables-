@@ -100,6 +100,40 @@ class MainActivity : Activity() {
     private var settingPrice = false
     private val filasTabla = mutableListOf<Pair<TextView, TextView>>()
 
+    // Piezas adicionales (2.ª en adelante): cada una es otro ciclo de la máquina con su filamento, tiempo y consumo.
+    private inner class Card(val slot: Int, val root: View) {
+        private fun <T : View> bind(tag: String): T {
+            val v = root.findViewWithTag<T>(tag)
+            v.id = resources.getIdentifier("p${slot}_$tag", "id", packageName)
+            return v
+        }
+
+        init {
+            root.id = resources.getIdentifier("p${slot}_card", "id", packageName)
+        }
+
+        val titulo: TextView = bind("titulo")
+        val quitar: Button = bind("quitar")
+        val precio: EditText = bind("precio_kg")
+        val gramos: EditText = bind("gramos")
+        val horas: EditText = bind("horas")
+        val minutos: EditText = bind("minutos")
+        val watts: EditText = bind("watts")
+        val material: Spinner = bind("material")
+        val info: TextView = bind("info")
+        val wattsBox: View = bind("watts_box")
+        val masHoras: Button = bind("mas_horas")
+        val masMinutos: Button = bind("mas_minutos")
+        var wattsAuto = false
+        val cajas: List<EditText> get() = listOf(precio, gramos, horas, minutos, watts)
+    }
+
+    private val cards = mutableListOf<Card>()
+    private lateinit var llPartesExtra: LinearLayout
+    private lateinit var llDetalle: LinearLayout
+    private lateinit var btnAgregarPieza: Button
+    private lateinit var tvAyudaPiezas: TextView
+
     private var calcCount = 0
     /** Hora del móvil, en su zona horaria y con su formato (24 h o 12 h). Se lee de nuevo en cada uso. */
     private fun horaActual(): String {
@@ -145,6 +179,33 @@ class MainActivity : Activity() {
     /** Evita recalcular mientras LIMPIAR vacía los campos uno por uno. */
     private var suspendWatchers = false
 
+    private val recalcWatcher = object : TextWatcher {
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        override fun afterTextChanged(s: Editable?) {
+            if (!suspendWatchers) recalculate(showErrors = false)
+        }
+    }
+
+    /** Un campo con valor cambia de color (estado "activado" del fondo): se ve de un vistazo qué ya se ingresó. */
+    private fun marcarLleno(box: EditText) {
+        box.isActivated = !box.text.isNullOrBlank()
+        box.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                box.isActivated = !s.isNullOrBlank()
+            }
+        })
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Qué piezas adicionales existían: al recrear la pantalla (p. ej. modo oscuro) se vuelven a crear
+        // con los mismos ids y Android les devuelve el texto y el material.
+        outState.putIntArray(KEY_SLOTS, cards.map { it.slot }.toIntArray())
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -171,6 +232,18 @@ class MainActivity : Activity() {
             Field.OTROS_PIEZA to findViewById<EditText>(R.id.et_otros),
             Field.MARGEN to findViewById<EditText>(R.id.et_margen)
         )
+
+        llPartesExtra = findViewById(R.id.ll_partes_extra)
+        llDetalle = findViewById(R.id.ll_detalle_partes)
+        btnAgregarPieza = findViewById(R.id.btn_agregar_pieza)
+        tvAyudaPiezas = findViewById(R.id.tv_ayuda_piezas)
+        btnAgregarPieza.setOnClickListener {
+            hideKeyboard()
+            if (cards.size + 1 < MAX_PIEZAS) {
+                val slot = (2..MAX_PIEZAS).first { sl -> cards.none { it.slot == sl } }
+                agregarPieza(slot, prefill = true).gramos.requestFocus()
+            }
+        }
 
         tvStatus = findViewById(R.id.tv_status)
         tvMaterial = findViewById(R.id.tv_material)
@@ -213,29 +286,12 @@ class MainActivity : Activity() {
             recreate()
         }
 
-        val watcher = object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                if (!suspendWatchers) recalculate(showErrors = false)
-            }
-        }
-        inputs.values.forEach { it.addTextChangedListener(watcher) }
+        inputs.values.forEach { it.addTextChangedListener(recalcWatcher) }
 
-        // Un campo con valor cambia de color (estado "activado" del fondo): se ve de un vistazo qué ya se ingresó.
         val marcarLlenos = listOf(
             findViewById<EditText>(R.id.et_boleta_monto), findViewById<EditText>(R.id.et_boleta_kwh), etNombre
         ) + inputs.values
-        marcarLlenos.forEach { box ->
-            box.isActivated = !box.text.isNullOrBlank()
-            box.addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-                override fun afterTextChanged(s: Editable?) {
-                    box.isActivated = !s.isNullOrBlank()
-                }
-            })
-        }
+        marcarLlenos.forEach { marcarLleno(it) }
         cbIva.setOnCheckedChangeListener { _, _ ->
             if (!suspendWatchers) recalculate(showErrors = false)
         }
@@ -263,6 +319,8 @@ class MainActivity : Activity() {
         setupMaterial()
         setupBoleta()
         setupRegion()
+        savedInstanceState?.getIntArray(KEY_SLOTS)?.forEach { agregarPieza(it, prefill = false) }
+        actualizarBotonAgregar()
 
         findViewById<Button>(R.id.btn_calcular).setOnClickListener {
             hideKeyboard()
@@ -312,7 +370,11 @@ class MainActivity : Activity() {
             margenPct = value(Field.MARGEN),
             otrosPorPieza = value(Field.OTROS_PIEZA),
             incluirIva = cbIva.isChecked,
-            invalidOptional = invalidOptional
+            invalidOptional = invalidOptional,
+            partesExtra = cards.map { c ->
+                fun v(e: EditText) = CostCalculator.parseNumber(e.text?.toString())
+                Parte(v(c.precio), v(c.gramos), v(c.horas), v(c.minutos), v(c.watts))
+            }
         )
     }
 
@@ -339,6 +401,7 @@ class MainActivity : Activity() {
      */
     private fun recalculate(showErrors: Boolean) {
         inputs.values.forEach { it.error = null }
+        cards.forEach { c -> c.cajas.forEach { it.error = null }; showCardInfo(c, error = false) }
         val inputsNow = readInputs()
         showRegionRefText(error = false)
         showMaterialInfo(error = false)
@@ -371,8 +434,24 @@ class MainActivity : Activity() {
                             field == Field.PRECIO_KWH -> showRegionRefText(error = true)
                         }
                     }
+                    outcome.parteErrors.forEach { (idx, errs) ->
+                        val c = cards.getOrNull(idx) ?: return@forEach
+                        errs.forEach { (field, message) ->
+                            when (field) {
+                                Field.PRECIO_KG -> c.precio.error = message
+                                Field.GRAMOS -> c.gramos.error = message
+                                Field.HORAS -> c.horas.error = message
+                                Field.MINUTOS -> c.minutos.error = message
+                                Field.WATTS -> showCardInfo(c, error = true)
+                                else -> Unit
+                            }
+                        }
+                    }
                     tvStatus.text = outcome.general ?: getString(R.string.status_incompleto)
-                    outcome.fieldErrors.keys.firstNotNullOfOrNull { f -> inputs[f]?.takeIf { it.isShown } }?.requestFocus()
+                    val primero = outcome.fieldErrors.keys.firstNotNullOfOrNull { f -> inputs[f]?.takeIf { it.isShown } }
+                        ?: outcome.parteErrors.keys.firstOrNull()?.let { cards.getOrNull(it) }
+                            ?.cajas?.firstOrNull { it.error != null }
+                    primero?.requestFocus()
                 } else {
                     tvStatus.text = outcome.general ?: getString(R.string.status_inicial)
                 }
@@ -409,6 +488,38 @@ class MainActivity : Activity() {
         tvOtros.text = CostCalculator.formatClp(b.otros)
         tvPorGramo.text = b.costoPorGramo?.let { CostCalculator.formatClp(it) } ?: empty
         tvPorHora.text = CostCalculator.formatClp(b.costoPorHora)
+        showDetallePartes(b)
+    }
+
+    /** Con 2 o más piezas, lista el costo de cada una arriba de los totales. */
+    private fun showDetallePartes(b: CostBreakdown) {
+        llDetalle.removeAllViews()
+        if (b.partes.size < 2) {
+            llDetalle.visibility = View.GONE
+            return
+        }
+        llDetalle.visibility = View.VISIBLE
+        llDetalle.addView(TextView(this).apply {
+            text = getString(R.string.sub_detalle_piezas)
+            setTextColor(themeColor(R.attr.cAcento))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTypeface(null, Typeface.BOLD)
+        })
+        b.partes.forEachIndexed { k, p ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, (4 * resources.displayMetrics.density).toInt(), 0, (4 * resources.displayMetrics.density).toInt())
+            }
+            row.addView(TextView(this, null, 0, R.style.ResultadoEtiqueta).apply {
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                text = "Pieza " + (k + 1) + " · " + Suggested.plainRounded(p.gramos) + " g · " + Resumen.tiempo(p.horas)
+            })
+            row.addView(TextView(this, null, 0, R.style.ResultadoValor).apply {
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                text = CostCalculator.formatClp(p.subtotal)
+            })
+            llDetalle.addView(row)
+        }
     }
 
     /** Barra fija inferior: total y unitario siempre visibles, con el número de cálculo y su hora. */
@@ -514,6 +625,8 @@ class MainActivity : Activity() {
             tvGananciaUnit, tvVentaLote
         ).forEach { it.text = empty }
         tvVentaAyuda.setText(R.string.venta_ayuda)
+        llDetalle.removeAllViews()
+        llDetalle.visibility = View.GONE
         showBar(null, 0, null)
         ultimoResultado = null
         listOf(btnGuardarImagen, btnCompartir, btnCopiar).forEach { it.isEnabled = false }
@@ -532,6 +645,9 @@ class MainActivity : Activity() {
         etBoletaKwh.setText("")
         etNombre.setText("")
         cbIva.isChecked = false
+        cards.forEach { llPartesExtra.removeView(it.root) }
+        cards.clear()
+        actualizarBotonAgregar()
         // El material y la región son ajustes que se recuerdan: se conservan al limpiar.
         suspendWatchers = false
         applyMaterialState()
@@ -557,6 +673,112 @@ class MainActivity : Activity() {
         val editText = inputs.getValue(field)
         editText.setText(text)
         editText.setSelection(editText.text.length)
+    }
+
+    // ------------------------------------------------- piezas adicionales
+
+    /** Crea la tarjeta de una pieza adicional. [prefill] copia el precio del filamento y el material de la anterior. */
+    private fun agregarPieza(slot: Int, prefill: Boolean): Card {
+        val c = Card(slot, layoutInflater.inflate(R.layout.parte_extra, llPartesExtra, false))
+        cards += c
+        llPartesExtra.addView(c.root)
+
+        val names = listOf(getString(R.string.material_placeholder)) + Materiales.todos.map { Materiales.etiqueta(it) }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, names)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        c.material.adapter = adapter
+        c.material.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                applyCardMaterial(c)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                applyCardMaterial(c)
+            }
+        }
+        c.cajas.forEach { it.addTextChangedListener(recalcWatcher); marcarLleno(it) }
+        c.masHoras.setOnClickListener {
+            rapido { c.horas.setText(Rapidos.sumar(c.horas.text?.toString(), 1.0)); c.horas.setSelection(c.horas.text.length) }
+        }
+        c.masMinutos.setOnClickListener {
+            rapido {
+                val t = Rapidos.sumarMinutos(c.horas.text?.toString(), c.minutos.text?.toString())
+                t.horas?.let { c.horas.setText(it) }
+                c.minutos.setText(t.minutos)
+                c.minutos.setSelection(c.minutos.text.length)
+            }
+        }
+        c.quitar.setOnClickListener { quitarPieza(c) }
+
+        if (prefill) {
+            // Lo más común: mismo filamento y mismo material en todas las piezas; solo cambian gramos y tiempo.
+            val previa = cards.getOrNull(cards.size - 2)
+            c.precio.setText(previa?.precio?.text?.toString() ?: texto(Field.PRECIO_KG).orEmpty())
+            c.material.setSelection(previa?.material?.selectedItemPosition ?: spMaterial.selectedItemPosition)
+        }
+        renumerarPiezas()
+        actualizarBotonAgregar()
+        applyCardMaterial(c)
+        return c
+    }
+
+    private fun quitarPieza(c: Card) {
+        hideKeyboard()
+        cards.remove(c)
+        llPartesExtra.removeView(c.root)
+        renumerarPiezas()
+        actualizarBotonAgregar()
+        recalculate(showErrors = false)
+    }
+
+    private fun renumerarPiezas() {
+        cards.forEachIndexed { k, c ->
+            c.titulo.text = getString(R.string.pieza_titulo, k + 2)
+            c.quitar.contentDescription = getString(R.string.desc_quitar_pieza, k + 2)
+        }
+    }
+
+    private fun actualizarBotonAgregar() {
+        val lleno = cards.size + 1 >= MAX_PIEZAS
+        btnAgregarPieza.isEnabled = !lleno
+        tvAyudaPiezas.text = if (lleno) getString(R.string.max_piezas, MAX_PIEZAS) else getString(R.string.ayuda_piezas)
+    }
+
+    /** Aplica el material de la pieza: pone sus watts o muestra el campo propio con "Otro". */
+    private fun applyCardMaterial(c: Card) {
+        val m = Materiales.todos.getOrNull(c.material.selectedItemPosition - 1)
+        val watts = m?.watts
+        when {
+            m == null -> {
+                c.wattsBox.visibility = View.GONE
+                if (c.wattsAuto || !c.watts.text.isNullOrEmpty()) c.watts.setText("")
+                c.wattsAuto = false
+            }
+            watts != null -> {
+                c.wattsBox.visibility = View.GONE
+                val text = Suggested.plain(watts)
+                if (c.watts.text?.toString() != text) c.watts.setText(text)
+                c.wattsAuto = true
+            }
+            else -> {
+                c.wattsBox.visibility = View.VISIBLE
+                if (c.wattsAuto) c.watts.setText("")
+                c.wattsAuto = false
+            }
+        }
+        showCardInfo(c, error = false)
+    }
+
+    private fun showCardInfo(c: Card, error: Boolean) {
+        val m = Materiales.todos.getOrNull(c.material.selectedItemPosition - 1)
+        val watts = m?.watts
+        c.info.text = when {
+            error -> getString(R.string.material_falta)
+            m == null -> getString(R.string.material_info_ninguno)
+            watts == null -> getString(R.string.material_info_otro)
+            else -> getString(R.string.material_info, Suggested.plain(watts), m.fuente)
+        }
+        c.info.setTextColor(themeColor(if (error) R.attr.cError else R.attr.cTextoSuave))
     }
 
     // ------------------------------------------------- material → consumo (watts)
@@ -972,6 +1194,9 @@ class MainActivity : Activity() {
         const val SEARCH_TIMEOUT_MS = 30_000L
         const val PREFS = "ajustes"
         const val KEY_DARK = "oscuro"
+        const val KEY_SLOTS = "piezas_extra"
+        /** Máximo de piezas por producto (la 1.ª más hasta 5 adicionales: hay ids fijos para cada una). */
+        const val MAX_PIEZAS = 6
         const val KEY_REGION = "region"
         const val KEY_MATERIAL = "material"
         const val KEY_MANUAL = "precio_manual"

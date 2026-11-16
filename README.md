@@ -6,7 +6,7 @@ que calcula el costo de fabricación de una impresión 3D con una Bambu Lab A1 C
 
 ## Datos que se ingresan
 
-Obligatorios: precio del filamento por kg, gramos usados, piezas, tiempo (horas y/o minutos),
+Obligatorios: precio del filamento por kg, gramos usados, unidades, tiempo (horas y/o minutos),
 **material** (menú, define los watts) y **región** (tabla, define el precio del kWh).
 Opcionales: mano de obra, piezas fallidas, otros costos por pieza, margen e IVA (ver más abajo).
 
@@ -31,9 +31,9 @@ Depreciación por hora = $489.990 / 5.000 h = $97,998; mantenimiento = $50. Las 
 | Depreciación | ($489.990 / 5.000 h) × horas |
 | Mantenimiento | $50 × horas |
 | **Total** | material + electricidad + depreciación + mantenimiento (+ mano de obra y merma si se indican) |
-| **Unitario** | total / cantidad de piezas |
+| **Unitario** | total / cantidad de unidades |
 
-`horas` = horas + minutos / 60.
+`horas` = horas + minutos / 60. Con varias piezas (v1.9), material, electricidad, depreciación y mantenimiento se calculan **por pieza y se suman**.
 
 ## Validaciones
 
@@ -150,3 +150,17 @@ Para instalar el APK hay que permitir "instalar apps de orígenes desconocidos".
 - **Piezas fallidas:** en vez de un porcentaje, se indica cuántas piezas se perdieron. Una pieza fallida cuesta lo mismo que una buena (material, electricidad, depreciación, mantenimiento y mano de obra); ese costo se suma al total y se reparte entre las piezas buenas. Ejemplo: 4 piezas buenas con costo total $8.890 (una pieza = $2.222); con 2 fallidas el total sube $4.445 y el costo unitario pasa de $2.222 a $3.334. Se ingresan los gramos y el tiempo de las piezas **buenas** solamente. Un porcentaje solo tendría sentido como promedio histórico de muchas impresiones, no para un cálculo puntual.
 - **Un botón bajo cada casilla:** *+ 1 pieza* (piezas), *+ 1 hora* (horas) y *+ 10 min* (minutos; al llegar a 60 pasa una hora a la casilla de horas). Botones con relleno y borde de acento para distinguirlos del fondo, en ambos temas; vibración corta al tocar.
 - **Material recordado:** el último material elegido se conserva (como la región), también tras LIMPIAR.
+
+## Productos de varias piezas: + AGREGAR PIEZA (v1.9)
+
+Un objeto más grande que la cama de la A1 (256 × 256 × 256 mm), o que se arma con varias partes, necesita **varios ciclos de la máquina**. Cada ciclo es una *pieza*:
+
+- **Pieza 1** son los campos de siempre (precio del kg, gramos, horas, minutos y material). El botón **+ AGREGAR PIEZA** crea una tarjeta con la pieza 2, 3… (hasta 6), cada una con su **propio precio de filamento, gramos, tiempo y material** (el material define los watts: PLA 95 W, ABS 200 W, etc.). Una pieza nueva copia el precio y el material de la anterior, porque lo más común es usar el mismo filamento; solo hay que poner gramos y tiempo. **QUITAR** elimina una pieza.
+- **Cálculo:** por cada pieza, material = (precio/kg ÷ 1000) × gramos; electricidad = (watts de su material ÷ 1000) × sus horas × precio del kWh; depreciación = ($489.990 ÷ 5.000 h) × sus horas; mantenimiento = $50 × sus horas. El producto suma todas las piezas. El costo por gramo usa los gramos totales y el costo por hora usa el tiempo total.
+- **Mano de obra, unidades fallidas, otros costos, margen e IVA** se aplican **al producto completo** (no por pieza). Una unidad fallida cuesta lo mismo que una unidad buena **con todas sus piezas** y la mano de obra.
+- **Unidades:** la casilla *Cantidad de unidades iguales a fabricar* (antes "piezas") es cuántos productos iguales se hacen. Los gramos y el tiempo de cada pieza son los de **todas las unidades juntas**. Si una pieza suelta falló y se reimprimió, se agrega como una pieza más (o se cuenta como unidad fallida si falló el producto entero).
+- **Resultados, imagen y texto:** con 2 o más piezas se muestra el costo de cada una ("Pieza 2 · 50 g · 2 h 30 min") y la línea *Calculado con* indica piezas, gramos y tiempo totales.
+- **Mientras una pieza esté incompleta no hay resultado** (se marca qué falta al pulsar CALCULAR): así no se muestra un total que olvide una pieza.
+- Al cambiar de tema (modo oscuro) las piezas agregadas se conservan con sus datos.
+
+Cambios de nombre: lo que antes eran "piezas fabricadas / fallidas" ahora son **unidades** (para no confundirlas con las piezas de un producto).

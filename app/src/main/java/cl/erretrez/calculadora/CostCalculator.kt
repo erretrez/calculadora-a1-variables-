@@ -34,6 +34,31 @@ enum class Field(val optional: Boolean = false) {
     OTROS_PIEZA(true)
 }
 
+/**
+ * Una pieza del producto: lo que se imprime en un ciclo de la máquina (una cama). Un objeto más grande
+ * que la cama se parte en varias piezas; cada una tiene su filamento, sus gramos, su tiempo y su consumo.
+ * Los gramos y el tiempo son los de TODAS las unidades a producir de esa pieza (como en la pieza 1).
+ */
+data class Parte(
+    val precioKg: Double?,
+    val gramos: Double?,
+    val horas: Double?,
+    val minutos: Double?,
+    val watts: Double?
+)
+
+/** Costo de una pieza (sin mano de obra, mermas ni otros: esos son del producto completo). */
+data class ParteDetalle(
+    val gramos: Double,
+    val horas: Double,
+    val material: Double,
+    val electricidad: Double,
+    val depreciacion: Double,
+    val mantenimiento: Double
+) {
+    val subtotal: Double get() = material + electricidad + depreciacion + mantenimiento
+}
+
 /** Valores ingresados por el usuario. null = campo vacío o no numérico. */
 data class CostInputs(
     val precioKg: Double?,
@@ -63,7 +88,12 @@ data class CostInputs(
     val otrosPorPieza: Double? = null,
     val incluirIva: Boolean = false,
     /** Campos opcionales con texto escrito pero que no es un número válido. */
-    val invalidOptional: Set<Field> = emptySet()
+    val invalidOptional: Set<Field> = emptySet(),
+    /**
+     * Piezas adicionales (2.ª en adelante). La 1.ª pieza son los campos de arriba (precioKg, gramos,
+     * horas, minutos, watts). El costo total suma todas las piezas: cada una es un ciclo más de la máquina.
+     */
+    val partesExtra: List<Parte> = emptyList()
 )
 
 /** Desglose de costos. Las unidades monetarias son las que use el usuario. */
@@ -97,14 +127,19 @@ data class CostBreakdown(
     val margenPct: Double? = null,
     /** Piezas fallidas consideradas y costo de cada una (para mostrar el detalle). */
     val piezasFallidas: Double = 0.0,
-    val costoPiezaFallida: Double = 0.0
+    val costoPiezaFallida: Double = 0.0,
+    /** Detalle por pieza (la 1.ª primero). Con una sola pieza queda con 1 elemento. */
+    val partes: List<ParteDetalle> = emptyList(),
+    val gramosTotales: Double = 0.0
 )
 
 sealed class Outcome {
     data class Success(val breakdown: CostBreakdown) : Outcome()
     data class Failure(
         val fieldErrors: Map<Field, String>,
-        val general: String? = null
+        val general: String? = null,
+        /** Errores de las piezas adicionales: índice 0 = 2.ª pieza, 1 = 3.ª, etc. */
+        val parteErrors: Map<Int, Map<Field, String>> = emptyMap()
     ) : Outcome()
 }
 
@@ -312,6 +347,15 @@ object Compartir {
         l += Fila(nombre?.trim().takeUnless { it.isNullOrEmpty() } ?: SIN_NOMBRE, estilo = Estilo.TITULO)
         l += Fila("Costo de impresión 3D · $fechaHora", estilo = Estilo.SUBTITULO_ENC)
         l += Fila("Calculado con: " + Resumen.entradas(i, material, region), estilo = Estilo.NOTA)
+        if (b.partes.size > 1) {
+            l += Fila("Piezas del producto (" + b.partes.size + " ciclos de impresión)", estilo = Estilo.SECCION)
+            b.partes.forEachIndexed { k, p ->
+                l += Fila(
+                    "Pieza " + (k + 1) + " · " + Suggested.plainRounded(p.gramos) + " g · " + Resumen.tiempo(p.horas),
+                    f(p.subtotal)
+                )
+            }
+        }
         l += Fila("Costos", estilo = Estilo.SECCION)
         l += Fila("Material", f(b.material))
         l += Fila("Electricidad", f(b.electricidad))
@@ -320,7 +364,7 @@ object Compartir {
         if (b.manoObra > 0.0) l += Fila("Mano de obra", f(b.manoObra))
         if (b.merma > 0.0) {
             l += Fila(
-                "Piezas fallidas (" + Suggested.plainRounded(b.piezasFallidas) + " x " + f(b.costoPiezaFallida) + ")",
+                "Unidades fallidas (" + Suggested.plainRounded(b.piezasFallidas) + " x " + f(b.costoPiezaFallida) + ")",
                 f(b.merma)
             )
         }
@@ -368,6 +412,14 @@ object Compartir {
 
 /** Textos y comprobaciones que ayudan a ver con qué datos se hizo cada cálculo. */
 object Resumen {
+    /** Tiempo legible: 5.5 -> "5 h 30 min". */
+    fun tiempo(horas: Double): String {
+        val totalMin = Math.round(horas * 60.0)
+        val h = totalMin / 60
+        val m = totalMin % 60
+        return if (m == 0L) "$h h" else "$h h $m min"
+    }
+
     /** Las partes del desglose deben sumar exactamente el total (control interno). */
     fun partesSumanElTotal(b: CostBreakdown): Boolean {
         val suma = b.material + b.electricidad + b.depreciacion + b.mantenimiento + b.manoObra + b.merma + b.otros
@@ -380,20 +432,32 @@ object Resumen {
      */
     fun entradas(i: CostInputs, material: String?, region: String?): String {
         val partes = mutableListOf<String>()
-        i.precioKg?.let { partes += CostCalculator.formatClp(it) + "/kg" }
-        i.gramos?.let { partes += Suggested.plainRounded(it) + " g" + (material?.let { m -> " de $m" } ?: "") }
-        i.piezas?.let { partes += Suggested.plainRounded(it) + (if (it == 1.0) " pieza" else " piezas") }
-        if (i.horas != null || i.minutos != null) {
-            partes += Suggested.plainRounded(i.horas ?: 0.0) + " h " + Suggested.plainRounded(i.minutos ?: 0.0) + " min"
+        if (i.partesExtra.isEmpty()) {
+            i.precioKg?.let { partes += CostCalculator.formatClp(it) + "/kg" }
+            i.gramos?.let { partes += Suggested.plainRounded(it) + " g" + (material?.let { m -> " de $m" } ?: "") }
+        } else {
+            // Producto de varias piezas: se muestran los totales (el detalle de cada una va aparte).
+            val todas = listOf(Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts)) + i.partesExtra
+            partes += todas.size.toString() + " piezas"
+            partes += Suggested.plainRounded(todas.sumOf { it.gramos ?: 0.0 }) + " g en total"
         }
-        i.watts?.let { partes += Suggested.plainRounded(it) + " W" }
+        i.piezas?.let { partes += Suggested.plainRounded(it) + (if (it == 1.0) " unidad" else " unidades") }
+        if (i.partesExtra.isEmpty()) {
+            if (i.horas != null || i.minutos != null) {
+                partes += Suggested.plainRounded(i.horas ?: 0.0) + " h " + Suggested.plainRounded(i.minutos ?: 0.0) + " min"
+            }
+            i.watts?.let { partes += Suggested.plainRounded(it) + " W" }
+        } else {
+            val todas = listOf(Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts)) + i.partesExtra
+            partes += tiempo(todas.sumOf { (it.horas ?: 0.0) + (it.minutos ?: 0.0) / 60.0 }) + " en total"
+        }
         i.precioKwh?.let { partes += CostCalculator.formatClp(it) + "/kWh" + (region?.let { r -> " ($r)" } ?: "") }
         if (i.horasTrabajo != null && i.costoHoraTrabajo != null) {
             partes += "mano de obra " + Suggested.plainRounded(i.horasTrabajo) + " h x " +
                 CostCalculator.formatClp(i.costoHoraTrabajo)
         }
-        i.otrosPorPieza?.let { partes += "otros " + CostCalculator.formatClp(it) + "/pieza" }
-        i.piezasFallidas?.let { partes += Suggested.plainRounded(it) + (if (it == 1.0) " pieza fallida" else " piezas fallidas") }
+        i.otrosPorPieza?.let { partes += "otros " + CostCalculator.formatClp(it) + "/unidad" }
+        i.piezasFallidas?.let { partes += Suggested.plainRounded(it) + (if (it == 1.0) " unidad fallida" else " unidades fallidas") }
         i.margenPct?.let { partes += "margen " + Suggested.plainRounded(it) + "%" }
         if (i.incluirIva) partes += "con IVA"
         return partes.joinToString(" · ")
@@ -430,41 +494,21 @@ object CostCalculator {
         return if (value.isFinite()) value else null
     }
 
-    fun calculate(i: CostInputs): Outcome {
-        val errors = LinkedHashMap<Field, String>()
-
-        fun nonNegative(field: Field, v: Double?) {
-            when {
-                v == null -> errors[field] = MSG_REQUIRED
-                v < 0.0 -> errors[field] = MSG_NEGATIVE
-            }
-        }
-
-        nonNegative(Field.PRECIO_KG, i.precioKg)
-        nonNegative(Field.GRAMOS, i.gramos)
-        nonNegative(Field.WATTS, i.watts)
-        nonNegative(Field.PRECIO_KWH, i.precioKwh)
-        nonNegative(Field.PRECIO_IMPRESORA, i.precioImpresora)
-        nonNegative(Field.MANTENIMIENTO, i.mantenimientoPorHora)
-
-        // Piezas: entero mayor que 0 (evita división por cero).
-        val piezas = i.piezas
+    private fun nonNeg(errors: MutableMap<Field, String>, field: Field, v: Double?) {
         when {
-            piezas == null -> errors[Field.PIEZAS] = MSG_REQUIRED
-            piezas <= 0.0 -> errors[Field.PIEZAS] = MSG_POSITIVE
-            piezas != Math.floor(piezas) -> errors[Field.PIEZAS] = MSG_INTEGER
+            v == null -> errors[field] = MSG_REQUIRED
+            v < 0.0 -> errors[field] = MSG_NEGATIVE
         }
+    }
 
-        // Vida útil: mayor que 0 (evita división por cero).
-        val vida = i.vidaUtilHoras
-        when {
-            vida == null -> errors[Field.VIDA_UTIL] = MSG_REQUIRED
-            vida <= 0.0 -> errors[Field.VIDA_UTIL] = MSG_POSITIVE
-        }
-
-        // Tiempo: horas y/o minutos. Un campo vacío cuenta como 0 si el otro tiene valor.
-        val horas = i.horas
-        val minutos = i.minutos
+    /** Valida los datos propios de una pieza: filamento, gramos, consumo y tiempo (horas y/o minutos). */
+    private fun validarParte(p: Parte, errors: MutableMap<Field, String>) {
+        nonNeg(errors, Field.PRECIO_KG, p.precioKg)
+        nonNeg(errors, Field.GRAMOS, p.gramos)
+        nonNeg(errors, Field.WATTS, p.watts)
+        // Tiempo: un campo vacío cuenta como 0 si el otro tiene valor.
+        val horas = p.horas
+        val minutos = p.minutos
         if (horas == null && minutos == null) {
             errors[Field.HORAS] = MSG_TIME_REQUIRED
             errors[Field.MINUTOS] = MSG_TIME_REQUIRED
@@ -480,6 +524,38 @@ object CostCalculator {
                     errors[Field.MINUTOS] = MSG_TIME_POSITIVE
                 }
             }
+        }
+    }
+
+    fun calculate(i: CostInputs): Outcome {
+        val errors = LinkedHashMap<Field, String>()
+
+        val primera = Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts)
+        validarParte(primera, errors)
+        val parteErrors = LinkedHashMap<Int, Map<Field, String>>()
+        i.partesExtra.forEachIndexed { idx, p ->
+            val e = LinkedHashMap<Field, String>()
+            validarParte(p, e)
+            if (e.isNotEmpty()) parteErrors[idx] = e
+        }
+
+        nonNeg(errors, Field.PRECIO_KWH, i.precioKwh)
+        nonNeg(errors, Field.PRECIO_IMPRESORA, i.precioImpresora)
+        nonNeg(errors, Field.MANTENIMIENTO, i.mantenimientoPorHora)
+
+        // Unidades: entero mayor que 0 (evita división por cero).
+        val piezas = i.piezas
+        when {
+            piezas == null -> errors[Field.PIEZAS] = MSG_REQUIRED
+            piezas <= 0.0 -> errors[Field.PIEZAS] = MSG_POSITIVE
+            piezas != Math.floor(piezas) -> errors[Field.PIEZAS] = MSG_INTEGER
+        }
+
+        // Vida útil: mayor que 0 (evita división por cero).
+        val vida = i.vidaUtilHoras
+        when {
+            vida == null -> errors[Field.VIDA_UTIL] = MSG_REQUIRED
+            vida <= 0.0 -> errors[Field.VIDA_UTIL] = MSG_POSITIVE
         }
 
         // Opcionales (v1.2): vacío = no aplica; si se escribe algo debe ser válido.
@@ -505,16 +581,30 @@ object CostCalculator {
         optionalNonNegative(Field.MARGEN, i.margenPct)
         optionalNonNegative(Field.OTROS_PIEZA, i.otrosPorPieza)
 
-        if (errors.isNotEmpty()) return Outcome.Failure(errors)
+        if (errors.isNotEmpty() || parteErrors.isNotEmpty()) return Outcome.Failure(errors, null, parteErrors)
 
         // A partir de aquí todos los valores requeridos son no nulos y válidos.
         val n = piezas!!
-        val horasTotales = (horas ?: 0.0) + (minutos ?: 0.0) / 60.0
 
-        val material = (i.precioKg!! / 1000.0) * i.gramos!!
-        val electricidad = (i.watts!! / 1000.0) * horasTotales * i.precioKwh!!
-        val depreciacion = (i.precioImpresora!! / vida!!) * horasTotales
-        val mantenimiento = i.mantenimientoPorHora!! * horasTotales
+        // Cada pieza es un ciclo de la máquina: su propio filamento, consumo y tiempo. El costo del
+        // producto es la suma de todas (la electricidad usa los watts del material de cada pieza).
+        val detalle = (listOf(primera) + i.partesExtra).map { p ->
+            val h = (p.horas ?: 0.0) + (p.minutos ?: 0.0) / 60.0
+            ParteDetalle(
+                gramos = p.gramos!!,
+                horas = h,
+                material = (p.precioKg!! / 1000.0) * p.gramos,
+                electricidad = (p.watts!! / 1000.0) * h * i.precioKwh!!,
+                depreciacion = (i.precioImpresora!! / vida!!) * h,
+                mantenimiento = i.mantenimientoPorHora!! * h
+            )
+        }
+        val horasTotales = detalle.sumOf { it.horas }
+        val gramosTotales = detalle.sumOf { it.gramos }
+        val material = detalle.sumOf { it.material }
+        val electricidad = detalle.sumOf { it.electricidad }
+        val depreciacion = detalle.sumOf { it.depreciacion }
+        val mantenimiento = detalle.sumOf { it.mantenimiento }
         val base = material + electricidad + depreciacion + mantenimiento
 
         // Extras: sin datos valen 0 y el total es idéntico al cálculo base.
@@ -534,8 +624,7 @@ object CostCalculator {
         val gananciaLote = if (precioVenta != null) (precioVenta - unitario) * n else null
         val gananciaUnitaria = if (precioVenta != null) precioVenta - unitario else null
         val precioVentaLote = if (precioVenta != null) precioVenta * n else null
-        val gramosUsados = i.gramos
-        val costoPorGramo = if (gramosUsados > 0.0) total / gramosUsados else null
+        val costoPorGramo = if (gramosTotales > 0.0) total / gramosTotales else null
         val costoPorHora = total / horasTotales
 
         val all = listOfNotNull(
@@ -567,7 +656,9 @@ object CostCalculator {
                 precioVentaLote = precioVentaLote,
                 margenPct = margen,
                 piezasFallidas = fallidas,
-                costoPiezaFallida = costoPiezaFallida
+                costoPiezaFallida = costoPiezaFallida,
+                partes = detalle,
+                gramosTotales = gramosTotales
             )
         )
     }

@@ -4,28 +4,29 @@
     <string name="titulo">Costo de impresión 3D</string>
     <string name="subtitulo">Ingresa los valores de tu impresión. Ningún campo viene precargado.</string>
 
-    <string name="sec_material">Material</string>
-    <string name="sec_tiempo">Tiempo de impresión</string>
-    <string name="sec_electricidad">Electricidad</string>
+    <string name="sec_pieza1">Pieza 1</string>
+    <string name="sub_tiempo">Tiempo de impresión de esta pieza</string>
+    <string name="sec_unidades">Unidades a producir</string>
+    <string name="sec_electricidad">Electricidad (precio del kWh)</string>
     <string name="sec_extras">Extras (opcionales)</string>
     <string name="sec_resultados">Resultados</string>
 
     <string name="lbl_precio_kg">Precio del filamento por kilogramo</string>
     <string name="lbl_gramos">Filamento utilizado (gramos)</string>
-    <string name="lbl_piezas">Cantidad de piezas fabricadas</string>
+    <string name="lbl_piezas">Cantidad de unidades iguales a fabricar</string>
     <string name="lbl_horas">Horas</string>
     <string name="lbl_minutos">Minutos</string>
     
 
     <string name="lbl_horas_trabajo">Mano de obra: horas de trabajo (lijado, pintura, armado)</string>
     <string name="lbl_costo_hora_trabajo">Mano de obra: costo por hora de trabajo</string>
-    <string name="lbl_merma">Piezas fallidas (cuántas se perdieron)</string>
+    <string name="lbl_merma">Unidades fallidas (cuántas se perdieron)</string>
     <string name="cb_iva">Mostrar el precio de venta con IVA (19%)</string>
 
     <!-- Los hints no contienen dígitos a propósito: son solo texto guía, no valores. -->
     <string name="hint_precio_kg">Monto por kg</string>
     <string name="hint_gramos">Gramos</string>
-    <string name="hint_piezas">Piezas</string>
+    <string name="hint_piezas">Unidades</string>
     <string name="hint_horas">Horas</string>
     <string name="hint_minutos">Minutos</string>
     <string name="hint_watts">Watts</string>
@@ -70,7 +71,7 @@
     <string name="res_depreciacion">Depreciación de la impresora</string>
     <string name="res_mantenimiento">Mantenimiento</string>
     <string name="res_mano_obra">Mano de obra</string>
-    <string name="res_merma">Piezas fallidas (costo repartido)</string>
+    <string name="res_merma">Unidades fallidas (costo repartido)</string>
     <string name="res_total">COSTO TOTAL</string>
     <string name="res_unitario">COSTO UNITARIO</string>
     <string name="vacio">—</string>
@@ -109,15 +110,15 @@
     <!-- Indicadores de cálculo -->
     <string name="status_ok">Cálculo n.º %1$d actualizado a las %2$s</string>
     <string name="calculado_con">Calculado con: %1$s</string>
-    <string name="cuadra_ok">✓ Verificado: material + electricidad + depreciación + mantenimiento + mano de obra + piezas fallidas + otros = total.</string>
+    <string name="cuadra_ok">✓ Verificado: material + electricidad + depreciación + mantenimiento + mano de obra + unidades fallidas + otros = total.</string>
     <string name="cuadra_mal">✗ Atención: las partes no suman el total. No uses este resultado.</string>
 
-    <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos, por eso una suma de cifras redondeadas puede diferir en $1 o $2. Cada pieza fallida cuesta lo mismo que una pieza buena (material, electricidad, depreciación, mantenimiento y mano de obra; sin embalaje ni envío) y ese costo se suma al total y se reparte entre las piezas buenas: ingresa los gramos y el tiempo de las piezas buenas solamente. El margen es sobre el costo unitario. Los precios del kWh de la tabla no son oficiales: confirma con tu boleta.</string>
+    <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos, por eso una suma de cifras redondeadas puede diferir en $1 o $2. Cada unidad fallida cuesta lo mismo que una unidad buena, con todas sus piezas (material, electricidad, depreciación, mantenimiento y mano de obra; sin embalaje ni envío): ese costo se suma al total y se reparte entre las unidades buenas. Ingresa los gramos y el tiempo de las unidades buenas solamente. Si un objeto se imprime en varias piezas, el costo es la suma de todas. El margen es sobre el costo unitario. Los precios del kWh de la tabla no son oficiales: confirma con tu boleta.</string>
 
     <!-- v1.5 -->
-    <string name="lbl_otros">Otros costos por pieza (embalaje, envío, etiqueta)</string>
-    <string name="hint_otros">Monto por pieza</string>
-    <string name="res_otros">Otros costos (por pieza x piezas)</string>
+    <string name="lbl_otros">Otros costos por unidad (embalaje, envío, etiqueta)</string>
+    <string name="hint_otros">Monto por unidad</string>
+    <string name="res_otros">Otros costos (por unidad x unidades)</string>
     <string name="res_por_gramo">Costo por gramo de filamento</string>
     <string name="res_por_hora">Costo por hora de impresión</string>
     <string name="compartir_titulo">Resumen de costos</string>
@@ -131,7 +132,7 @@
     <string name="sec_venta">Ganancia y precio de venta</string>
     <string name="lbl_margen">Ganancia que quieres obtener sobre el costo (%)</string>
     <string name="venta_ayuda">Escribe el porcentaje de ganancia en Extras para ver aquí cuánto ganas y a qué precio vender. Es aparte del costo total.</string>
-    <string name="res_ganancia_unit">Ganancia por pieza</string>
+    <string name="res_ganancia_unit">Ganancia por unidad</string>
     <string name="venta_aplicada">Ganancia de %1$s%% sobre el costo, aparte del costo total.</string>
     <string name="res_ganancia">Ganancia del lote (sin IVA)</string>
     <string name="res_precio_venta">Precio de venta unitario (sin IVA)</string>
@@ -153,7 +154,22 @@
     <string name="barra_hora">Hora del móvil\n%1$s</string>
 
     <!-- v1.8: botones de suma rápida -->
-    <string name="btn_mas_pieza">+ 1 pieza</string>
+    <string name="btn_mas_pieza">+ 1 unidad</string>
     <string name="btn_mas_hora">+ 1 hora</string>
     <string name="btn_mas_minutos">+ 10 min</string>
+
+    <!-- v1.9: productos de varias piezas -->
+    <string name="btn_agregar_pieza">+ AGREGAR PIEZA</string>
+    <string name="ayuda_piezas">¿Tu objeto es más grande que la cama de la A1 (256 × 256 × 256 mm) o se arma con varias piezas? Agrega cada pieza: cada una es un ciclo más de la máquina y suma su propio filamento, tiempo y consumo.</string>
+    <string name="pieza_titulo">Pieza %1$d</string>
+    <string name="btn_quitar_pieza">QUITAR</string>
+    <string name="desc_quitar_pieza">Quitar la pieza %1$d</string>
+    <string name="lbl_pieza_material">Material de esta pieza (define su consumo en watts)</string>
+    <string name="lbl_pieza_precio_kg">Precio del filamento por kilogramo (esta pieza)</string>
+    <string name="lbl_pieza_gramos">Filamento de esta pieza (gramos)</string>
+    <string name="lbl_pieza_horas">Horas de esta pieza</string>
+    <string name="lbl_pieza_minutos">Minutos de esta pieza</string>
+    <string name="sub_detalle_piezas">Costo de cada pieza (material, electricidad, depreciación y mantenimiento)</string>
+    <string name="unidades_ayuda">Los gramos y el tiempo de cada pieza son los de todas las unidades juntas.</string>
+    <string name="max_piezas">Máximo %1$d piezas por producto.</string>
 </resources>

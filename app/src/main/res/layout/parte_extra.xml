@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tarjeta de una pieza adicional. Las vistas se identifican por tag; el código les asigna su id (pN_...). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="18dp"
+    android:background="@drawable/tarjeta_fondo"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:tag="titulo"
+            android:textColor="?attr/cAcento"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <Button
+            style="@style/BotonRapido"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginTop="0dp"
+            android:paddingEnd="14dp"
+            android:paddingStart="14dp"
+            android:tag="quitar"
+            android:text="@string/btn_quitar_pieza" />
+    </LinearLayout>
+
+    <TextView style="@style/Etiqueta" android:text="@string/lbl_pieza_precio_kg" />
+    <EditText
+        style="@style/Campo"
+        android:hint="@string/hint_precio_kg"
+        android:inputType="numberDecimal"
+        android:tag="precio_kg" />
+
+    <TextView style="@style/Etiqueta" android:text="@string/lbl_pieza_gramos" />
+    <EditText
+        style="@style/Campo"
+        android:hint="@string/hint_gramos"
+        android:inputType="numberDecimal"
+        android:tag="gramos" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView style="@style/Etiqueta" android:text="@string/lbl_pieza_horas" />
+            <EditText
+                style="@style/Campo"
+                android:hint="@string/hint_horas"
+                android:inputType="numberDecimal"
+                android:tag="horas" />
+            <Button
+                style="@style/BotonRapido"
+                android:tag="mas_horas"
+                android:text="@string/btn_mas_hora" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView style="@style/Etiqueta" android:text="@string/lbl_pieza_minutos" />
+            <EditText
+                style="@style/Campo"
+                android:hint="@string/hint_minutos"
+                android:inputType="numberDecimal"
+                android:tag="minutos" />
+            <Button
+                style="@style/BotonRapido"
+                android:tag="mas_minutos"
+                android:text="@string/btn_mas_minutos" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView style="@style/Etiqueta" android:text="@string/lbl_pieza_material" />
+    <Spinner
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="4dp"
+        android:prompt="@string/prompt_material"
+        android:spinnerMode="dialog"
+        android:tag="material" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:tag="info"
+        android:textColor="?attr/cTextoSuave"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:tag="watts_box"
+        android:visibility="gone">
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_watts" />
+        <EditText
+            style="@style/Campo"
+            android:hint="@string/hint_watts"
+            android:inputType="numberDecimal"
+            android:tag="watts" />
+    </LinearLayout>
+</LinearLayout>

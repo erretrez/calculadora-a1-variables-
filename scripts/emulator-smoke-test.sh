@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prueba en emulador: instala el APK, lo abre y recorre las funciones principales
 # (menú de materiales, tabla de precios por región, cálculo con valores fijos, extras,
-# validación, indicadores de cálculo, modo oscuro persistente, LIMPIAR, boleta y
+# varias piezas (+ AGREGAR PIEZA), validación, indicadores de cálculo, modo oscuro persistente, LIMPIAR, boleta y
 # detección de región con ubicación simulada).
 set -euo pipefail
 
@@ -126,7 +126,7 @@ echo "OK: el estado lleva hora con minutos y segundos"
 N1=$(count_of "$ST1"); [ -n "$N1" ] || fail "no se encontró el número de cálculo en '$ST1'"
 CON=$(get tv_calculado_con)
 expect_contains "calculado con: material" "$CON" "100 g de PLA"
-expect_contains "calculado con: piezas" "$CON" "2 piezas"
+expect_contains "calculado con: unidades" "$CON" "2 unidades"
 expect_contains "calculado con: tiempo" "$CON" "5 h 0 min"
 expect_contains "calculado con: watts" "$CON" "95 W"
 expect_contains "calculado con: precio y región" "$CON" 'Metropolitana de Santiago'
@@ -238,7 +238,7 @@ expect_contains "barra fija muestra la venta" "$(get tv_barra_detalle)" '8.596'
 expect_digits "el costo total no cambia por la ganancia" "$(get tv_total)" 13224
 tap cb_iva
 expect_digits "precio con IVA (IVA activado)" "$(get tv_precio_iva)" 10229
-expect_contains "calculado con incluye los extras" "$(get tv_calculado_con)" "1 pieza fallida"
+expect_contains "calculado con incluye los extras" "$(get tv_calculado_con)" "1 unidad fallida"
 expect_contains "verificación de suma con extras" "$(get tv_cuadra)" "Verificado"
 shot pantalla_extras
 
@@ -286,6 +286,62 @@ expect_empty "total con piezas 0" "$(get tv_total)"
 expect_empty "unitario con piezas 0" "$(get tv_unitario)"
 fill et_piezas 2
 expect_digits "total tras corregir piezas" "$(get tv_total)" 13224
+
+echo "== Productos de varias piezas: + AGREGAR PIEZA (cada pieza suma su filamento, tiempo y consumo)"
+tap btn_agregar_pieza
+expect_contains "título de la pieza 2" "$(get p2_titulo)" "Pieza 2"
+expect_digits "el precio del filamento se copia de la pieza anterior" "$(get p2_precio_kg)" 20000
+expect_contains "el material se copia de la pieza anterior" "$(get p2_info)" "95 W"
+tap btn_calcular
+expect_contains "con la pieza 2 vacía faltan datos" "$(get tv_status)" "Faltan datos"
+expect_empty "sin total mientras la pieza 2 está incompleta" "$(get tv_total)"
+fill p2_gramos 50
+fill p2_horas 1
+tap p2_mas_horas
+expect_digits "horas de la pieza 2 con + 1 hora (1 -> 2)" "$(get p2_horas)" 2
+fill p2_minutos 20
+tap p2_mas_minutos
+expect_digits "minutos de la pieza 2 con + 10 min (20 -> 30)" "$(get p2_minutos)" 30
+pick p2_material "PETG"
+expect_contains "info del material de la pieza 2" "$(get p2_info)" "120 W"
+# Pieza 1: 2815,99 (material 2000, electricidad 76, depreciación 489,99, mantenimiento 250).
+# Pieza 2: material 1000, electricidad 0,12 kW x 2,5 h x 160 = 48, depreciación 244,995, mantenimiento 125.
+# Costo base 4233,985 + mano de obra 6000; una unidad fallida = (4233,985 + 6000) / 2 = 5116,9925.
+expect_digits "material de las dos piezas" "$(get tv_material)" 3000
+expect_digits "electricidad de las dos piezas (95 W x 5 h + 120 W x 2,5 h)" "$(get tv_electricidad)" 124
+expect_digits "depreciación de las dos piezas (7,5 h)" "$(get tv_depreciacion)" 735
+expect_digits "mantenimiento de las dos piezas (7,5 h)" "$(get tv_mantenimiento)" 375
+expect_digits "unidad fallida con las dos piezas y la mano de obra" "$(get tv_merma)" 5117
+expect_digits "total con dos piezas" "$(get tv_total)" 15351
+expect_digits "unitario con dos piezas" "$(get tv_unitario)" 7675
+expect_digits "precio de venta con dos piezas" "$(get tv_precio_venta)" 9978
+expect_digits "costo por gramo (150 g en total)" "$(get tv_por_gramo)" 102
+expect_digits "costo por hora (7,5 h en total)" "$(get tv_por_hora)" 2047
+has_text "Pieza 1 · 100 g · 5 h"
+has_text "Pieza 2 · 50 g · 2 h 30 min"
+CON2=$(get tv_calculado_con)
+expect_contains "calculado con: cantidad de piezas" "$CON2" "2 piezas"
+expect_contains "calculado con: gramos totales" "$CON2" "150 g en total"
+expect_contains "calculado con: tiempo total" "$CON2" "7 h 30 min en total"
+expect_contains "verificación de suma con dos piezas" "$(get tv_cuadra)" "Verificado"
+shot pantalla_dos_piezas
+echo "== La pieza agregada sobrevive al cambio de tema"
+tap sw_oscuro
+sleep 3
+expect_dark "con la pieza 2 en modo oscuro"
+expect_digits "gramos de la pieza 2 tras cambiar de tema" "$(get p2_gramos)" 50
+expect_contains "material de la pieza 2 tras cambiar de tema" "$(get p2_info)" "120 W"
+expect_digits "el total con dos piezas sobrevive al cambio de tema" "$(get tv_total)" 15351
+shot pantalla_dos_piezas_oscuro
+tap sw_oscuro
+sleep 3
+expect_light "de vuelta en modo claro con la pieza 2"
+echo "== QUITAR la pieza: vuelve el cálculo de una sola pieza"
+tap p2_quitar
+expect_digits "total tras quitar la pieza 2" "$(get tv_total)" 13224
+ALL_IDS=$($H ids)
+if echo "$ALL_IDS" | grep -qx "p2_gramos"; then fail "la pieza 2 debía desaparecer tras QUITAR"; fi
+echo "OK: la pieza 2 desapareció"
 
 echo "== Modo oscuro: se aplica, conserva los datos y se recuerda al reiniciar"
 tap sw_oscuro

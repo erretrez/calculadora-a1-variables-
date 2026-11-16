@@ -12,6 +12,7 @@
         <item name="cLinea">@color/linea</item>
         <item name="cError">@color/error</item>
         <item name="cCampo">@color/campo</item>
+        <item name="cSobreAcento">@color/sobre_acento</item>
         <item name="cCampoLleno">@color/campo_lleno</item>
         <item name="cBordeLleno">@color/borde_lleno</item>
         <item name="android:colorAccent">@color/acento</item>
@@ -30,6 +31,7 @@
         <item name="cLinea">@color/linea_oscuro</item>
         <item name="cError">@color/error_oscuro</item>
         <item name="cCampo">@color/campo_oscuro</item>
+        <item name="cSobreAcento">@color/sobre_acento_oscuro</item>
         <item name="cCampoLleno">@color/campo_lleno_oscuro</item>
         <item name="cBordeLleno">@color/borde_lleno_oscuro</item>
         <item name="android:colorAccent">@color/acento_oscuro</item>
@@ -81,6 +83,19 @@
         <item name="android:textColor">?attr/cTexto</item>
         <item name="android:textColorHint">?attr/cTextoSuave</item>
         <item name="android:textSize">17sp</item>
+    </style>
+
+    <!-- Botones rápidos de valores comunes (piezas, minutos) -->
+    <style name="Chip">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_marginEnd">6dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:focusable">false</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="FilaSugerido">

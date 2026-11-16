@@ -11,4 +11,5 @@
     <attr name="cCampo" format="color" />
     <attr name="cCampoLleno" format="color" />
     <attr name="cBordeLleno" format="color" />
+    <attr name="cSobreAcento" format="color" />
 </resources>

@@ -122,7 +122,6 @@
     <string name="res_por_hora">Costo por hora de impresión</string>
     <string name="compartir_titulo">Resumen de costos</string>
     <string name="barra_total">Total %1$s · Unitario %2$s</string>
-    <string name="barra_detalle">Cálculo n.º %1$d</string>
     <string name="barra_vacia">Total — · Unitario —</string>
     <string name="barra_sin_calculo">Sin cálculo aún</string>
 
@@ -146,6 +145,17 @@
     <string name="imagen_error">No se pudo guardar la imagen.</string>
     <string name="imagen_sin_permiso">Sin permiso para guardar la imagen.</string>
     <string name="texto_copiado">Resumen copiado.</string>
-    <string name="barra_venta">Cálculo n.º %1$d · Venta unitaria %2$s</string>
     <string name="fijos_resumen">Valores fijos incluidos (no editables): depreciación con impresora Bambu Lab A1 Combo de %1$s (precio de mercado en Chile, %4$s) y vida útil estimada de %2$s horas; mantenimiento estimado de %3$s por hora.</string>
+
+    <!-- v1.7 -->
+    <string name="barra_detalle">Cálculo n.º %1$d a las %2$s</string>
+    <string name="barra_venta">Cálculo n.º %1$d a las %2$s · Venta %3$s</string>
+    <string name="barra_hora">Hora del móvil\n%1$s</string>
+    <string name="chip_piezas_1">×1</string>
+    <string name="chip_piezas_2">×2</string>
+    <string name="chip_piezas_5">×5</string>
+    <string name="chip_piezas_10">×10</string>
+    <string name="chip_min_15">15 min</string>
+    <string name="chip_min_30">30 min</string>
+    <string name="chip_min_45">45 min</string>
 </resources>

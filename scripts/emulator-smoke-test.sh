@@ -140,6 +140,37 @@ expect_contains "calculado con refleja el cambio" "$(get tv_calculado_con)" "200
 fill et_gramos 100
 expect_digits "total al volver a 100 g" "$(get tv_total)" 2816
 
+echo "== Botones rápidos (piezas y minutos)"
+$H taptext "×5" || fail "no se encontró el botón rápido ×5"
+expect_digits "piezas con el botón rápido ×5" "$(get et_piezas)" 5
+$H taptext "×2" || fail "no se encontró el botón rápido ×2"
+expect_digits "piezas con el botón rápido ×2" "$(get et_piezas)" 2
+$H taptext "30 min" || fail "no se encontró el botón rápido 30 min"
+expect_digits "minutos con el botón rápido 30" "$(get et_minutos)" 30
+expect_digits "electricidad con 5,5 h (95 W x 5,5 h x 160)" "$(get tv_electricidad)" 84
+fill et_minutos 0
+expect_digits "total al quitar los minutos" "$(get tv_total)" 2816
+
+echo "== Reloj: la hora mostrada es la del móvil y avanza en vivo"
+clock_min() { printf '%s' "$1" | grep -oE '[0-9]{2}:[0-9]{2}:[0-9]{2}' | head -1; }
+T1=$(clock_min "$(get tv_barra_hora)"); [ -n "$T1" ] || fail "la barra no muestra el reloj en vivo"
+DEV=$(adb shell date +%H:%M:%S | tr -d '\r')
+echo "reloj de la app: $T1 | reloj del móvil (adb): $DEV"
+python3 - "$T1" "$DEV" <<'PY'
+import sys
+def secs(t):
+    h, m, s = map(int, t.split(":")); return (h % 12) * 3600 + m * 60 + s   # compara en 12 h por si el móvil usa 12 h
+a, b = secs(sys.argv[1]), secs(sys.argv[2])
+d = min((a - b) % 43200, (b - a) % 43200)
+print("diferencia:", d, "s")
+assert d <= 150, "la hora de la app no coincide con la del móvil"
+PY
+echo "OK: la hora de la app coincide con la del móvil"
+sleep 3
+T2=$(clock_min "$(get tv_barra_hora)")
+[ "$T1" != "$T2" ] || fail "el reloj en vivo no avanzó ($T1)"
+echo "OK: el reloj avanza en vivo ($T1 -> $T2)"
+
 echo "== Otros costos por pieza (embalaje, envío)"
 fill et_otros 500
 expect_digits "otros costos (500 x 2 piezas)" "$(get tv_otros)" 1000

@@ -101,7 +101,19 @@ class MainActivity : Activity() {
     private val filasTabla = mutableListOf<Pair<TextView, TextView>>()
 
     private var calcCount = 0
-    private val clock = SimpleDateFormat("HH:mm:ss", Locale.forLanguageTag("es-CL"))
+    /** Hora del móvil, en su zona horaria y con su formato (24 h o 12 h). Se lee de nuevo en cada uso. */
+    private fun horaActual(): String {
+        val patron = if (android.text.format.DateFormat.is24HourFormat(this)) "HH:mm:ss" else "hh:mm:ss a"
+        return SimpleDateFormat(patron, Locale.getDefault()).format(Date())
+    }
+
+    /** Reloj en vivo de la barra inferior: permite comparar de un vistazo con la hora del teléfono. */
+    private val ticker = object : Runnable {
+        override fun run() {
+            tvBarraHora.text = getString(R.string.barra_hora, horaActual())
+            handler.postDelayed(this, 1000)
+        }
+    }
 
     // Ubicación (solo se usa al tocar DETECTAR MI REGIÓN)
     private val handler = Handler(Looper.getMainLooper())
@@ -237,6 +249,12 @@ class MainActivity : Activity() {
             Suggested.PRECIO_FECHA
         )
 
+        // Botones rápidos para los valores más comunes.
+        addChips(findViewById(R.id.ll_chips_piezas), Field.PIEZAS,
+            listOf(R.string.chip_piezas_1 to "1", R.string.chip_piezas_2 to "2", R.string.chip_piezas_5 to "5", R.string.chip_piezas_10 to "10"))
+        addChips(findViewById(R.id.ll_chips_minutos), Field.MINUTOS,
+            listOf(R.string.chip_min_15 to "15", R.string.chip_min_30 to "30", R.string.chip_min_45 to "45"))
+
         setupMaterial()
         setupBoleta()
         setupRegion()
@@ -246,6 +264,16 @@ class MainActivity : Activity() {
             recalculate(showErrors = true)
         }
         findViewById<Button>(R.id.btn_limpiar).setOnClickListener { clearAll() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ticker.run()
+    }
+
+    override fun onPause() {
+        handler.removeCallbacks(ticker)
+        super.onPause()
     }
 
     override fun onStop() {
@@ -315,14 +343,14 @@ class MainActivity : Activity() {
                 val b = outcome.breakdown
                 showResults(b)
                 calcCount++
-                tvStatus.text = getString(R.string.status_ok, calcCount, clock.format(Date()))
+                val hora = horaActual()
+                tvStatus.text = getString(R.string.status_ok, calcCount, hora)
                 tvCalculadoCon.text = getString(
                     R.string.calculado_con, Resumen.entradas(inputsNow, materialName(), regionName())
                 )
                 val ok = Resumen.partesSumanElTotal(b)
                 tvCuadra.setText(if (ok) R.string.cuadra_ok else R.string.cuadra_mal)
                 flashResults()
-                val hora = clock.format(Date())
                 showBar(b, calcCount, hora)
                 ultimoResultado = Triple(b, inputsNow, hora)
                 listOf(btnGuardarImagen, btnCompartir, btnCopiar).forEach { it.isEnabled = true }
@@ -383,15 +411,13 @@ class MainActivity : Activity() {
         if (b == null) {
             tvBarraTotal.setText(R.string.barra_vacia)
             tvBarraDetalle.setText(R.string.barra_sin_calculo)
-            tvBarraHora.text = ""
         } else {
             tvBarraTotal.text = getString(
                 R.string.barra_total, CostCalculator.formatClp(b.total), CostCalculator.formatClp(b.unitario)
             )
             tvBarraDetalle.text = b.precioVenta?.let {
-                getString(R.string.barra_venta, n, CostCalculator.formatClp(it))
-            } ?: getString(R.string.barra_detalle, n)
-            tvBarraHora.text = hora
+                getString(R.string.barra_venta, n, hora, CostCalculator.formatClp(it))
+            } ?: getString(R.string.barra_detalle, n, hora)
         }
     }
 
@@ -512,6 +538,20 @@ class MainActivity : Activity() {
         tvStatus.setText(R.string.status_inicial)
         hideKeyboard()
         inputs.getValue(Field.PRECIO_KG).requestFocus()
+    }
+
+    private fun addChips(row: LinearLayout, field: Field, chips: List<Pair<Int, String>>) {
+        chips.forEach { (label, value) ->
+            val chip = Button(this, null, 0, R.style.Chip)
+            chip.setText(label)
+            val dp = resources.displayMetrics.density
+            chip.layoutParams = LinearLayout.LayoutParams(0, (40 * dp).toInt(), 1f).apply { marginEnd = (6 * dp).toInt() }
+            chip.setOnClickListener {
+                hideKeyboard()
+                putInField(field, value)
+            }
+            row.addView(chip)
+        }
     }
 
     private fun putInField(field: Field, text: String) {

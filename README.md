@@ -138,3 +138,9 @@ Para instalar el APK hay que permitir "instalar apps de orígenes desconocidos".
 - **Campos con valor:** el fondo verde aparece apenas se escribe un valor, también en el campo que tiene el foco (antes el campo enfocado no se veía verde).
 - **Nombre del cálculo:** campo arriba de todo para indicar qué objeto es; encabeza la imagen y es parte del nombre del archivo.
 - **Respaldo:** *GUARDAR IMAGEN EN LA GALERÍA* guarda un PNG con el detalle completo en `Pictures/CalculadoraCostos3D` (nombre de archivo = nombre del cálculo + fecha y hora; sin nombre se usa "calculo"). *COMPARTIR IMAGEN Y RESUMEN* guarda y abre el selector de Android; *COPIAR RESUMEN COMO TEXTO* copia el texto. En Android 9 o anterior se pide permiso de almacenamiento; desde Android 10 no.
+
+## Hora, botones rápidos y presentación (v1.7)
+
+- **Hora del móvil:** el estado "Cálculo n.º N actualizado a las …" usa la zona horaria y el formato (24 h o 12 h) del teléfono. La barra inferior muestra además un **reloj en vivo** ("Hora del móvil") que avanza cada segundo y la hora del último cálculo, para comparar de un vistazo.
+- **Botones rápidos:** piezas (×1, ×2, ×5, ×10) y minutos (15, 30, 45) con un toque.
+- **Presentación:** tarjetas redondeadas, total en grande y de color, botón CALCULAR destacado y barra inferior con sombra.

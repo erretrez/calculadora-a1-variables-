@@ -140,16 +140,17 @@ class CostCalculatorTest {
         val b = success(
             valid().copy(
                 horasTrabajo = 2.0, costoHoraTrabajo = 3000.0,
-                mermaPct = 20.0, margenPct = 30.0, incluirIva = true
+                piezasFallidas = 1.0, margenPct = 30.0, incluirIva = true
             )
         )
         assertEquals(6000.0, b.manoObra, 1e-6)          // 2 h x 3000
-        assertEquals(610.0, b.merma, 1e-6)              // 20% de 3050 (sin mano de obra)
-        assertEquals(9660.0, b.total, 1e-6)             // 3050 + 6000 + 610
-        assertEquals(4830.0, b.unitario, 1e-6)          // / 2 piezas
-        assertEquals(6279.0, b.precioVenta!!, 1e-6)     // 4830 x 1,30
-        assertEquals(7472.01, b.precioConIva!!, 1e-6)   // 6279 + 19% (1193,01)
-        assertEquals(2898.0, b.gananciaLote!!, 1e-6)    // (6279 - 4830) x 2
+        assertEquals(4525.0, b.costoPiezaFallida, 1e-6) // (3050 + 6000) / 2 piezas: costo completo de una pieza
+        assertEquals(4525.0, b.merma, 1e-6)             // 1 pieza fallida x 4525
+        assertEquals(13575.0, b.total, 1e-6)            // 3050 + 6000 + 4525
+        assertEquals(6787.5, b.unitario, 1e-6)          // / 2 piezas buenas
+        assertEquals(8823.75, b.precioVenta!!, 1e-6)    // 6787,5 x 1,30
+        assertEquals(10500.4125, b.precioConIva!!, 1e-6) // x 1,19
+        assertEquals(4072.5, b.gananciaLote!!, 1e-6)    // (8823,75 - 6787,5) x 2
     }
 
     @Test
@@ -173,11 +174,13 @@ class CostCalculatorTest {
     }
 
     @Test
-    fun mermaDebeEstarEntreCeroYMenosDeCien() {
-        assertEquals(CostCalculator.MSG_PCT, failure(valid().copy(mermaPct = 100.0)).fieldErrors[Field.MERMA])
-        assertEquals(CostCalculator.MSG_PCT, failure(valid().copy(mermaPct = -1.0)).fieldErrors[Field.MERMA])
-        success(valid().copy(mermaPct = 99.99))
-        success(valid().copy(mermaPct = 0.0))
+    fun piezasFallidasNoPuedenSerNegativasPeroPuedenSerCeroODecimales() {
+        assertEquals(CostCalculator.MSG_NEGATIVE, failure(valid().copy(piezasFallidas = -1.0)).fieldErrors[Field.MERMA])
+        success(valid().copy(piezasFallidas = 0.0))
+        success(valid().copy(piezasFallidas = 0.5))
+        success(valid().copy(piezasFallidas = 25.0))
+        assertEquals(CostCalculator.MSG_REQUIRED,
+            failure(valid().copy(invalidOptional = setOf(Field.MERMA))).fieldErrors[Field.MERMA])
     }
 
     @Test
@@ -282,17 +285,17 @@ class CostCalculatorTest {
         val b = success(
             sinDatosDeImpresora().copy(
                 horasTrabajo = 2.0, costoHoraTrabajo = 3000.0,
-                mermaPct = 20.0, margenPct = 30.0, incluirIva = true
+                piezasFallidas = 1.0, margenPct = 30.0, incluirIva = true
             )
         )
-        assertEquals(577.998, b.merma, 1e-6)           // 20% de 2889,99
-        assertEquals(9467.988, b.total, 1e-6)          // 2889,99 + 6000 + 577,998
-        assertEquals(4733.994, b.unitario, 1e-6)
-        assertEquals(6154.1922, b.precioVenta!!, 1e-6) // 4733,994 x 1,30
-        assertEquals(7323.488718, b.precioConIva!!, 1e-6) // x 1,19
-        assertEquals(2840.3964, b.gananciaLote!!, 1e-6)   // (6154,1922 - 4733,994) x 2
-        assertEquals(1420.1982, b.gananciaUnitaria!!, 1e-6)  // 30% del costo unitario
-        assertEquals(12308.3844, b.precioVentaLote!!, 1e-6)  // 6154,1922 x 2 piezas
+        assertEquals(4444.995, b.merma, 1e-6)          // 1 fallida x (2889,99 + 6000) / 2
+        assertEquals(13334.985, b.total, 1e-6)         // 2889,99 + 6000 + 4444,995
+        assertEquals(6667.4925, b.unitario, 1e-6)
+        assertEquals(8667.74025, b.precioVenta!!, 1e-6) // 6667,4925 x 1,30
+        assertEquals(10314.6108975, b.precioConIva!!, 1e-6) // x 1,19
+        assertEquals(4000.4955, b.gananciaLote!!, 1e-6)    // (8667,74025 - 6667,4925) x 2
+        assertEquals(2000.24775, b.gananciaUnitaria!!, 1e-6)  // 30% del costo unitario
+        assertEquals(17335.4805, b.precioVentaLote!!, 1e-6)   // 8667,74025 x 2 piezas
         assertEquals(30.0, b.margenPct!!, 1e-9)
     }
 
@@ -368,7 +371,7 @@ class CostCalculatorTest {
     fun lasPartesSumanElTotalConYSinExtras() {
         assertTrue(Resumen.partesSumanElTotal(success(sinDatosDeImpresora())))
         val conExtras = success(
-            sinDatosDeImpresora().copy(horasTrabajo = 2.0, costoHoraTrabajo = 3000.0, mermaPct = 20.0, margenPct = 30.0)
+            sinDatosDeImpresora().copy(horasTrabajo = 2.0, costoHoraTrabajo = 3000.0, piezasFallidas = 1.0, margenPct = 30.0)
         )
         assertTrue(Resumen.partesSumanElTotal(conExtras))
     }
@@ -387,18 +390,18 @@ class CostCalculatorTest {
         assertTrue(t, t.contains("5 h 0 min"))
         assertTrue(t, t.contains("200 W"))
         assertTrue(t, t.contains("/kWh (Metropolitana de Santiago)"))
-        assertFalse(t, t.contains("merma"))
+        assertFalse(t, t.contains("fallida"))
         assertFalse(t, t.contains("IVA"))
     }
 
     @Test
     fun resumenDeEntradasIncluyeLosExtrasSoloSiSeIndican() {
         val t = Resumen.entradas(
-            sinDatosDeImpresora().copy(horasTrabajo = 2.0, costoHoraTrabajo = 3000.0, mermaPct = 20.0, margenPct = 30.0, incluirIva = true),
+            sinDatosDeImpresora().copy(horasTrabajo = 2.0, costoHoraTrabajo = 3000.0, piezasFallidas = 1.0, margenPct = 30.0, incluirIva = true),
             null, null
         )
         assertTrue(t, t.contains("mano de obra 2 h"))
-        assertTrue(t, t.contains("merma 20%"))
+        assertTrue(t, t.contains("1 pieza fallida"))
         assertTrue(t, t.contains("margen 30%"))
         assertTrue(t, t.contains("con IVA"))
     }
@@ -415,11 +418,32 @@ class CostCalculatorTest {
     }
 
     @Test
-    fun laMermaNoSeCalculaSobreLosOtrosCostos() {
-        val b = success(sinDatosDeImpresora().copy(otrosPorPieza = 500.0, mermaPct = 10.0))
-        assertEquals(288.999, b.merma, 1e-9)      // 10% de 2889,99, no de 3889,99
-        assertEquals(4178.989, b.total, 1e-9)
+    fun laPiezaFallidaNoIncluyeLosOtrosCostosDeEmbalaje() {
+        val b = success(sinDatosDeImpresora().copy(otrosPorPieza = 500.0, piezasFallidas = 1.0))
+        assertEquals(1444.995, b.costoPiezaFallida, 1e-9)  // 2889,99 / 2: sin los 500 de embalaje
+        assertEquals(1444.995, b.merma, 1e-9)
+        assertEquals(5334.985, b.total, 1e-9)              // 2889,99 + 1444,995 + 1000
         assertTrue(Resumen.partesSumanElTotal(b))
+    }
+
+    @Test
+    fun cadaPiezaFallidaSumaElCostoCompletoDeUnaPiezaYSeRepartePorLasBuenas() {
+        // 4 piezas buenas cuestan 2889,99 + 6000 de mano de obra = 8889,99; una pieza = 2222,4975.
+        val i = sinDatosDeImpresora().copy(piezas = 4.0, horasTrabajo = 2.0, costoHoraTrabajo = 3000.0)
+        val sin = success(i)
+        val con = success(i.copy(piezasFallidas = 2.0))
+        assertEquals(2222.4975, con.costoPiezaFallida, 1e-9)
+        assertEquals(sin.total + 2 * 2222.4975, con.total, 1e-9)           // se suma al total
+        assertEquals(con.total / 4.0, con.unitario, 1e-9)                  // y se reparte entre las 4 buenas
+        assertEquals(sin.unitario * 1.5, con.unitario, 1e-9)               // 2 fallidas sobre 4 = +50% por pieza
+        assertEquals(sin.total, success(i.copy(piezasFallidas = 0.0)).total, 1e-9)
+    }
+
+    @Test
+    fun unaPiezaFallidaConUnaBuenaDuplicaElCostoUnitario() {
+        val sin = success(sinDatosDeImpresora().copy(piezas = 1.0))
+        val con = success(sinDatosDeImpresora().copy(piezas = 1.0, piezasFallidas = 1.0))
+        assertEquals(sin.unitario * 2.0, con.unitario, 1e-9)
     }
 
     @Test
@@ -532,6 +556,48 @@ class CostCalculatorTest {
         val nota = Compartir.filas(success(i), i, "X", null, null, fecha).last().etiqueta
         assertTrue(nota, nota.contains("489.990"))
         assertTrue(nota, nota.contains("5.000 h"))
+    }
+
+    // ---------- v1.8: sumas rápidas ----------
+
+    @Test
+    fun sumarUnaPiezaPartiendoVacioOdesdeUnValor() {
+        assertEquals("1", Rapidos.sumar("", 1.0))
+        assertEquals("1", Rapidos.sumar(null, 1.0))
+        assertEquals("3", Rapidos.sumar("2", 1.0))
+        assertEquals("1", Rapidos.sumar("texto", 1.0))   // un texto inválido cuenta como 0
+        assertEquals("3.5", Rapidos.sumar("2,5", 1.0))   // admite coma y decimales
+    }
+
+    @Test
+    fun sumarDiezMinutosSinLlegarASesenta() {
+        assertEquals(Rapidos.Tiempo(null, "10"), Rapidos.sumarMinutos("", ""))
+        assertEquals(Rapidos.Tiempo(null, "40"), Rapidos.sumarMinutos("2", "30"))
+        assertEquals(Rapidos.Tiempo(null, "59"), Rapidos.sumarMinutos("", "49"))
+    }
+
+    @Test
+    fun alLlegarASesentaMinutosPasaUnaHoraALaCasillaDeHoras() {
+        assertEquals(Rapidos.Tiempo("1", "0"), Rapidos.sumarMinutos("", "50"))
+        assertEquals(Rapidos.Tiempo("6", "5"), Rapidos.sumarMinutos("5", "55"))
+        assertEquals(Rapidos.Tiempo("3", "0"), Rapidos.sumarMinutos("2", "50"))
+        assertEquals(Rapidos.Tiempo("3", "50"), Rapidos.sumarMinutos("2", "100"))  // 110 min = 1 h 50 min
+    }
+
+    @Test
+    fun elTiempoSumadoConBotonesEsUnTiempoValido() {
+        var h = ""
+        var m = ""
+        repeat(8) {
+            val t = Rapidos.sumarMinutos(h, m)
+            t.horas?.let { h = it }
+            m = t.minutos
+        }
+        assertEquals("1", h)      // 80 min = 1 h 20 min
+        assertEquals("20", m)
+        val b = success(sinDatosDeImpresora().copy(
+            horas = CostCalculator.parseNumber(h), minutos = CostCalculator.parseNumber(m)))
+        assertEquals(80.0 / 60.0, b.horasTotales, 1e-9)
     }
 
     // ---------- v1.2: regiones y ubicación ----------

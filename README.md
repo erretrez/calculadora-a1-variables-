@@ -8,7 +8,7 @@ que calcula el costo de fabricación de una impresión 3D con una Bambu Lab A1 C
 
 Obligatorios: precio del filamento por kg, gramos usados, piezas, tiempo (horas y/o minutos),
 **material** (menú, define los watts) y **región** (tabla, define el precio del kWh).
-Opcionales: mano de obra, merma, otros costos por pieza, margen e IVA (ver más abajo).
+Opcionales: mano de obra, piezas fallidas, otros costos por pieza, margen e IVA (ver más abajo).
 
 ## Valores fijos de la impresora (actualizados en la v1.6)
 
@@ -105,11 +105,11 @@ Vacíos = no aplican; con todos vacíos el resultado es idéntico al base.
 | Extra | Cálculo |
 |---|---|
 | Mano de obra | horas de trabajo × costo por hora (se exigen ambos datos) |
-| Merma / fallos (%) | % × (material + electricidad + depreciación + mantenimiento); debe ser menor que 100 |
+| Piezas fallidas (cantidad) | cantidad × costo completo de una pieza, donde costo de una pieza = (material + electricidad + depreciación + mantenimiento + mano de obra) / piezas buenas. Se suma al total y queda repartido entre las piezas buenas. No incluye embalaje/envío (solo se gastan en piezas buenas) |
 | Ganancia deseada (%) | ganancia por pieza = costo unitario × %; precio de venta unitario = costo unitario × (1 + %). **No cambia el costo total**: se muestra aparte, en la sección "Ganancia y precio de venta" |
 | IVA 19 % (interruptor) | precio de venta con IVA = precio de venta × 1,19 |
 
-El costo total incluye mano de obra y merma. Se muestran además el precio de venta unitario, el precio con IVA (si está activado) y la ganancia del lote sin IVA.
+El costo total incluye mano de obra y piezas fallidas. Se muestran además el precio de venta unitario, el precio con IVA (si está activado) y la ganancia del lote sin IVA.
 
 ## Uso
 
@@ -144,3 +144,9 @@ Para instalar el APK hay que permitir "instalar apps de orígenes desconocidos".
 - **Hora del móvil:** el estado "Cálculo n.º N actualizado a las …" usa la zona horaria y el formato (24 h o 12 h) del teléfono. La barra inferior muestra además un **reloj en vivo** ("Hora del móvil") que avanza cada segundo y la hora del último cálculo, para comparar de un vistazo.
 - **Botones rápidos:** piezas (×1, ×2, ×5, ×10) y minutos (15, 30, 45) con un toque.
 - **Presentación:** tarjetas redondeadas, total en grande y de color, botón CALCULAR destacado y barra inferior con sombra.
+
+## Piezas fallidas y botones de suma rápida (v1.8)
+
+- **Piezas fallidas:** en vez de un porcentaje, se indica cuántas piezas se perdieron. Una pieza fallida cuesta lo mismo que una buena (material, electricidad, depreciación, mantenimiento y mano de obra); ese costo se suma al total y se reparte entre las piezas buenas. Ejemplo: 4 piezas buenas con costo total $8.890 (una pieza = $2.222); con 2 fallidas el total sube $4.445 y el costo unitario pasa de $2.222 a $3.334. Se ingresan los gramos y el tiempo de las piezas **buenas** solamente. Un porcentaje solo tendría sentido como promedio histórico de muchas impresiones, no para un cálculo puntual.
+- **Un botón bajo cada casilla:** *+ 1 pieza* (piezas), *+ 1 hora* (horas) y *+ 10 min* (minutos; al llegar a 60 pasa una hora a la casilla de horas). Botones con relleno y borde de acento para distinguirlos del fondo, en ambos temas; vibración corta al tocar.
+- **Material recordado:** el último material elegido se conserva (como la región), también tras LIMPIAR.

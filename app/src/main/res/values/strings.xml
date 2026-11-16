@@ -19,7 +19,7 @@
 
     <string name="lbl_horas_trabajo">Mano de obra: horas de trabajo (lijado, pintura, armado)</string>
     <string name="lbl_costo_hora_trabajo">Mano de obra: costo por hora de trabajo</string>
-    <string name="lbl_merma">Merma / impresiones fallidas (%)</string>
+    <string name="lbl_merma">Piezas fallidas (cuántas se perdieron)</string>
     <string name="cb_iva">Mostrar el precio de venta con IVA (19%)</string>
 
     <!-- Los hints no contienen dígitos a propósito: son solo texto guía, no valores. -->
@@ -32,7 +32,7 @@
     <string name="hint_precio_kwh">Monto por kWh</string>
     <string name="hint_horas_trabajo">Horas</string>
     <string name="hint_costo_hora_trabajo">Monto por hora</string>
-    <string name="hint_merma">Porcentaje</string>
+    <string name="hint_merma">Cantidad</string>
     <string name="hint_margen">Porcentaje</string>
     <string name="hint_boleta_monto">Monto total</string>
     <string name="hint_boleta_kwh">kWh</string>
@@ -70,7 +70,7 @@
     <string name="res_depreciacion">Depreciación de la impresora</string>
     <string name="res_mantenimiento">Mantenimiento</string>
     <string name="res_mano_obra">Mano de obra</string>
-    <string name="res_merma">Merma / fallos</string>
+    <string name="res_merma">Piezas fallidas (costo repartido)</string>
     <string name="res_total">COSTO TOTAL</string>
     <string name="res_unitario">COSTO UNITARIO</string>
     <string name="vacio">—</string>
@@ -109,10 +109,10 @@
     <!-- Indicadores de cálculo -->
     <string name="status_ok">Cálculo n.º %1$d actualizado a las %2$s</string>
     <string name="calculado_con">Calculado con: %1$s</string>
-    <string name="cuadra_ok">✓ Verificado: material + electricidad + depreciación + mantenimiento + mano de obra + merma = total.</string>
+    <string name="cuadra_ok">✓ Verificado: material + electricidad + depreciación + mantenimiento + mano de obra + piezas fallidas + otros = total.</string>
     <string name="cuadra_mal">✗ Atención: las partes no suman el total. No uses este resultado.</string>
 
-    <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos, por eso una suma de cifras redondeadas puede diferir en $1 o $2. La merma se calcula sobre material, electricidad, depreciación y mantenimiento. El margen es sobre el costo unitario. Los precios del kWh de la tabla no son oficiales: confirma con tu boleta.</string>
+    <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos, por eso una suma de cifras redondeadas puede diferir en $1 o $2. Cada pieza fallida cuesta lo mismo que una pieza buena (material, electricidad, depreciación, mantenimiento y mano de obra; sin embalaje ni envío) y ese costo se suma al total y se reparte entre las piezas buenas: ingresa los gramos y el tiempo de las piezas buenas solamente. El margen es sobre el costo unitario. Los precios del kWh de la tabla no son oficiales: confirma con tu boleta.</string>
 
     <!-- v1.5 -->
     <string name="lbl_otros">Otros costos por pieza (embalaje, envío, etiqueta)</string>
@@ -151,11 +151,9 @@
     <string name="barra_detalle">Cálculo n.º %1$d a las %2$s</string>
     <string name="barra_venta">Cálculo n.º %1$d a las %2$s · Venta %3$s</string>
     <string name="barra_hora">Hora del móvil\n%1$s</string>
-    <string name="chip_piezas_1">×1</string>
-    <string name="chip_piezas_2">×2</string>
-    <string name="chip_piezas_5">×5</string>
-    <string name="chip_piezas_10">×10</string>
-    <string name="chip_min_15">15 min</string>
-    <string name="chip_min_30">30 min</string>
-    <string name="chip_min_45">45 min</string>
+
+    <!-- v1.8: botones de suma rápida -->
+    <string name="btn_mas_pieza">+ 1 pieza</string>
+    <string name="btn_mas_hora">+ 1 hora</string>
+    <string name="btn_mas_minutos">+ 10 min</string>
 </resources>

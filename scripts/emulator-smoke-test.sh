@@ -140,16 +140,28 @@ expect_contains "calculado con refleja el cambio" "$(get tv_calculado_con)" "200
 fill et_gramos 100
 expect_digits "total al volver a 100 g" "$(get tv_total)" 2816
 
-echo "== Botones rápidos (piezas y minutos)"
-$H taptext "×5" || fail "no se encontró el botón rápido ×5"
-expect_digits "piezas con el botón rápido ×5" "$(get et_piezas)" 5
-$H taptext "×2" || fail "no se encontró el botón rápido ×2"
-expect_digits "piezas con el botón rápido ×2" "$(get et_piezas)" 2
-$H taptext "30 min" || fail "no se encontró el botón rápido 30 min"
-expect_digits "minutos con el botón rápido 30" "$(get et_minutos)" 30
+echo "== Botones de suma rápida (un solo botón bajo cada casilla)"
+read -r R G B <<< "$($H bgrgb btn_mas_pieza)"; echo "botón + 1 pieza (claro): $R $G $B"
+[ $((B-R)) -gt 20 ] || fail "el botón rápido debía verse azulado y distinto del fondo ($R $G $B)"
+echo "OK: el botón rápido se distingue del fondo en modo claro"
+tap btn_mas_pieza
+expect_digits "piezas con + 1 pieza (2 -> 3)" "$(get et_piezas)" 3
+fill et_piezas 2
+tap btn_mas_horas
+expect_digits "horas con + 1 hora (5 -> 6)" "$(get et_horas)" 6
+fill et_horas 5
+tap btn_mas_minutos
+tap btn_mas_minutos
+tap btn_mas_minutos
+expect_digits "minutos con + 10 min tres veces" "$(get et_minutos)" 30
 expect_digits "electricidad con 5,5 h (95 W x 5,5 h x 160)" "$(get tv_electricidad)" 84
+fill et_minutos 55
+tap btn_mas_minutos
+expect_digits "minutos tras pasar de 60 (55 + 10 = 5)" "$(get et_minutos)" 5
+expect_digits "la hora completa pasa a la casilla de horas (5 -> 6)" "$(get et_horas)" 6
+fill et_horas 5
 fill et_minutos 0
-expect_digits "total al quitar los minutos" "$(get tv_total)" 2816
+expect_digits "total tras volver a 5 h" "$(get tv_total)" 2816
 
 echo "== Reloj: la hora mostrada es la del móvil y avanza en vivo"
 clock_min() { printf '%s' "$1" | grep -oE '[0-9]{2}:[0-9]{2}:[0-9]{2}' | head -1; }
@@ -207,26 +219,26 @@ expect_digits "total con PLA otra vez" "$(get tv_total)" 2816
 echo "== Extras: mano de obra, merma, margen e IVA"
 fill et_horas_trabajo 2
 fill et_costo_hora_trabajo 3000
-fill et_merma 20
+fill et_merma 1
 fill et_margen 30
 read -r R G B <<< "$($H bgrgb et_margen)"; echo "campo de ganancia % con foco y valor: $R $G $B"
 [ $((G-R)) -gt 10 ] || fail "el campo del porcentaje de ganancia debía verse verde aunque tenga el foco ($R $G $B)"
 echo "OK: el último campo (ganancia %) se ve verde apenas se llena, aun con el foco"
 expect_digits "mano de obra" "$(get tv_mano_obra)" 6000
-expect_digits "merma (20% de 2815,99)" "$(get tv_merma)" 563
-expect_digits "total con extras" "$(get tv_total)" 9379
-expect_digits "unitario con extras" "$(get tv_unitario)" 4690
-expect_digits "precio de venta" "$(get tv_precio_venta)" 6096
+expect_digits "piezas fallidas (1 x (2815,99 + 6000) / 2)" "$(get tv_merma)" 4408
+expect_digits "total con extras" "$(get tv_total)" 13224
+expect_digits "unitario con extras" "$(get tv_unitario)" 6612
+expect_digits "precio de venta" "$(get tv_precio_venta)" 8596
 expect_empty "precio con IVA (IVA desactivado)" "$(get tv_precio_iva)"
-expect_digits "ganancia del lote" "$(get tv_ganancia)" 2814
-expect_digits "ganancia por pieza (30% del costo unitario)" "$(get tv_ganancia_unit)" 1407
-expect_digits "precio de venta del lote" "$(get tv_venta_lote)" 12193
+expect_digits "ganancia del lote" "$(get tv_ganancia)" 3967
+expect_digits "ganancia por pieza (30% del costo unitario)" "$(get tv_ganancia_unit)" 1984
+expect_digits "precio de venta del lote" "$(get tv_venta_lote)" 17191
 expect_contains "la ganancia se indica aparte con su porcentaje" "$(get tv_venta_ayuda)" "30%"
-expect_contains "barra fija muestra la venta" "$(get tv_barra_detalle)" '6.096'
-expect_digits "el costo total no cambia por la ganancia" "$(get tv_total)" 9379
+expect_contains "barra fija muestra la venta" "$(get tv_barra_detalle)" '8.596'
+expect_digits "el costo total no cambia por la ganancia" "$(get tv_total)" 13224
 tap cb_iva
-expect_digits "precio con IVA (IVA activado)" "$(get tv_precio_iva)" 7255
-expect_contains "calculado con incluye los extras" "$(get tv_calculado_con)" "merma 20%"
+expect_digits "precio con IVA (IVA activado)" "$(get tv_precio_iva)" 10229
+expect_contains "calculado con incluye los extras" "$(get tv_calculado_con)" "1 pieza fallida"
 expect_contains "verificación de suma con extras" "$(get tv_cuadra)" "Verificado"
 shot pantalla_extras
 
@@ -264,7 +276,7 @@ echo "foco tras cerrar el selector: $(adb shell dumpsys window | grep mCurrentFo
 adb shell uiautomator dump /sdcard/ui_dbg.xml > /dev/null; adb pull /sdcard/ui_dbg.xml "$OUT/ui_tras_compartir.xml" > /dev/null
 grep -oE 'resource-id="[^"]*"' "$OUT/ui_tras_compartir.xml" | head -12
 adb shell pidof "$PKG" > /dev/null || fail "la app se cerró al compartir"
-expect_digits "los resultados siguen en pantalla tras compartir (costo por hora)" "$(get tv_por_hora)" 1876
+expect_digits "los resultados siguen en pantalla tras compartir (costo por hora)" "$(get tv_por_hora)" 2645
 
 echo "== Validación: piezas = 0 no debe dar resultado ni dividir por cero"
 fill et_piezas 0
@@ -273,7 +285,7 @@ expect_contains "estado con piezas 0" "$(get tv_status)" "Faltan datos"
 expect_empty "total con piezas 0" "$(get tv_total)"
 expect_empty "unitario con piezas 0" "$(get tv_unitario)"
 fill et_piezas 2
-expect_digits "total tras corregir piezas" "$(get tv_total)" 9379
+expect_digits "total tras corregir piezas" "$(get tv_total)" 13224
 
 echo "== Modo oscuro: se aplica, conserva los datos y se recuerda al reiniciar"
 tap sw_oscuro
@@ -285,10 +297,13 @@ read -r R G B <<< "$($H bgrgb et_otros)"; echo "campo vacío (oscuro): $R $G $B"
 read -r R G B <<< "$($H bgrgb et_precio_kg)"; echo "campo con valor (oscuro): $R $G $B"
 [ $((R+G+B)) -lt 250 ] || fail "el campo con valor debía seguir oscuro ($R $G $B)"
 [ $((G-R)) -gt 20 ] || fail "el campo con valor debía verse verdoso ($R $G $B)"
+read -r R G B <<< "$($H bgrgb btn_mas_pieza)"; echo "botón + 1 pieza (oscuro): $R $G $B"
+[ $((B-R)) -gt 30 ] || fail "el botón rápido debía verse azulado en modo oscuro ($R $G $B)"
+echo "OK: el botón rápido se distingue del fondo en modo oscuro"
 ML=$($H maxluma et_precio_kg); echo "luminosidad máxima del texto ingresado: $ML"
 [ "$ML" -gt 200 ] || fail "el texto ingresado debía verse blanco en modo oscuro (luminosidad $ML)"
 echo "OK: en modo oscuro los campos son oscuros, el texto ingresado es blanco y el campo con valor se ve verdoso"
-expect_digits "el total sobrevive al cambio de tema" "$(get tv_total)" 9379
+expect_digits "el total sobrevive al cambio de tema" "$(get tv_total)" 13224
 expect_contains "el material sobrevive al cambio de tema" "$(get tv_calculado_con)" "PLA"
 adb shell am force-stop "$PKG"; sleep 2
 start_app
@@ -297,6 +312,7 @@ expect_dark "tras reiniciar la app (el modo oscuro se mantiene)"
 echo "OK: interruptor activado tras reiniciar"
 expect_empty "campo kg vacío al reiniciar" "$(get et_precio_kg)"
 expect_contains "la región se recuerda tras reiniciar" "$(get tv_region_ref)" '$160'
+expect_contains "el material se recuerda tras reiniciar" "$(get tv_material_info)" "95 W"
 tap sw_oscuro
 sleep 3
 expect_light "tras volver al modo claro"
@@ -345,8 +361,10 @@ fill et_precio_kg 20000
 fill et_gramos 100
 fill et_piezas 2
 fill et_horas 5
+pick sp_material "Elige el material"
 tap btn_calcular
 expect_contains "falta elegir material" "$(get tv_material_info)" "Elige un material"
+pick sp_material "PLA"
 tap btn_limpiar
 for id in et_nombre et_precio_kg et_gramos et_piezas et_horas et_minutos et_horas_trabajo et_otros \
           et_costo_hora_trabajo et_merma et_margen et_boleta_monto et_boleta_kwh; do
@@ -364,7 +382,7 @@ echo "OK: COMPARTIR desactivado sin resultado"
 expect_contains "barra fija vacía tras LIMPIAR" "$(get tv_barra_total)" "—"
 expect_empty "otros costos tras LIMPIAR" "$(get tv_otros)"
 expect_empty "costo por gramo tras LIMPIAR" "$(get tv_por_gramo)"
-expect_contains "el material vuelve a vacío" "$(get tv_material_info)" "Elige un material"
+expect_contains "el material se conserva tras LIMPIAR" "$(get tv_material_info)" "95 W"
 expect_contains "la región se conserva tras LIMPIAR" "$(get tv_region_ref)" "no tiene precio"
 
 echo "== Detección de región con ubicación simulada (Santiago)"

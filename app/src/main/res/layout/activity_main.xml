@@ -81,12 +81,10 @@
             style="@style/Campo"
             android:hint="@string/hint_piezas"
             android:inputType="number" />
-        <LinearLayout
-            android:id="@+id/ll_chips_piezas"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:orientation="horizontal" />
+        <Button
+            android:id="@+id/btn_mas_pieza"
+            style="@style/BotonRapido"
+            android:text="@string/btn_mas_pieza" />
 
         <!-- ENTRADAS: TIEMPO -->
         <TextView style="@style/Seccion" android:text="@string/sec_tiempo" />
@@ -109,6 +107,10 @@
                     style="@style/Campo"
                     android:hint="@string/hint_horas"
                     android:inputType="numberDecimal" />
+                <Button
+                    android:id="@+id/btn_mas_horas"
+                    style="@style/BotonRapido"
+                    android:text="@string/btn_mas_hora" />
             </LinearLayout>
 
             <LinearLayout
@@ -124,15 +126,12 @@
                     style="@style/Campo"
                     android:hint="@string/hint_minutos"
                     android:inputType="numberDecimal" />
+                <Button
+                    android:id="@+id/btn_mas_minutos"
+                    style="@style/BotonRapido"
+                    android:text="@string/btn_mas_minutos" />
             </LinearLayout>
         </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/ll_chips_minutos"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:orientation="horizontal" />
 
         <!-- ENTRADAS: ELECTRICIDAD -->
         <TextView style="@style/Seccion" android:text="@string/sec_electricidad" />

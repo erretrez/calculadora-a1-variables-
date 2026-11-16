@@ -249,11 +249,16 @@ class MainActivity : Activity() {
             Suggested.PRECIO_FECHA
         )
 
-        // Botones rápidos para los valores más comunes.
-        addChips(findViewById(R.id.ll_chips_piezas), Field.PIEZAS,
-            listOf(R.string.chip_piezas_1 to "1", R.string.chip_piezas_2 to "2", R.string.chip_piezas_5 to "5", R.string.chip_piezas_10 to "10"))
-        addChips(findViewById(R.id.ll_chips_minutos), Field.MINUTOS,
-            listOf(R.string.chip_min_15 to "15", R.string.chip_min_30 to "30", R.string.chip_min_45 to "45"))
+        // Botones de suma rápida: un toque suma una unidad a la casilla de arriba.
+        findViewById<Button>(R.id.btn_mas_pieza).setOnClickListener { rapido { putInField(Field.PIEZAS, Rapidos.sumar(texto(Field.PIEZAS), 1.0)) } }
+        findViewById<Button>(R.id.btn_mas_horas).setOnClickListener { rapido { putInField(Field.HORAS, Rapidos.sumar(texto(Field.HORAS), 1.0)) } }
+        findViewById<Button>(R.id.btn_mas_minutos).setOnClickListener {
+            rapido {
+                val t = Rapidos.sumarMinutos(texto(Field.HORAS), texto(Field.MINUTOS))
+                t.horas?.let { putInField(Field.HORAS, it) }
+                putInField(Field.MINUTOS, t.minutos)
+            }
+        }
 
         setupMaterial()
         setupBoleta()
@@ -303,7 +308,7 @@ class MainActivity : Activity() {
             precioKwh = value(Field.PRECIO_KWH),
             horasTrabajo = value(Field.HORAS_TRABAJO),
             costoHoraTrabajo = value(Field.COSTO_HORA_TRABAJO),
-            mermaPct = value(Field.MERMA),
+            piezasFallidas = value(Field.MERMA),
             margenPct = value(Field.MARGEN),
             otrosPorPieza = value(Field.OTROS_PIEZA),
             incluirIva = cbIva.isChecked,
@@ -527,8 +532,7 @@ class MainActivity : Activity() {
         etBoletaKwh.setText("")
         etNombre.setText("")
         cbIva.isChecked = false
-        // El material es de cada impresión: se vacía. La región es un ajuste que se recuerda: se conserva.
-        spMaterial.setSelection(0)
+        // El material y la región son ajustes que se recuerdan: se conservan al limpiar.
         suspendWatchers = false
         applyMaterialState()
         refreshBoleta()
@@ -540,18 +544,13 @@ class MainActivity : Activity() {
         inputs.getValue(Field.PRECIO_KG).requestFocus()
     }
 
-    private fun addChips(row: LinearLayout, field: Field, chips: List<Pair<Int, String>>) {
-        chips.forEach { (label, value) ->
-            val chip = Button(this, null, 0, R.style.Chip)
-            chip.setText(label)
-            val dp = resources.displayMetrics.density
-            chip.layoutParams = LinearLayout.LayoutParams(0, (40 * dp).toInt(), 1f).apply { marginEnd = (6 * dp).toInt() }
-            chip.setOnClickListener {
-                hideKeyboard()
-                putInField(field, value)
-            }
-            row.addView(chip)
-        }
+    private fun texto(field: Field): String? = inputs.getValue(field).text?.toString()
+
+    /** Ejecuta una suma rápida con una vibración corta y sin teclado abierto. */
+    private fun rapido(accion: () -> Unit) {
+        hideKeyboard()
+        window.decorView.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+        accion()
     }
 
     private fun putInField(field: Field, text: String) {
@@ -571,6 +570,11 @@ class MainActivity : Activity() {
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, names)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spMaterial.adapter = adapter
+        // El último material usado se recuerda (como la región): la mayoría de las impresiones usan el mismo.
+        prefs.getString(KEY_MATERIAL, null)?.let { guardado ->
+            val idx = Materiales.todos.indexOfFirst { it.nombre == guardado && it.watts != null }
+            if (idx >= 0) spMaterial.setSelection(idx + 1)
+        }
         spMaterial.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 applyMaterialState()
@@ -607,6 +611,10 @@ class MainActivity : Activity() {
             }
         }
         showMaterialInfo(error = false)
+        // Recordar la elección (solo materiales con watts propios; "Otro" y sin elegir no se guardan).
+        prefs.edit().apply {
+            if (m != null && watts != null) putString(KEY_MATERIAL, m.nombre) else if (m == null) remove(KEY_MATERIAL)
+        }.commit()
     }
 
     private fun showMaterialInfo(error: Boolean) {
@@ -965,6 +973,7 @@ class MainActivity : Activity() {
         const val PREFS = "ajustes"
         const val KEY_DARK = "oscuro"
         const val KEY_REGION = "region"
+        const val KEY_MATERIAL = "material"
         const val KEY_MANUAL = "precio_manual"
         const val MANUAL_TOKEN = "__manual__"
         /** Última opción del menú de regiones: 0 = sin elegir, 1..16 = regiones, 17 = otra tarifa. */

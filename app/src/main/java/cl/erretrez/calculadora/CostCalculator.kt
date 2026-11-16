@@ -51,7 +51,13 @@ data class CostInputs(
     // Opcionales (v1.2). Vacío = no aplica.
     val horasTrabajo: Double? = null,
     val costoHoraTrabajo: Double? = null,
-    val mermaPct: Double? = null,
+    /**
+     * Piezas fallidas (cantidad que se imprimió y se perdió). Cada una cuesta lo mismo que una pieza
+     * buena, con material, electricidad, depreciación, mantenimiento y mano de obra; ese costo se suma
+     * al total y queda repartido entre las piezas buenas. No incluye "otros costos por pieza"
+     * (embalaje, envío), que solo se gastan en piezas buenas. Vacío = ninguna.
+     */
+    val piezasFallidas: Double? = null,
     val margenPct: Double? = null,
     /** Otros costos por pieza (embalaje, envío, etiqueta…). Vacío = no aplica. */
     val otrosPorPieza: Double? = null,
@@ -88,7 +94,10 @@ data class CostBreakdown(
     /** Precio de venta de todo el lote sin IVA. null si no se indicó margen. */
     val precioVentaLote: Double? = null,
     /** Margen aplicado (%), para mostrarlo junto a la ganancia. */
-    val margenPct: Double? = null
+    val margenPct: Double? = null,
+    /** Piezas fallidas consideradas y costo de cada una (para mostrar el detalle). */
+    val piezasFallidas: Double = 0.0,
+    val costoPiezaFallida: Double = 0.0
 )
 
 sealed class Outcome {
@@ -262,6 +271,25 @@ object Regiones {
     }
 }
 
+/** Suma rápida a una casilla (botones "+ 1 pieza", "+ 1 hora", "+ 10 min"). */
+object Rapidos {
+    /** Suma [delta] al número escrito (vacío o inválido = 0) y devuelve el texto para la casilla. */
+    fun sumar(texto: String?, delta: Double): String =
+        Suggested.plainRounded((CostCalculator.parseNumber(texto) ?: 0.0) + delta)
+
+    /** Resultado de sumar minutos: [horas] es null si las horas no cambian. */
+    data class Tiempo(val horas: String?, val minutos: String)
+
+    /** Suma minutos y, al llegar a 60, pasa la hora completa a la casilla de horas. */
+    fun sumarMinutos(horasTexto: String?, minutosTexto: String?, delta: Double = 10.0): Tiempo {
+        val total = (CostCalculator.parseNumber(minutosTexto) ?: 0.0) + delta
+        if (total < 60.0) return Tiempo(null, Suggested.plainRounded(total))
+        val horasExtra = Math.floor(total / 60.0)
+        val h = (CostCalculator.parseNumber(horasTexto) ?: 0.0) + horasExtra
+        return Tiempo(Suggested.plainRounded(h), Suggested.plainRounded(total - horasExtra * 60.0))
+    }
+}
+
 /** Estilo de una línea del resumen (para el texto y para la imagen). */
 enum class Estilo { TITULO, SUBTITULO_ENC, SECCION, NORMAL, TOTAL, GANANCIA, VENTA, NOTA, SEPARADOR }
 
@@ -290,7 +318,12 @@ object Compartir {
         l += Fila("Depreciación de la impresora", f(b.depreciacion))
         l += Fila("Mantenimiento", f(b.mantenimiento))
         if (b.manoObra > 0.0) l += Fila("Mano de obra", f(b.manoObra))
-        if (b.merma > 0.0) l += Fila("Merma / fallos", f(b.merma))
+        if (b.merma > 0.0) {
+            l += Fila(
+                "Piezas fallidas (" + Suggested.plainRounded(b.piezasFallidas) + " x " + f(b.costoPiezaFallida) + ")",
+                f(b.merma)
+            )
+        }
         if (b.otros > 0.0) l += Fila("Otros costos", f(b.otros))
         l += Fila("COSTO TOTAL", f(b.total), Estilo.TOTAL)
         l += Fila("COSTO UNITARIO", f(b.unitario), Estilo.TOTAL)
@@ -360,7 +393,7 @@ object Resumen {
                 CostCalculator.formatClp(i.costoHoraTrabajo)
         }
         i.otrosPorPieza?.let { partes += "otros " + CostCalculator.formatClp(it) + "/pieza" }
-        i.mermaPct?.let { partes += "merma " + Suggested.plainRounded(it) + "%" }
+        i.piezasFallidas?.let { partes += Suggested.plainRounded(it) + (if (it == 1.0) " pieza fallida" else " piezas fallidas") }
         i.margenPct?.let { partes += "margen " + Suggested.plainRounded(it) + "%" }
         if (i.incluirIva) partes += "con IVA"
         return partes.joinToString(" · ")
@@ -378,7 +411,6 @@ object CostCalculator {
     const val MSG_TIME_POSITIVE = "El tiempo de impresión debe ser mayor que 0"
     const val MSG_OVERFLOW = "Los valores ingresados producen un resultado fuera de rango"
     const val MSG_PAIR = "Completa también el otro dato de mano de obra"
-    const val MSG_PCT = "Debe ser un porcentaje menor que 100"
 
     /** Tasa de IVA vigente en Chile. */
     const val IVA_RATE = 0.19
@@ -469,8 +501,7 @@ object CostCalculator {
             errors[Field.HORAS_TRABAJO] = MSG_PAIR
         }
 
-        val merma = i.mermaPct
-        if (merma != null && (merma < 0.0 || merma >= 100.0)) errors[Field.MERMA] = MSG_PCT
+        optionalNonNegative(Field.MERMA, i.piezasFallidas)
         optionalNonNegative(Field.MARGEN, i.margenPct)
         optionalNonNegative(Field.OTROS_PIEZA, i.otrosPorPieza)
 
@@ -488,7 +519,10 @@ object CostCalculator {
 
         // Extras: sin datos valen 0 y el total es idéntico al cálculo base.
         val manoObra = (horasTrabajo ?: 0.0) * (costoHora ?: 0.0)
-        val costoMerma = base * ((merma ?: 0.0) / 100.0)
+        // Pieza fallida = costo completo de una pieza (con mano de obra) x cantidad de fallidas.
+        val fallidas = i.piezasFallidas ?: 0.0
+        val costoPiezaFallida = (base + manoObra) / n
+        val costoMerma = costoPiezaFallida * fallidas
 
         val otros = (i.otrosPorPieza ?: 0.0) * n
         val total = base + manoObra + costoMerma + otros
@@ -531,7 +565,9 @@ object CostCalculator {
                 costoPorHora = costoPorHora,
                 gananciaUnitaria = gananciaUnitaria,
                 precioVentaLote = precioVentaLote,
-                margenPct = margen
+                margenPct = margen,
+                piezasFallidas = fallidas,
+                costoPiezaFallida = costoPiezaFallida
             )
         )
     }

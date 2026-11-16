@@ -12,4 +12,6 @@
     <attr name="cCampoLleno" format="color" />
     <attr name="cBordeLleno" format="color" />
     <attr name="cSobreAcento" format="color" />
+    <attr name="cBoton" format="color" />
+    <attr name="cBotonPresionado" format="color" />
 </resources>

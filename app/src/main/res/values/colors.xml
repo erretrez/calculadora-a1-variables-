@@ -13,6 +13,8 @@
     <color name="campo_lleno">#DDF3E0</color>
     <color name="borde_lleno">#2E9E4F</color>
     <color name="sobre_acento">#FFFFFF</color>
+    <color name="boton">#DCEBFF</color>
+    <color name="boton_presionado">#B3D2FF</color>
     <color name="icono_fondo">#0B1220</color>
 
     <!-- Tema oscuro -->
@@ -27,4 +29,6 @@
     <color name="campo_lleno_oscuro">#16382A</color>
     <color name="borde_lleno_oscuro">#4ADE80</color>
     <color name="sobre_acento_oscuro">#0B1220</color>
+    <color name="boton_oscuro">#1F3A5F</color>
+    <color name="boton_presionado_oscuro">#2F5A94</color>
 </resources>

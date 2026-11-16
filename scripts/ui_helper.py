@@ -27,7 +27,7 @@ STATE = os.path.join(tempfile.gettempdir(), "ui_helper_last")
 
 # Orden de arriba hacia abajo en la pantalla: sirve para decidir hacia dónde desplazarse.
 ORDER = [
-    "sw_oscuro", "et_nombre", "et_precio_kg", "et_gramos", "et_piezas", "ll_chips_piezas", "et_horas", "et_minutos", "ll_chips_minutos",
+    "sw_oscuro", "et_nombre", "et_precio_kg", "et_gramos", "et_piezas", "btn_mas_pieza", "et_horas", "et_minutos", "btn_mas_horas", "btn_mas_minutos",
     "sp_material", "tv_material_info", "et_watts", "sp_region", "btn_detectar", "tv_region_info",
     "tv_region_ref", "btn_tabla", "et_precio_kwh", "et_boleta_monto", "et_boleta_kwh",
     "tv_boleta_resultado", "btn_usar_boleta", "et_horas_trabajo", "et_costo_hora_trabajo",

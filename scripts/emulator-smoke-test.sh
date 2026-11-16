@@ -252,8 +252,13 @@ echo "OK: imagen guardada en la galería con el nombre del cálculo ($IMG)"
 
 echo "== Compartir resumen (solo se comprueba que abre el selector y la app sigue viva)"
 tap btn_compartir
-sleep 3
-adb shell input keyevent 4
+# Se espera a que el selector de Android esté al frente; solo entonces se cierra con "atrás"
+# (si se pulsara antes, "atrás" cerraría la propia app).
+for i in $(seq 1 15); do
+  FOCUS=$(adb shell dumpsys window | grep -E "mCurrentFocus" | head -1)
+  case "$FOCUS" in *"$PKG"*) sleep 1;; *) echo "selector al frente: $FOCUS"; break;; esac
+done
+case "$FOCUS" in *"$PKG"*) echo "AVISO: el selector no apareció (sin apps para compartir en el emulador)";; *) adb shell input keyevent 4;; esac
 sleep 2
 adb shell pidof "$PKG" > /dev/null || fail "la app se cerró al compartir"
 expect_digits "el total sigue visible tras compartir" "$(get tv_total)" 9379

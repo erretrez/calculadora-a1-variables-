@@ -264,7 +264,7 @@ echo "foco tras cerrar el selector: $(adb shell dumpsys window | grep mCurrentFo
 adb shell uiautomator dump /sdcard/ui_dbg.xml > /dev/null; adb pull /sdcard/ui_dbg.xml "$OUT/ui_tras_compartir.xml" > /dev/null
 grep -oE 'resource-id="[^"]*"' "$OUT/ui_tras_compartir.xml" | head -12
 adb shell pidof "$PKG" > /dev/null || fail "la app se cerró al compartir"
-expect_digits "el total sigue visible tras compartir" "$(get tv_total)" 9379
+expect_digits "los resultados siguen en pantalla tras compartir (costo por hora)" "$(get tv_por_hora)" 1876
 
 echo "== Validación: piezas = 0 no debe dar resultado ni dividir por cero"
 fill et_piezas 0

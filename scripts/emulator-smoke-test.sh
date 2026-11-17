@@ -12,7 +12,16 @@ OUT="evidence"
 mkdir -p "$OUT"
 H="python3 scripts/ui_helper.py"
 
-fail() { echo "FALLO: $*"; adb logcat -d -t 400 > "$OUT/logcat.txt" || true; exit 1; }
+fail() {
+  echo "FALLO: $*"
+  # Diagnóstico: qué hay en pantalla en este momento.
+  adb shell uiautomator dump /sdcard/ui_fallo.xml > /dev/null 2>&1 || true
+  adb pull /sdcard/ui_fallo.xml "$OUT/ui_fallo.xml" > /dev/null 2>&1 || true
+  echo "ids en pantalla: $(grep -oE 'resource-id="[^"]+"' "$OUT/ui_fallo.xml" 2>/dev/null | grep -oE 'id/[a-z0-9_]+' | tr '\n' ' ')"
+  echo "ventana: $(adb shell dumpsys window | grep mCurrentFocus | head -1)"
+  adb logcat -d -t 400 > "$OUT/logcat.txt" || true
+  exit 1
+}
 digits() { tr -cd '0-9'; }
 shot() { adb exec-out screencap -p > "$OUT/$1.png" || true; }
 
@@ -292,6 +301,9 @@ echo "foco tras cerrar el selector: $(adb shell dumpsys window | grep mCurrentFo
 adb shell uiautomator dump /sdcard/ui_dbg.xml > /dev/null; adb pull /sdcard/ui_dbg.xml "$OUT/ui_tras_compartir.xml" > /dev/null
 grep -oE 'resource-id="[^"]*"' "$OUT/ui_tras_compartir.xml" | head -12
 adb shell pidof "$PKG" > /dev/null || fail "la app se cerró al compartir"
+adb shell am start -n "$ACT" > /dev/null   # trae la app al frente (no la reinicia)
+sleep 2
+expect_contains "los resultados siguen en pantalla tras compartir (barra fija)" "$(get tv_barra_total)" '17.572'
 expect_digits "los resultados siguen en pantalla tras compartir (costo por hora)" "$(get tv_por_hora)" 1757
 
 echo "== Validación: unidades = 0 no debe dar resultado ni dividir por cero"

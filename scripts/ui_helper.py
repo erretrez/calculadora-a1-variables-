@@ -10,6 +10,7 @@ Uso:
   ui_helper.py hastext <texto>     # sale con 0 si hay un elemento visible/desplazable con ese texto
   ui_helper.py bgrgb <id>          # color (r g b) del fondo de un campo, leído de una captura
   ui_helper.py maxluma <id>        # luminosidad máxima (0-255) dentro del elemento (p. ej. su texto)
+  ui_helper.py visible <id>        # sale con 0 si el elemento está en pantalla ahora (sin desplazar)
   ui_helper.py luma                # luminosidad (0-255) del fondo de la app, leída de una captura
 
 <id> es el id sin prefijo (por ejemplo: btn_limpiar). Sale con código 1 si no se encuentra.
@@ -27,7 +28,7 @@ STATE = os.path.join(tempfile.gettempdir(), "ui_helper_last")
 
 # Orden de arriba hacia abajo en la pantalla: sirve para decidir hacia dónde desplazarse.
 ORDER = (
-    ["sw_oscuro", "et_nombre", "et_precio_kg", "et_gramos", "et_horas", "btn_mas_horas", "et_minutos", "btn_mas_minutos",
+    ["sw_oscuro", "btn_limpiar_arriba", "et_nombre", "et_precio_kg", "et_gramos", "et_horas", "btn_mas_horas", "et_minutos", "btn_mas_minutos",
      "sp_material", "tv_material_info", "et_watts"]
     # Piezas adicionales (2.ª a 6.ª): quedan entre la pieza 1 y el botón + AGREGAR PIEZA.
     + [f"p{n}_{x}" for n in range(2, 7)
@@ -39,7 +40,7 @@ ORDER = (
        "tv_boleta_resultado", "btn_usar_boleta", "et_horas_trabajo", "et_costo_hora_trabajo",
        "et_merma", "et_otros", "et_margen", "cb_iva", "btn_calcular", "btn_limpiar", "tv_status",
        "tv_material", "tv_electricidad", "tv_depreciacion", "tv_mantenimiento", "tv_mano_obra",
-       "tv_merma", "tv_otros", "tv_total", "tv_unitario", "tv_por_gramo", "tv_por_hora",
+       "tv_merma", "tv_otros", "tv_total", "tv_unitario", "tv_por_gramo", "tv_gramos_total", "tv_horas_total", "tv_por_hora",
        "tv_calculado_con", "tv_cuadra", "tv_fijos", "tv_venta_ayuda", "tv_ganancia_unit",
        "tv_ganancia", "tv_precio_venta", "tv_precio_iva", "tv_venta_lote", "btn_guardar_imagen",
        "btn_compartir", "btn_copiar"]
@@ -247,6 +248,13 @@ def main():
             adb("shell", "input", "tap", str(x), str(y))
             time.sleep(1.0)
         return
+    if len(sys.argv) == 3 and sys.argv[1] == "visible":
+        # Sin desplazar: sale con 0 solo si el elemento ya está en pantalla ahora mismo.
+        node = find_in(dump(), sys.argv[2])
+        if node is None:
+            sys.exit(1)
+        _, y = center(node)
+        sys.exit(0 if 0 < y < H else 1)
     if len(sys.argv) == 2 and sys.argv[1] == "ids":
         print("\n".join(sorted(all_ids())))
         return

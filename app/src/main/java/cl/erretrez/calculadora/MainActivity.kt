@@ -36,6 +36,8 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.content.res.ColorStateList
 import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
@@ -133,6 +135,11 @@ class MainActivity : Activity() {
     private lateinit var llDetalle: LinearLayout
     private lateinit var btnAgregarPieza: Button
     private lateinit var tvAyudaPiezas: TextView
+    private lateinit var tvGramosTotal: TextView
+    private lateinit var tvHorasTotal: TextView
+    private lateinit var btnCalcular: Button
+    private lateinit var svPrincipal: ScrollView
+    private var calcTextColors: ColorStateList? = null
 
     private var calcCount = 0
     /** Hora del móvil, en su zona horaria y con su formato (24 h o 12 h). Se lee de nuevo en cada uso. */
@@ -233,6 +240,11 @@ class MainActivity : Activity() {
             Field.MARGEN to findViewById<EditText>(R.id.et_margen)
         )
 
+        btnCalcular = findViewById(R.id.btn_calcular)
+        calcTextColors = btnCalcular.textColors
+        svPrincipal = findViewById(R.id.sv_principal)
+        tvGramosTotal = findViewById(R.id.tv_gramos_total)
+        tvHorasTotal = findViewById(R.id.tv_horas_total)
         llPartesExtra = findViewById(R.id.ll_partes_extra)
         llDetalle = findViewById(R.id.ll_detalle_partes)
         btnAgregarPieza = findViewById(R.id.btn_agregar_pieza)
@@ -322,11 +334,16 @@ class MainActivity : Activity() {
         savedInstanceState?.getIntArray(KEY_SLOTS)?.forEach { agregarPieza(it, prefill = false) }
         actualizarBotonAgregar()
 
-        findViewById<Button>(R.id.btn_calcular).setOnClickListener {
+        btnCalcular.setOnClickListener {
             hideKeyboard()
-            recalculate(showErrors = true)
+            if (recalculate(showErrors = true)) {
+                // El botón queda marcado hasta que se cambie algún dato, y la pantalla baja a los totales.
+                marcarCalculado()
+                scrollATotales()
+            }
         }
         findViewById<Button>(R.id.btn_limpiar).setOnClickListener { clearAll() }
+        findViewById<Button>(R.id.btn_limpiar_arriba).setOnClickListener { clearAll() }
     }
 
     override fun onResume() {
@@ -399,7 +416,9 @@ class MainActivity : Activity() {
      * @param showErrors true al pulsar CALCULAR: marca cada campo inválido.
      * En el cálculo automático (al escribir) solo se actualiza el resultado, sin marcar errores.
      */
-    private fun recalculate(showErrors: Boolean) {
+    private fun recalculate(showErrors: Boolean): Boolean {
+        var ok = false
+        if (!showErrors) desmarcarCalculado()
         inputs.values.forEach { it.error = null }
         cards.forEach { c -> c.cajas.forEach { it.error = null }; showCardInfo(c, error = false) }
         val inputsNow = readInputs()
@@ -408,6 +427,7 @@ class MainActivity : Activity() {
 
         when (val outcome = CostCalculator.calculate(inputsNow)) {
             is Outcome.Success -> {
+                ok = true
                 val b = outcome.breakdown
                 showResults(b)
                 calcCount++
@@ -457,6 +477,37 @@ class MainActivity : Activity() {
                 }
             }
         }
+        return ok
+    }
+
+    /** CALCULAR queda en verde con una marca mientras el resultado corresponda a los datos escritos. */
+    private fun marcarCalculado() {
+        btnCalcular.setText(R.string.btn_calculado)
+        btnCalcular.backgroundTintList = ColorStateList.valueOf(themeColor(R.attr.cBordeLleno))
+        btnCalcular.setTextColor(themeColor(R.attr.cSobreAcento))
+    }
+
+    private fun desmarcarCalculado() {
+        if (btnCalcular.text.toString() == getString(R.string.btn_calcular)) return
+        btnCalcular.setText(R.string.btn_calcular)
+        btnCalcular.backgroundTintList = null
+        calcTextColors?.let { btnCalcular.setTextColor(it) }
+    }
+
+    /** Baja la pantalla hasta los totales (costo del lote y costo unitario). */
+    private fun scrollATotales() {
+        svPrincipal.post {
+            val contenido = svPrincipal.getChildAt(0)
+            var y = 0
+            var v: View = tvTotal
+            while (v !== contenido) {
+                y += v.top
+                v = v.parent as? View ?: break
+            }
+            // Un poco más arriba, para ver también las últimas filas del desglose.
+            val margen = (150 * resources.displayMetrics.density).toInt()
+            svPrincipal.smoothScrollTo(0, (y - margen).coerceAtLeast(0))
+        }
     }
 
     /** Parpadeo breve de los totales: señal visual de que se acaba de recalcular. */
@@ -488,6 +539,8 @@ class MainActivity : Activity() {
         tvOtros.text = CostCalculator.formatClp(b.otros)
         tvPorGramo.text = b.costoPorGramo?.let { CostCalculator.formatClp(it) } ?: empty
         tvPorHora.text = CostCalculator.formatClp(b.costoPorHora)
+        tvGramosTotal.text = Suggested.plainRounded(b.gramosTotales) + " g"
+        tvHorasTotal.text = Resumen.tiempo(b.horasTotales)
         showDetallePartes(b)
     }
 
@@ -622,7 +675,7 @@ class MainActivity : Activity() {
         listOf(
             tvMaterial, tvElectricidad, tvDepreciacion, tvMantenimiento, tvManoObra, tvMerma,
             tvTotal, tvUnitario, tvPrecioVenta, tvPrecioIva, tvGanancia, tvOtros, tvPorGramo, tvPorHora,
-            tvGananciaUnit, tvVentaLote
+            tvGananciaUnit, tvVentaLote, tvGramosTotal, tvHorasTotal
         ).forEach { it.text = empty }
         tvVentaAyuda.setText(R.string.venta_ayuda)
         llDetalle.removeAllViews()
@@ -645,6 +698,7 @@ class MainActivity : Activity() {
         etBoletaKwh.setText("")
         etNombre.setText("")
         cbIva.isChecked = false
+        desmarcarCalculado()
         cards.forEach { llPartesExtra.removeView(it.root) }
         cards.clear()
         actualizarBotonAgregar()
@@ -864,7 +918,7 @@ class MainActivity : Activity() {
         val sinDato = getString(R.string.region_sin_dato_corto)
         val names = listOf(getString(R.string.region_placeholder)) +
             Regiones.todas.map { r ->
-                r.nombre + " \u2014 " + (r.referenciaKwh?.let { CostCalculator.formatClp(it) } ?: sinDato)
+                r.nombre + " \u2014 " + (r.referenciaKwh?.let { CostCalculator.formatClp(it) + (if (r.estimado) " (" + getString(R.string.est_corto) + ")" else "") } ?: sinDato)
             } + getString(R.string.region_otra)
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, names)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -969,6 +1023,7 @@ class MainActivity : Activity() {
             spRegion.selectedItemPosition == MANUAL_POS -> getString(R.string.region_ref_otra)
             region == null -> getString(R.string.region_ref_ninguna)
             ref == null -> getString(R.string.region_ref_sin_dato)
+            region.estimado -> getString(R.string.region_ref_estimado, CostCalculator.formatClp(ref), Regiones.REFERENCIA_FECHA)
             else -> getString(R.string.region_ref, CostCalculator.formatClp(ref), Regiones.REFERENCIA_FECHA)
         }
         tvRegionRef.setTextColor(themeColor(if (error) R.attr.cError else R.attr.cTextoSuave))
@@ -1000,7 +1055,8 @@ class MainActivity : Activity() {
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             }
             val price = TextView(this).apply {
-                text = r.referenciaKwh?.let { CostCalculator.formatClp(it) } ?: getString(R.string.tabla_sin_dato)
+                text = r.referenciaKwh?.let { CostCalculator.formatClp(it) + (if (r.estimado) " " + getString(R.string.est_corto) else "") }
+                    ?: getString(R.string.tabla_sin_dato)
                 setTextColor(themeColor(if (r.referenciaKwh != null) R.attr.cTexto else R.attr.cTextoSuave))
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                 gravity = Gravity.END

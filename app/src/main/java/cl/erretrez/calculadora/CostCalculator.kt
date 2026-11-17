@@ -37,7 +37,7 @@ enum class Field(val optional: Boolean = false) {
 /**
  * Una pieza del producto: lo que se imprime en un ciclo de la máquina (una cama). Un objeto más grande
  * que la cama se parte en varias piezas; cada una tiene su filamento, sus gramos, su tiempo y su consumo.
- * Los gramos y el tiempo son los de TODAS las unidades a producir de esa pieza (como en la pieza 1).
+ * Los gramos y el tiempo son los de UNA unidad del producto; la cantidad de unidades multiplica el costo de todas las piezas.
  */
 data class Parte(
     val precioKg: Double?,
@@ -47,7 +47,7 @@ data class Parte(
     val watts: Double?
 )
 
-/** Costo de una pieza (sin mano de obra, mermas ni otros: esos son del producto completo). */
+/** Costo de una pieza para UNA unidad del producto (sin mano de obra, fallidas ni otros: esos son del producto completo). */
 data class ParteDetalle(
     val gramos: Double,
     val horas: Double,
@@ -130,7 +130,9 @@ data class CostBreakdown(
     val costoPiezaFallida: Double = 0.0,
     /** Detalle por pieza (la 1.ª primero). Con una sola pieza queda con 1 elemento. */
     val partes: List<ParteDetalle> = emptyList(),
-    val gramosTotales: Double = 0.0
+    val gramosTotales: Double = 0.0,
+    /** Cantidad de unidades del lote (multiplica el costo de todas las piezas). */
+    val unidades: Double = 1.0
 )
 
 sealed class Outcome {
@@ -253,36 +255,48 @@ data class Region(
     val nombre: String,
     val lat: Double,
     val lon: Double,
-    val referenciaKwh: Double?
+    val referenciaKwh: Double?,
+    /** true = no hay dato propio de la región: se usa la tarifa de referencia de la distribuidora que la atiende. */
+    val estimado: Boolean = false
 )
 
 object Regiones {
     /** Fecha de los valores referenciales. NO son oficiales y se desactualizan: ver boleta. */
-    const val REFERENCIA_FECHA = "abril 2026"
+    const val REFERENCIA_FECHA = "noviembre 2026"
 
     /** Más lejos que esto de cualquier capital regional se considera fuera de Chile. */
     const val MAX_KM = 700.0
 
-    // Valores referenciales tomados de cuantomecuesta.com (abril 2026, sitio no oficial),
-    // anteriores al alza de julio de 2026. Solo hay dato para 8 regiones; el resto es null
-    // a propósito (la app pide usar la boleta) en vez de inventar un valor.
+    /**
+     * Precio efectivo del kWh (cuenta mensual con cargos fijos e IVA / kWh) de un hogar con tarifa BT1
+     * y 250 kWh al mes, vigente desde el 1-nov-2026, según los pliegos de cada distribuidora recopilados
+     * en mapache.ai (sitio no oficial) y leídos el 17-nov-2026. Son valores de una comuna de referencia:
+     * dentro de una región varían bastante por comuna (p. ej. Chilquinta, de $205 a $298).
+     * Los datos directos son: Valparaíso (Chilquinta, Viña del Mar), Metropolitana (Enel, Maipú: $246,51; CGE,
+     * Puente Alto: $247,68), La Araucanía (Frontel, Temuco), Los Lagos (Saesa, Puerto Montt), Aysén (Edelaysén,
+     * Coihaique) y Magallanes (Edelmag, Punta Arenas). Para las demás regiones esa fuente no trae dato:
+     * se usa el valor de referencia de CGE (Puente Alto, $247,68 -> $248), marcado como estimado, salvo
+     * Los Ríos: Valdivia la atiende Saesa (rango $231 a $293) y tuvo la mayor alza de julio de 2026
+     * (16% a 23% según la fuente), así que se estima el extremo alto del rango, $293.
+     * Antes de la alza de julio de 2026 la tabla traía valores más bajos ($140 a $170).
+     */
     val todas: List<Region> = listOf(
-        Region("Arica y Parinacota", -18.4783, -70.3126, null),
-        Region("Tarapacá", -20.2307, -70.1357, null),
-        Region("Antofagasta", -23.6509, -70.3975, 170.0),
-        Region("Atacama", -27.3668, -70.3314, 165.0),
-        Region("Coquimbo", -29.9027, -71.2519, null),
-        Region("Valparaíso", -33.0472, -71.6127, 155.0),
-        Region("Metropolitana de Santiago", -33.4489, -70.6693, 160.0),
-        Region("O'Higgins", -34.1708, -70.7444, null),
-        Region("Maule", -35.4264, -71.6554, null),
-        Region("Ñuble", -36.6063, -72.1034, null),
-        Region("Biobío", -36.8201, -73.0444, 150.0),
-        Region("La Araucanía", -38.7359, -72.5904, 145.0),
-        Region("Los Ríos", -39.8142, -73.2459, null),
-        Region("Los Lagos", -41.4693, -72.9424, 148.0),
-        Region("Aysén", -45.5752, -72.0662, null),
-        Region("Magallanes y la Antártica Chilena", -53.1638, -70.9171, 140.0)
+        Region("Arica y Parinacota", -18.4783, -70.3126, 248.0, true),
+        Region("Tarapacá", -20.2307, -70.1357, 248.0, true),
+        Region("Antofagasta", -23.6509, -70.3975, 248.0, true),
+        Region("Atacama", -27.3668, -70.3314, 248.0, true),
+        Region("Coquimbo", -29.9027, -71.2519, 248.0, true),
+        Region("Valparaíso", -33.0472, -71.6127, 298.0),
+        Region("Metropolitana de Santiago", -33.4489, -70.6693, 247.0),
+        Region("O'Higgins", -34.1708, -70.7444, 248.0, true),
+        Region("Maule", -35.4264, -71.6554, 248.0, true),
+        Region("Ñuble", -36.6063, -72.1034, 248.0, true),
+        Region("Biobío", -36.8201, -73.0444, 248.0, true),
+        Region("La Araucanía", -38.7359, -72.5904, 309.0),
+        Region("Los Ríos", -39.8142, -73.2459, 293.0, true),
+        Region("Los Lagos", -41.4693, -72.9424, 261.0),
+        Region("Aysén", -45.5752, -72.0662, 293.0),
+        Region("Magallanes y la Antártica Chilena", -53.1638, -70.9171, 265.0)
     )
 
     fun distanciaKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
@@ -348,7 +362,7 @@ object Compartir {
         l += Fila("Costo de impresión 3D · $fechaHora", estilo = Estilo.SUBTITULO_ENC)
         l += Fila("Calculado con: " + Resumen.entradas(i, material, region), estilo = Estilo.NOTA)
         if (b.partes.size > 1) {
-            l += Fila("Piezas del producto (" + b.partes.size + " ciclos de impresión)", estilo = Estilo.SECCION)
+            l += Fila("Piezas de cada unidad (" + b.partes.size + " ciclos de impresión por unidad)", estilo = Estilo.SECCION)
             b.partes.forEachIndexed { k, p ->
                 l += Fila(
                     "Pieza " + (k + 1) + " · " + Suggested.plainRounded(p.gramos) + " g · " + Resumen.tiempo(p.horas),
@@ -369,15 +383,17 @@ object Compartir {
             )
         }
         if (b.otros > 0.0) l += Fila("Otros costos", f(b.otros))
-        l += Fila("COSTO TOTAL", f(b.total), Estilo.TOTAL)
-        l += Fila("COSTO UNITARIO", f(b.unitario), Estilo.TOTAL)
+        l += Fila("COSTO DEL LOTE (" + Suggested.plainRounded(b.unidades) + (if (b.unidades == 1.0) " unidad)" else " unidades)"), f(b.total), Estilo.TOTAL)
+        l += Fila("COSTO UNITARIO (por unidad)", f(b.unitario), Estilo.TOTAL)
+        l += Fila("Filamento total del lote", Suggested.plainRounded(b.gramosTotales) + " g")
+        l += Fila("Tiempo total de impresión del lote", Resumen.tiempo(b.horasTotales))
         b.costoPorGramo?.let { l += Fila("Costo por gramo de filamento", f(it)) }
         l += Fila("Costo por hora de impresión", f(b.costoPorHora))
         val pv = b.precioVenta
         if (pv != null) {
             val pct = b.margenPct?.let { Suggested.plainRounded(it) + "% " } ?: ""
             l += Fila("Ganancia estimada (" + pct + "sobre el costo)", estilo = Estilo.SECCION)
-            b.gananciaUnitaria?.let { l += Fila("Ganancia por pieza", f(it), Estilo.GANANCIA) }
+            b.gananciaUnitaria?.let { l += Fila("Ganancia por unidad", f(it), Estilo.GANANCIA) }
             b.gananciaLote?.let { l += Fila("Ganancia del lote", f(it), Estilo.GANANCIA) }
             l += Fila("Precio de venta unitario (sin IVA)", f(pv), Estilo.VENTA)
             b.precioConIva?.let { l += Fila("Precio de venta unitario con IVA", f(it), Estilo.VENTA) }
@@ -438,8 +454,8 @@ object Resumen {
         } else {
             // Producto de varias piezas: se muestran los totales (el detalle de cada una va aparte).
             val todas = listOf(Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts)) + i.partesExtra
-            partes += todas.size.toString() + " piezas"
-            partes += Suggested.plainRounded(todas.sumOf { it.gramos ?: 0.0 }) + " g en total"
+            partes += todas.size.toString() + " piezas por unidad"
+            partes += Suggested.plainRounded(todas.sumOf { it.gramos ?: 0.0 }) + " g por unidad"
         }
         i.piezas?.let { partes += Suggested.plainRounded(it) + (if (it == 1.0) " unidad" else " unidades") }
         if (i.partesExtra.isEmpty()) {
@@ -449,7 +465,7 @@ object Resumen {
             i.watts?.let { partes += Suggested.plainRounded(it) + " W" }
         } else {
             val todas = listOf(Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts)) + i.partesExtra
-            partes += tiempo(todas.sumOf { (it.horas ?: 0.0) + (it.minutos ?: 0.0) / 60.0 }) + " en total"
+            partes += tiempo(todas.sumOf { (it.horas ?: 0.0) + (it.minutos ?: 0.0) / 60.0 }) + " por unidad"
         }
         i.precioKwh?.let { partes += CostCalculator.formatClp(it) + "/kWh" + (region?.let { r -> " ($r)" } ?: "") }
         if (i.horasTrabajo != null && i.costoHoraTrabajo != null) {
@@ -599,12 +615,13 @@ object CostCalculator {
                 mantenimiento = i.mantenimientoPorHora!! * h
             )
         }
-        val horasTotales = detalle.sumOf { it.horas }
-        val gramosTotales = detalle.sumOf { it.gramos }
-        val material = detalle.sumOf { it.material }
-        val electricidad = detalle.sumOf { it.electricidad }
-        val depreciacion = detalle.sumOf { it.depreciacion }
-        val mantenimiento = detalle.sumOf { it.mantenimiento }
+        // Las piezas describen UNA unidad; el lote completo son n unidades.
+        val horasTotales = n * detalle.sumOf { it.horas }
+        val gramosTotales = n * detalle.sumOf { it.gramos }
+        val material = n * detalle.sumOf { it.material }
+        val electricidad = n * detalle.sumOf { it.electricidad }
+        val depreciacion = n * detalle.sumOf { it.depreciacion }
+        val mantenimiento = n * detalle.sumOf { it.mantenimiento }
         val base = material + electricidad + depreciacion + mantenimiento
 
         // Extras: sin datos valen 0 y el total es idéntico al cálculo base.
@@ -658,7 +675,8 @@ object CostCalculator {
                 piezasFallidas = fallidas,
                 costoPiezaFallida = costoPiezaFallida,
                 partes = detalle,
-                gramosTotales = gramosTotales
+                gramosTotales = gramosTotales,
+                unidades = n
             )
         )
     }

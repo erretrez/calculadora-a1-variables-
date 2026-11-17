@@ -12,9 +12,9 @@ class CostCalculatorTest {
 
     private fun valid() = CostInputs(
         precioKg = 20000.0,
-        gramos = 100.0,
+        gramos = 50.0,        // por unidad: 2 unidades = lote de 100 g
         piezas = 2.0,
-        horas = 5.0,
+        horas = 2.5,          // por unidad: 2 unidades = lote de 5 h
         minutos = 0.0,
         watts = 200.0,
         precioKwh = 150.0,
@@ -49,20 +49,20 @@ class CostCalculatorTest {
     @Test
     fun horasYMinutosSeConvierteAHorasDecimales() {
         val b = success(valid().copy(horas = 1.0, minutos = 30.0))
-        assertEquals(1.5, b.horasTotales, delta)
-        assertEquals(100.0 * 1.5, b.mantenimiento, delta)
+        assertEquals(3.0, b.horasTotales, delta)               // 1,5 h por unidad x 2 unidades
+        assertEquals(100.0 * 3.0, b.mantenimiento, delta)
     }
 
     @Test
     fun soloMinutosEsValido() {
         val b = success(valid().copy(horas = null, minutos = 45.0))
-        assertEquals(0.75, b.horasTotales, delta)
+        assertEquals(1.5, b.horasTotales, delta)   // 0,75 h por unidad x 2
     }
 
     @Test
     fun soloHorasEsValido() {
         val b = success(valid().copy(horas = 2.0, minutos = null))
-        assertEquals(2.0, b.horasTotales, delta)
+        assertEquals(4.0, b.horasTotales, delta)   // 2 h por unidad x 2
     }
 
     @Test
@@ -263,9 +263,9 @@ class CostCalculatorTest {
 
     private fun sinDatosDeImpresora() = CostInputs(
         precioKg = 20000.0,
-        gramos = 100.0,
+        gramos = 50.0,        // por unidad: 2 unidades = lote de 100 g
         piezas = 2.0,
-        horas = 5.0,
+        horas = 2.5,          // por unidad: 2 unidades = lote de 5 h
         minutos = 0.0,
         watts = 200.0,
         precioKwh = 150.0
@@ -361,10 +361,10 @@ class CostCalculatorTest {
     @Test
     fun tablaDeRegionesPrecioParaLaMetropolitana() {
         val santiago = Regiones.todas.first { it.nombre == "Metropolitana de Santiago" }
-        assertEquals(160.0, santiago.referenciaKwh!!, delta)
-        // Con el precio de la tabla el cálculo coincide con el de 150/kWh escalado: 0,2 kW x 5 h x 160 = 160
+        assertEquals(247.0, santiago.referenciaKwh!!, delta)
+        // Con el precio de la tabla: 0,2 kW x 5 h (lote) x 247 = 247
         val b = success(sinDatosDeImpresora().copy(precioKwh = santiago.referenciaKwh))
-        assertEquals(160.0, b.electricidad, 1e-9)
+        assertEquals(247.0, b.electricidad, 1e-9)
     }
 
     @Test
@@ -385,9 +385,9 @@ class CostCalculatorTest {
     @Test
     fun resumenDeEntradasMuestraLosDatosUsados() {
         val t = Resumen.entradas(sinDatosDeImpresora(), "PLA", "Metropolitana de Santiago")
-        assertTrue(t, t.contains("100 g de PLA"))
+        assertTrue(t, t.contains("50 g de PLA"))
         assertTrue(t, t.contains("2 unidades"))
-        assertTrue(t, t.contains("5 h 0 min"))
+        assertTrue(t, t.contains("2.5 h 0 min"))
         assertTrue(t, t.contains("200 W"))
         assertTrue(t, t.contains("/kWh (Metropolitana de Santiago)"))
         assertFalse(t, t.contains("fallida"))
@@ -478,10 +478,10 @@ class CostCalculatorTest {
     fun textoParaCompartirTraeLosTotales() {
         val i = sinDatosDeImpresora().copy(otrosPorPieza = 500.0)
         val t = Compartir.texto(success(i), i, "Soporte", "PLA", "Metropolitana de Santiago", "15-11-2026 14:30:00")
-        assertTrue(t, t.contains("COSTO TOTAL: " + CostCalculator.formatClp(3889.99)))
-        assertTrue(t, t.contains("COSTO UNITARIO: " + CostCalculator.formatClp(1944.995)))
+        assertTrue(t, t.contains("COSTO DEL LOTE (2 unidades): " + CostCalculator.formatClp(3889.99)))
+        assertTrue(t, t.contains("COSTO UNITARIO (por unidad): " + CostCalculator.formatClp(1944.995)))
         assertTrue(t, t.contains("Otros costos: " + CostCalculator.formatClp(1000.0)))
-        assertTrue(t, t.contains("100 g de PLA"))
+        assertTrue(t, t.contains("50 g de PLA"))
         assertFalse(t, t.contains("Mano de obra"))
         assertFalse(t, t.contains("Precio de venta"))
     }
@@ -515,10 +515,10 @@ class CostCalculatorTest {
         val filas = Compartir.filas(success(i), i, "Soporte", "PLA", null, fecha)
         val etiquetas = filas.map { it.etiqueta }
         assertTrue(etiquetas.any { it.contains("30% sobre el costo") })
-        val gan = filas.first { it.etiqueta == "Ganancia por pieza" }
+        val gan = filas.first { it.etiqueta == "Ganancia por unidad" }
         assertEquals(Estilo.GANANCIA, gan.estilo)
         assertEquals(CostCalculator.formatClp(1444.995 * 0.3), gan.valor)
-        assertTrue(filas.indexOfFirst { it.etiqueta == "COSTO UNITARIO" } < filas.indexOf(gan))
+        assertTrue(filas.indexOfFirst { it.etiqueta == "COSTO UNITARIO (por unidad)" } < filas.indexOf(gan))
         assertTrue(etiquetas.contains("Precio de venta unitario (sin IVA)"))
         assertTrue(etiquetas.contains("Precio de venta del lote (sin IVA)"))
     }
@@ -597,15 +597,23 @@ class CostCalculatorTest {
         assertEquals("20", m)
         val b = success(sinDatosDeImpresora().copy(
             horas = CostCalculator.parseNumber(h), minutos = CostCalculator.parseNumber(m)))
-        assertEquals(80.0 / 60.0, b.horasTotales, 1e-9)
+        assertEquals(2 * 80.0 / 60.0, b.horasTotales, 1e-9)   // por unidad x 2 unidades
     }
 
     // ---------- v1.2: regiones y ubicación ----------
 
     @Test
-    fun hayDieciseisRegionesYOchoConReferencia() {
+    fun hayDieciseisRegionesTodasConReferenciaYDiezEstimadas() {
         assertEquals(16, Regiones.todas.size)
-        assertEquals(8, Regiones.todas.count { it.referenciaKwh != null })
+        assertEquals(16, Regiones.todas.count { it.referenciaKwh != null })
+        assertEquals(10, Regiones.todas.count { it.estimado })
+        // Datos directos (no estimados): Valparaíso, Metropolitana, La Araucanía, Los Lagos, Aysén y Magallanes.
+        assertEquals(
+            setOf("Valparaíso", "Metropolitana de Santiago", "La Araucanía", "Los Lagos", "Aysén", "Magallanes y la Antártica Chilena"),
+            Regiones.todas.filter { !it.estimado }.map { it.nombre }.toSet()
+        )
+        // Todas dentro de un rango razonable para el precio efectivo con IVA (hogar de 250 kWh/mes).
+        assertTrue(Regiones.todas.all { it.referenciaKwh!! in 200.0..330.0 })
         assertEquals(16, Regiones.todas.map { it.nombre }.toSet().size)
     }
 
@@ -617,10 +625,11 @@ class CostCalculatorTest {
     }
 
     @Test
-    fun santiagoEsMetropolitanaConReferencia160() {
+    fun santiagoEsMetropolitanaConReferencia247() {
         val r = Regiones.masCercana(-33.45, -70.65)!!
         assertEquals("Metropolitana de Santiago", r.nombre)
-        assertEquals(160.0, r.referenciaKwh!!, delta)
+        assertEquals(247.0, r.referenciaKwh!!, delta)
+        assertFalse(r.estimado)
     }
 
     @Test
@@ -631,9 +640,10 @@ class CostCalculatorTest {
     }
 
     @Test
-    fun regionSinDatoReferencialNoInventaUnPrecio() {
-        assertNull(Regiones.masCercana(-39.81, -73.25)!!.referenciaKwh) // Los Ríos
-        assertNull(Regiones.masCercana(-35.43, -71.65)!!.referenciaKwh) // Maule
+    fun lasRegionesSinDatoPropioQuedanMarcadasComoEstimadas() {
+        assertTrue(Regiones.masCercana(-39.81, -73.25)!!.estimado) // Los Ríos
+        assertTrue(Regiones.masCercana(-35.43, -71.65)!!.estimado) // Maule
+        assertTrue(Regiones.masCercana(-23.65, -70.40)!!.estimado) // Antofagasta
     }
 
     @Test
@@ -706,7 +716,7 @@ class CostCalculatorTest {
 
     @Test
     fun calcularConLosSugeridosEsValidoYCorrecto() {
-        // 10 h: depreciación = 489990/5000*10 = 979,98; mantenimiento = 50*10 = 500
+        // 10 h por unidad x 2 unidades = 20 h: depreciación = 489990/5000*20 = 1959,96; mantenimiento = 50*20 = 1000
         val b = success(
             valid().copy(
                 horas = 10.0,
@@ -716,8 +726,8 @@ class CostCalculatorTest {
                 mantenimientoPorHora = Suggested.MANTENIMIENTO_POR_HORA
             )
         )
-        assertEquals(979.98, b.depreciacion, 1e-9)
-        assertEquals(500.0, b.mantenimiento, delta)
+        assertEquals(1959.96, b.depreciacion, 1e-9)
+        assertEquals(1000.0, b.mantenimiento, delta)
     }
 
     @Test
@@ -735,14 +745,41 @@ class CostCalculatorTest {
         assertTrue("Debe contener los dígitos: $s", s.replace(".", "").contains("1234567"))
     }
 
-    // ---------- v1.9: productos de varias piezas (+ AGREGAR PIEZA) ----------
+    // ---------- v1.9: productos de varias piezas (+ AGREGAR PIEZA) y unidades que multiplican ----------
 
-    private val petg = Parte(precioKg = 25000.0, gramos = 50.0, horas = 2.0, minutos = 30.0, watts = 120.0)
+    // Pieza 2 por UNIDAD: 25 g, 1 h 15 min, 120 W. Con 2 unidades el lote usa 50 g y 2,5 h de esta pieza.
+    private val petg = Parte(precioKg = 25000.0, gramos = 25.0, horas = 1.0, minutos = 15.0, watts = 120.0)
+
+    @Test
+    fun lasUnidadesMultiplicanElCostoDeTodasLasPiezas() {
+        val i = sinDatosDeImpresora().copy(partesExtra = listOf(petg))
+        val una = success(i.copy(piezas = 1.0))
+        val tres = success(i.copy(piezas = 3.0))
+        assertEquals(una.material * 3, tres.material, 1e-9)
+        assertEquals(una.electricidad * 3, tres.electricidad, 1e-9)
+        assertEquals(una.depreciacion * 3, tres.depreciacion, 1e-9)
+        assertEquals(una.mantenimiento * 3, tres.mantenimiento, 1e-9)
+        assertEquals(una.total * 3, tres.total, 1e-9)           // costo del lote
+        assertEquals(una.unitario, tres.unitario, 1e-9)         // el costo unitario no cambia
+        assertEquals(una.horasTotales * 3, tres.horasTotales, 1e-9)
+        assertEquals(una.gramosTotales * 3, tres.gramosTotales, 1e-9)
+        assertEquals(3.0, tres.unidades, 1e-9)
+    }
+
+    @Test
+    fun unaUnidadCuestaLoDeSusPiezasYElLoteEsElTotal() {
+        val b = success(sinDatosDeImpresora().copy(piezas = 5.0))
+        // Por unidad (50 g, 2,5 h): 1000 + 75 + 244,995 + 125 = 1444,995. Lote de 5: 7224,975.
+        assertEquals(1444.995, b.unitario, 1e-9)
+        assertEquals(7224.975, b.total, 1e-9)
+        assertEquals(250.0, b.gramosTotales, 1e-9)
+        assertEquals(12.5, b.horasTotales, 1e-9)
+    }
 
     @Test
     fun dosPiezasIgualesDuplicanLosCostosDelMaterialYElTiempo() {
         val una = success(sinDatosDeImpresora())
-        val parte = Parte(20000.0, 100.0, 5.0, 0.0, 200.0)
+        val parte = Parte(20000.0, 50.0, 2.5, 0.0, 200.0)
         val dos = success(sinDatosDeImpresora().copy(partesExtra = listOf(parte)))
         assertEquals(una.material * 2, dos.material, delta)
         assertEquals(una.electricidad * 2, dos.electricidad, delta)
@@ -758,15 +795,16 @@ class CostCalculatorTest {
     @Test
     fun cadaPiezaUsaSuPropioMaterialConsumoYTiempo() {
         val b = success(sinDatosDeImpresora().copy(partesExtra = listOf(petg)))
-        // Pieza 2: material 25000/1000 x 50 = 1250; electricidad 0,12 kW x 2,5 h x 150 = 45;
-        // depreciación 489990/5000 x 2,5 = 244,995; mantenimiento 50 x 2,5 = 125.
+        // Pieza 2, por unidad: material 25000/1000 x 25 = 625; electricidad 0,12 kW x 1,25 h x 150 = 22,5;
+        // depreciación 489990/5000 x 1,25 = 122,4975; mantenimiento 50 x 1,25 = 62,5.
         val p2 = b.partes[1]
-        assertEquals(1250.0, p2.material, 1e-9)
-        assertEquals(45.0, p2.electricidad, 1e-9)
-        assertEquals(244.995, p2.depreciacion, 1e-9)
-        assertEquals(125.0, p2.mantenimiento, 1e-9)
-        assertEquals(1664.995, p2.subtotal, 1e-9)
-        assertEquals(2889.99, b.partes[0].subtotal, 1e-9)
+        assertEquals(625.0, p2.material, 1e-9)
+        assertEquals(22.5, p2.electricidad, 1e-9)
+        assertEquals(122.4975, p2.depreciacion, 1e-9)
+        assertEquals(62.5, p2.mantenimiento, 1e-9)
+        assertEquals(832.4975, p2.subtotal, 1e-9)
+        assertEquals(1444.995, b.partes[0].subtotal, 1e-9)
+        // Lote de 2 unidades: 2 x (1444,995 + 832,4975) = 4554,985.
         assertEquals(4554.985, b.total, 1e-9)
         assertEquals(7.5, b.horasTotales, delta)
         assertEquals(150.0, b.gramosTotales, delta)
@@ -787,7 +825,8 @@ class CostCalculatorTest {
             partesExtra = listOf(petg), horasTrabajo = 1.0, costoHoraTrabajo = 3000.0, piezasFallidas = 1.0
         )
         val b = success(i)
-        // Base 4554,985 + 3000 de mano de obra = 7554,985 para 2 unidades: una unidad = 3777,4925.
+        // Base del lote 4554,985 + 3000 de mano de obra (total del trabajo) = 7554,985 para 2 unidades.
+        assertEquals(3000.0, b.manoObra, 1e-9)
         assertEquals(3777.4925, b.costoPiezaFallida, 1e-9)
         assertEquals(7554.985 + 3777.4925, b.total, 1e-9)
         assertTrue(Resumen.partesSumanElTotal(b))
@@ -822,15 +861,19 @@ class CostCalculatorTest {
     }
 
     @Test
-    fun elResumenListaCadaPiezaYSuSubtotal() {
+    fun elResumenListaCadaPiezaConSuSubtotalPorUnidad() {
         val i = sinDatosDeImpresora().copy(partesExtra = listOf(petg))
         val b = success(i)
         val t = Compartir.texto(b, i, "Soporte grande", "PLA", "Biobío", "10:00:00")
-        assertTrue(t, t.contains("Pieza 1 · 100 g · 5 h: " + CostCalculator.formatClp(2889.99)))
-        assertTrue(t, t.contains("Pieza 2 · 50 g · 2 h 30 min: " + CostCalculator.formatClp(1664.995)))
-        assertTrue(t, t.contains("2 piezas"))
-        assertTrue(t, t.contains("150 g en total"))
-        assertTrue(t, t.contains("7 h 30 min en total"))
+        assertTrue(t, t.contains("Pieza 1 · 50 g · 2 h 30 min: " + CostCalculator.formatClp(1444.995)))
+        assertTrue(t, t.contains("Pieza 2 · 25 g · 1 h 15 min: " + CostCalculator.formatClp(832.4975)))
+        assertTrue(t, t.contains("2 piezas por unidad"))
+        assertTrue(t, t.contains("75 g por unidad"))
+        assertTrue(t, t.contains("3 h 45 min por unidad"))
+        assertTrue(t, t.contains("COSTO DEL LOTE (2 unidades): " + CostCalculator.formatClp(4554.985)))
+        assertTrue(t, t.contains("COSTO UNITARIO (por unidad): " + CostCalculator.formatClp(2277.4925)))
+        assertTrue(t, t.contains("Filamento total del lote: 150 g"))
+        assertTrue(t, t.contains("Tiempo total de impresión del lote: 7 h 30 min"))
     }
 
     @Test
@@ -838,6 +881,13 @@ class CostCalculatorTest {
         val i = sinDatosDeImpresora()
         val t = Compartir.texto(success(i), i, null, "PLA", null, "10:00:00")
         assertFalse(t, t.contains("Pieza 1"))
+    }
+
+    @Test
+    fun conUnaUnidadElLoteSeNombraEnSingular() {
+        val i = sinDatosDeImpresora().copy(piezas = 1.0)
+        val t = Compartir.texto(success(i), i, null, "PLA", null, "10:00:00")
+        assertTrue(t, t.contains("COSTO DEL LOTE (1 unidad): "))
     }
 
     @Test

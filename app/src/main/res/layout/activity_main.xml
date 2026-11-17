@@ -6,6 +6,7 @@
     android:orientation="vertical">
 
 <ScrollView
+    android:id="@+id/sv_principal"
     android:layout_width="match_parent"
     android:layout_height="0dp"
     android:layout_weight="1"
@@ -49,6 +50,13 @@
             android:text="@string/subtitulo"
             android:textColor="?attr/cTextoSuave"
             android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_limpiar_arriba"
+            android:layout_width="match_parent"
+            android:layout_height="46dp"
+            android:layout_marginTop="10dp"
+            android:text="@string/btn_limpiar_arriba" />
 
         <!-- Nombre del cálculo: identifica el objeto en la imagen guardada -->
         <TextView style="@style/Etiqueta" android:layout_marginTop="16dp" android:text="@string/lbl_nombre" />
@@ -315,6 +323,13 @@
 
         <!-- ENTRADAS: EXTRAS OPCIONALES -->
         <TextView style="@style/Seccion" android:text="@string/sec_extras" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/ayuda_extras"
+            android:textColor="?attr/cTextoSuave"
+            android:textSize="12sp" />
 
         <TextView style="@style/Etiqueta" android:text="@string/lbl_horas_trabajo" />
         <EditText
@@ -508,6 +523,22 @@
                 <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_por_gramo" />
                 <TextView
                     android:id="@+id/tv_por_gramo"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_gramos_total" />
+                <TextView
+                    android:id="@+id/tv_gramos_total"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_horas_total" />
+                <TextView
+                    android:id="@+id/tv_horas_total"
                     style="@style/ResultadoValor"
                     android:text="@string/vacio" />
             </LinearLayout>

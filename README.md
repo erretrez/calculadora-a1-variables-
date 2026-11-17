@@ -67,7 +67,9 @@ La app **no** se conecta a internet (ni a Google ni a Gemini: no hay fuente ofic
 exigiría permiso de Internet). En su lugar hay una **tabla de valores por región** (botón *VER TABLA DE PRECIOS POR REGIÓN*,
 y también en el menú de regiones). Al elegir la región, el precio se aplica solo y la casilla del kWh **no aparece**.
 
-- Hay precio para **8 de 16 regiones** (Antofagasta, Atacama, Valparaíso, Metropolitana, Biobío, Araucanía, Los Lagos y Magallanes), de un sitio no oficial (cuantomecuesta.com, abril 2026, anterior al alza de julio de 2026). Para las otras 8 no se encontró una fuente verificable y la tabla dice "sin dato": no se inventa un valor.
+- **Desde la v2.0 las 16 regiones tienen precio.** Son precios *efectivos* (cuenta mensual con cargos fijos e IVA ÷ kWh) de un hogar BT1 con 250 kWh/mes, vigentes desde el 1-nov-2026, tomados de los pliegos de cada distribuidora recopilados en mapache.ai (sitio no oficial; leído el 17-nov-2026). Datos directos: Valparaíso $298 (Chilquinta, Viña del Mar), Metropolitana $247 (Enel Maipú $246,51; CGE Puente Alto $247,68), La Araucanía $309 (Frontel, Temuco), Los Lagos $261 (Saesa, Puerto Montt), Aysén $293 (Edelaysén) y Magallanes $265 (Edelmag, Punta Arenas).
+- **Las otras 10 son estimadas** y se marcan "est." en pantalla: esa fuente no trae Emelari, Eliqsa, Elecda ni Conafe ni las comunas de las demás regiones, así que se usa la referencia de CGE ($248) para Arica, Tarapacá, Antofagasta, Atacama, Coquimbo, O'Higgins, Maule, Ñuble y Biobío, y $293 (extremo alto del rango de Saesa) para Los Ríos, donde Saesa tuvo la mayor alza de julio. Dentro de cada región el precio varía por comuna (p. ej. Chilquinta de $205 a $298): confirma con tu boleta.
+- Los valores anteriores ($140 a $170, abril 2026) eran previos al alza de julio de 2026 y quedaron desactualizados.
 - Para esas regiones, o con la opción **Otra tarifa**, aparece la casilla del precio por kWh y la calculadora de **boleta** (monto total ÷ kWh consumidos = precio efectivo, incluye cargos fijos). Ese precio manual se recuerda.
 - **DETECTAR MI REGIÓN** pide el permiso de ubicación solo al tocarlo y elige la región cuya capital está más cerca (aproximado, sin conexión; la ubicación no se guarda ni se envía).
 - La región elegida se recuerda entre usos.
@@ -151,16 +153,14 @@ Para instalar el APK hay que permitir "instalar apps de orígenes desconocidos".
 - **Un botón bajo cada casilla:** *+ 1 pieza* (piezas), *+ 1 hora* (horas) y *+ 10 min* (minutos; al llegar a 60 pasa una hora a la casilla de horas). Botones con relleno y borde de acento para distinguirlos del fondo, en ambos temas; vibración corta al tocar.
 - **Material recordado:** el último material elegido se conserva (como la región), también tras LIMPIAR.
 
-## Productos de varias piezas: + AGREGAR PIEZA (v1.9)
+## Productos de varias piezas y unidades que multiplican (v1.9 y v2.0)
 
 Un objeto más grande que la cama de la A1 (256 × 256 × 256 mm), o que se arma con varias partes, necesita **varios ciclos de la máquina**. Cada ciclo es una *pieza*:
 
-- **Pieza 1** son los campos de siempre (precio del kg, gramos, horas, minutos y material). El botón **+ AGREGAR PIEZA** crea una tarjeta con la pieza 2, 3… (hasta 6), cada una con su **propio precio de filamento, gramos, tiempo y material** (el material define los watts: PLA 95 W, ABS 200 W, etc.). Una pieza nueva copia el precio y el material de la anterior, porque lo más común es usar el mismo filamento; solo hay que poner gramos y tiempo. **QUITAR** elimina una pieza.
-- **Cálculo:** por cada pieza, material = (precio/kg ÷ 1000) × gramos; electricidad = (watts de su material ÷ 1000) × sus horas × precio del kWh; depreciación = ($489.990 ÷ 5.000 h) × sus horas; mantenimiento = $50 × sus horas. El producto suma todas las piezas. El costo por gramo usa los gramos totales y el costo por hora usa el tiempo total.
-- **Mano de obra, unidades fallidas, otros costos, margen e IVA** se aplican **al producto completo** (no por pieza). Una unidad fallida cuesta lo mismo que una unidad buena **con todas sus piezas** y la mano de obra.
-- **Unidades:** la casilla *Cantidad de unidades iguales a fabricar* (antes "piezas") es cuántos productos iguales se hacen. Los gramos y el tiempo de cada pieza son los de **todas las unidades juntas**. Si una pieza suelta falló y se reimprimió, se agrega como una pieza más (o se cuenta como unidad fallida si falló el producto entero).
-- **Resultados, imagen y texto:** con 2 o más piezas se muestra el costo de cada una ("Pieza 2 · 50 g · 2 h 30 min") y la línea *Calculado con* indica piezas, gramos y tiempo totales.
-- **Mientras una pieza esté incompleta no hay resultado** (se marca qué falta al pulsar CALCULAR): así no se muestra un total que olvide una pieza.
-- Al cambiar de tema (modo oscuro) las piezas agregadas se conservan con sus datos.
-
-Cambios de nombre: lo que antes eran "piezas fabricadas / fallidas" ahora son **unidades** (para no confundirlas con las piezas de un producto).
+- **Pieza 1** son los campos de siempre (precio del kg, gramos, horas, minutos y material). **+ AGREGAR PIEZA** crea la pieza 2, 3… (hasta 6), cada una con su **propio precio de filamento, gramos, tiempo y material** (el material define los watts: PLA 95 W, ABS 200 W…). Una pieza nueva copia el precio y el material de la anterior. **QUITAR** elimina una pieza.
+- **Las piezas se ingresan para UNA unidad** del producto. **Unidades a producir** (desde la v2.0) **multiplica** el costo de todas las piezas: material, electricidad, depreciación y mantenimiento se calculan por pieza, se suman y se multiplican por las unidades. (En la v1.9 los gramos y el tiempo eran los de todas las unidades juntas y las unidades solo dividían: eso estaba mal.)
+- **Totales por separado:** *COSTO DEL LOTE (todas las unidades)* y *COSTO UNITARIO (por unidad)*, más el filamento total y el tiempo total del lote. Con 2 o más piezas se lista el costo de cada una **por unidad**.
+- **Extras = todo el trabajo:** mano de obra, unidades fallidas, otros costos, margen e IVA consideran la totalidad del trabajo. Las horas de mano de obra son el total para todas las piezas de todas las unidades. Una unidad fallida cuesta lo mismo que una unidad buena con todas sus piezas y su parte de mano de obra; se suma al lote.
+- **Ejemplo:** pieza 1 = 100 g y 5 h, pieza 2 = 50 g y 2 h 30 min, 2 unidades, PLA/PETG, kWh $247: lote $21.904 (sin extras: $8.603 de costo base), unitario ≈ la mitad del lote con extras incluidos.
+- **CALCULAR** queda marcado (✓ CALCULADO, en verde) hasta que se cambie un dato, y la pantalla baja a los totales. **LIMPIAR TODAS LAS CASILLAS** está también arriba.
+- Mientras una pieza esté incompleta no hay resultado.

@@ -87,31 +87,33 @@ for id in et_precio_impresora et_vida_util et_mantenimiento et_watts et_precio_k
   echo "OK: no se ve $id al inicio"
 done
 
-echo "== Menú de materiales y tabla por región (Metropolitana = \$160/kWh)"
+echo "== Menú de materiales y tabla por región (Metropolitana = \$247/kWh)"
 pick sp_material "PLA"
 expect_contains "info del material PLA" "$(get tv_material_info)" "95 W"
 pick sp_region "Metropolitana de Santiago"
-expect_contains "precio de la región usado" "$(get tv_region_ref)" '$160'
+expect_contains "precio de la región usado" "$(get tv_region_ref)" '$247'
 fill et_nombre Llavero_Erretrez
 fill et_precio_kg 20000
 fill et_gramos 100
 fill et_piezas 2
 fill et_horas 5
 fill et_minutos 0
-expect_digits "material" "$(get tv_material)" 2000
-expect_digits "electricidad (95 W x 5 h x 160)" "$(get tv_electricidad)" 76
-expect_digits "depreciación (489990/5000 x 5 h)" "$(get tv_depreciacion)" 490
-expect_digits "mantenimiento (50 x 5 h)" "$(get tv_mantenimiento)" 250
+expect_digits "material (2 unidades x 100 g)" "$(get tv_material)" 4000
+expect_digits "electricidad (95 W x 5 h x 247 x 2 unidades)" "$(get tv_electricidad)" 235
+expect_digits "depreciación (489990/5000 x 10 h)" "$(get tv_depreciacion)" 980
+expect_digits "mantenimiento (50 x 10 h)" "$(get tv_mantenimiento)" 500
 expect_digits "mano de obra sin extras" "$(get tv_mano_obra)" 0
 expect_digits "merma sin extras" "$(get tv_merma)" 0
-expect_digits "total" "$(get tv_total)" 2816
-expect_digits "unitario" "$(get tv_unitario)" 1408
+expect_digits "costo del lote" "$(get tv_total)" 5715
+expect_digits "costo unitario (lote / 2 unidades)" "$(get tv_unitario)" 2857
 expect_empty "precio de venta sin margen" "$(get tv_precio_venta)"
-expect_digits "costo por gramo (2816 / 100 g)" "$(get tv_por_gramo)" 28
-expect_digits "costo por hora (2816 / 5 h)" "$(get tv_por_hora)" 563
+expect_digits "costo por gramo (5715 / 200 g)" "$(get tv_por_gramo)" 29
+expect_contains "filamento total del lote" "$(get tv_gramos_total)" "200 g"
+expect_contains "tiempo total del lote" "$(get tv_horas_total)" "10 h"
+expect_digits "costo por hora (5715 / 10 h)" "$(get tv_por_hora)" 571
 BARRA=$(get tv_barra_total)
-expect_contains "barra fija: total" "$BARRA" '2.816'
-expect_contains "barra fija: unitario" "$BARRA" '1.408'
+expect_contains "barra fija: total" "$BARRA" '5.715'
+expect_contains "barra fija: unitario" "$BARRA" '2.857'
 FIJOS=$(get tv_fijos)
 expect_contains "resumen de valores fijos (impresora)" "$FIJOS" '$489.990'
 expect_contains "resumen de valores fijos (vida útil)" "$FIJOS" '5.000'
@@ -132,20 +134,34 @@ expect_contains "calculado con: watts" "$CON" "95 W"
 expect_contains "calculado con: precio y región" "$CON" 'Metropolitana de Santiago'
 expect_contains "verificación de suma" "$(get tv_cuadra)" "Verificado"
 fill et_gramos 200
-expect_digits "material con 200 g" "$(get tv_material)" 4000
+expect_digits "material con 200 g por unidad" "$(get tv_material)" 8000
 ST2=$(get tv_status); N2=$(count_of "$ST2")
 [ "$N2" -gt "$N1" ] || fail "el contador de cálculos no avanzó al cambiar un valor ($N1 -> $N2)"
 echo "OK: al cambiar un valor se recalculó (cálculo n.º $N1 -> n.º $N2, '$ST2')"
 expect_contains "calculado con refleja el cambio" "$(get tv_calculado_con)" "200 g de PLA"
 fill et_gramos 100
-expect_digits "total al volver a 100 g" "$(get tv_total)" 2816
+expect_digits "total al volver a 100 g" "$(get tv_total)" 5715
+
+echo "== CALCULAR: queda marcado y la pantalla baja a los totales"
+[ "$(get btn_calcular)" = "CALCULAR" ] || fail "el botón debía decir CALCULAR antes de pulsarlo"
+tap btn_calcular
+sleep 2
+$H visible tv_total || fail "tras CALCULAR la pantalla no bajó hasta los totales"
+echo "OK: tras CALCULAR el costo del lote queda a la vista"
+expect_contains "el botón queda marcado" "$(get btn_calcular)" "CALCULADO"
+fill et_gramos 101
+[ "$(get btn_calcular)" = "CALCULAR" ] || fail "al cambiar un dato el botón debía volver a CALCULAR"
+echo "OK: al cambiar un dato el botón vuelve a CALCULAR"
+fill et_gramos 100
 
 echo "== Botones de suma rápida (un solo botón bajo cada casilla)"
-read -r R G B <<< "$($H bgrgb btn_mas_pieza)"; echo "botón + 1 pieza (claro): $R $G $B"
+read -r R G B <<< "$($H bgrgb btn_mas_pieza)"; echo "botón + 1 unidad (claro): $R $G $B"
 [ $((B-R)) -gt 20 ] || fail "el botón rápido debía verse azulado y distinto del fondo ($R $G $B)"
 echo "OK: el botón rápido se distingue del fondo en modo claro"
 tap btn_mas_pieza
-expect_digits "piezas con + 1 pieza (2 -> 3)" "$(get et_piezas)" 3
+expect_digits "unidades con + 1 unidad (2 -> 3)" "$(get et_piezas)" 3
+expect_digits "las unidades multiplican: costo del lote con 3 unidades" "$(get tv_total)" 8572
+expect_digits "el costo unitario no cambia con las unidades" "$(get tv_unitario)" 2857
 fill et_piezas 2
 tap btn_mas_horas
 expect_digits "horas con + 1 hora (5 -> 6)" "$(get et_horas)" 6
@@ -154,14 +170,14 @@ tap btn_mas_minutos
 tap btn_mas_minutos
 tap btn_mas_minutos
 expect_digits "minutos con + 10 min tres veces" "$(get et_minutos)" 30
-expect_digits "electricidad con 5,5 h (95 W x 5,5 h x 160)" "$(get tv_electricidad)" 84
+expect_digits "electricidad con 5,5 h por unidad (95 W x 5,5 h x 247 x 2)" "$(get tv_electricidad)" 258
 fill et_minutos 55
 tap btn_mas_minutos
 expect_digits "minutos tras pasar de 60 (55 + 10 = 5)" "$(get et_minutos)" 5
 expect_digits "la hora completa pasa a la casilla de horas (5 -> 6)" "$(get et_horas)" 6
 fill et_horas 5
 fill et_minutos 0
-expect_digits "total tras volver a 5 h" "$(get tv_total)" 2816
+expect_digits "total tras volver a 5 h" "$(get tv_total)" 5715
 
 echo "== Reloj: la hora mostrada es la del móvil y avanza en vivo"
 clock_min() { printf '%s' "$1" | grep -oE '[0-9]{2}:[0-9]{2}:[0-9]{2}' | head -1; }
@@ -185,13 +201,13 @@ echo "OK: el reloj avanza en vivo ($T1 -> $T2)"
 
 echo "== Otros costos por pieza (embalaje, envío)"
 fill et_otros 500
-expect_digits "otros costos (500 x 2 piezas)" "$(get tv_otros)" 1000
-expect_digits "total con otros costos" "$(get tv_total)" 3816
-expect_digits "unitario con otros costos" "$(get tv_unitario)" 1908
-expect_contains "barra fija sigue al total" "$(get tv_barra_total)" '3.816'
+expect_digits "otros costos (500 x 2 unidades)" "$(get tv_otros)" 1000
+expect_digits "total con otros costos" "$(get tv_total)" 6715
+expect_digits "unitario con otros costos" "$(get tv_unitario)" 3357
+expect_contains "barra fija sigue al total" "$(get tv_barra_total)" '6.715'
 expect_contains "calculado con incluye otros costos" "$(get tv_calculado_con)" "otros"
 fill et_otros ""
-expect_digits "total sin otros costos" "$(get tv_total)" 2816
+expect_digits "total sin otros costos" "$(get tv_total)" 5715
 
 echo "== Colores de los campos (modo claro): vacío blanco, con valor verde"
 read -r R G B <<< "$($H bgrgb et_otros)"; echo "campo vacío: $R $G $B"
@@ -202,19 +218,19 @@ echo "OK: campo vacío claro y campo con valor verdoso en modo claro"
 
 echo "== Otros materiales del menú"
 pick sp_material "ABS"
-expect_digits "electricidad con ABS (200 W)" "$(get tv_electricidad)" 160
-expect_digits "total con ABS" "$(get tv_total)" 2900
+expect_digits "electricidad con ABS (200 W)" "$(get tv_electricidad)" 494
+expect_digits "total con ABS" "$(get tv_total)" 5974
 pick sp_material "PETG"
-expect_digits "electricidad con PETG (120 W)" "$(get tv_electricidad)" 96
+expect_digits "electricidad con PETG (120 W)" "$(get tv_electricidad)" 296
 expect_contains "PETG indicado como estimado" "$(get tv_material_info)" "estimado"
 pick sp_material "Otro"
 expect_empty "campo watts propio vacío con Otro" "$(get et_watts)"
-fill et_watts 150
-expect_digits "electricidad con watts propios (150 W)" "$(get tv_electricidad)" 120
-expect_contains "calculado con muestra los watts propios" "$(get tv_calculado_con)" "150 W"
+fill et_watts 160
+expect_digits "electricidad con watts propios (160 W)" "$(get tv_electricidad)" 395
+expect_contains "calculado con muestra los watts propios" "$(get tv_calculado_con)" "160 W"
 shot pantalla_material_otro
 pick sp_material "PLA"
-expect_digits "total con PLA otra vez" "$(get tv_total)" 2816
+expect_digits "total con PLA otra vez" "$(get tv_total)" 5715
 
 echo "== Extras: mano de obra, merma, margen e IVA"
 fill et_horas_trabajo 2
@@ -225,19 +241,19 @@ read -r R G B <<< "$($H bgrgb et_margen)"; echo "campo de ganancia % con foco y 
 [ $((G-R)) -gt 10 ] || fail "el campo del porcentaje de ganancia debía verse verde aunque tenga el foco ($R $G $B)"
 echo "OK: el último campo (ganancia %) se ve verde apenas se llena, aun con el foco"
 expect_digits "mano de obra" "$(get tv_mano_obra)" 6000
-expect_digits "piezas fallidas (1 x (2815,99 + 6000) / 2)" "$(get tv_merma)" 4408
-expect_digits "total con extras" "$(get tv_total)" 13224
-expect_digits "unitario con extras" "$(get tv_unitario)" 6612
-expect_digits "precio de venta" "$(get tv_precio_venta)" 8596
+expect_digits "unidad fallida (1 x (5714,63 + 6000) / 2)" "$(get tv_merma)" 5857
+expect_digits "total con extras" "$(get tv_total)" 17572
+expect_digits "unitario con extras" "$(get tv_unitario)" 8786
+expect_digits "precio de venta" "$(get tv_precio_venta)" 11422
 expect_empty "precio con IVA (IVA desactivado)" "$(get tv_precio_iva)"
-expect_digits "ganancia del lote" "$(get tv_ganancia)" 3967
-expect_digits "ganancia por pieza (30% del costo unitario)" "$(get tv_ganancia_unit)" 1984
-expect_digits "precio de venta del lote" "$(get tv_venta_lote)" 17191
+expect_digits "ganancia del lote" "$(get tv_ganancia)" 5272
+expect_digits "ganancia por unidad (30% del costo unitario)" "$(get tv_ganancia_unit)" 2636
+expect_digits "precio de venta del lote" "$(get tv_venta_lote)" 22844
 expect_contains "la ganancia se indica aparte con su porcentaje" "$(get tv_venta_ayuda)" "30%"
-expect_contains "barra fija muestra la venta" "$(get tv_barra_detalle)" '8.596'
-expect_digits "el costo total no cambia por la ganancia" "$(get tv_total)" 13224
+expect_contains "barra fija muestra la venta" "$(get tv_barra_detalle)" '11.422'
+expect_digits "el costo total no cambia por la ganancia" "$(get tv_total)" 17572
 tap cb_iva
-expect_digits "precio con IVA (IVA activado)" "$(get tv_precio_iva)" 10229
+expect_digits "precio con IVA (IVA activado)" "$(get tv_precio_iva)" 13592
 expect_contains "calculado con incluye los extras" "$(get tv_calculado_con)" "1 unidad fallida"
 expect_contains "verificación de suma con extras" "$(get tv_cuadra)" "Verificado"
 shot pantalla_extras
@@ -276,16 +292,16 @@ echo "foco tras cerrar el selector: $(adb shell dumpsys window | grep mCurrentFo
 adb shell uiautomator dump /sdcard/ui_dbg.xml > /dev/null; adb pull /sdcard/ui_dbg.xml "$OUT/ui_tras_compartir.xml" > /dev/null
 grep -oE 'resource-id="[^"]*"' "$OUT/ui_tras_compartir.xml" | head -12
 adb shell pidof "$PKG" > /dev/null || fail "la app se cerró al compartir"
-expect_digits "los resultados siguen en pantalla tras compartir (costo por hora)" "$(get tv_por_hora)" 2645
+expect_digits "los resultados siguen en pantalla tras compartir (costo por hora)" "$(get tv_por_hora)" 1757
 
-echo "== Validación: piezas = 0 no debe dar resultado ni dividir por cero"
+echo "== Validación: unidades = 0 no debe dar resultado ni dividir por cero"
 fill et_piezas 0
 tap btn_calcular
 expect_contains "estado con piezas 0" "$(get tv_status)" "Faltan datos"
 expect_empty "total con piezas 0" "$(get tv_total)"
 expect_empty "unitario con piezas 0" "$(get tv_unitario)"
 fill et_piezas 2
-expect_digits "total tras corregir piezas" "$(get tv_total)" 13224
+expect_digits "total tras corregir unidades" "$(get tv_total)" 17572
 
 echo "== Productos de varias piezas: + AGREGAR PIEZA (cada pieza suma su filamento, tiempo y consumo)"
 tap btn_agregar_pieza
@@ -304,25 +320,28 @@ tap p2_mas_minutos
 expect_digits "minutos de la pieza 2 con + 10 min (20 -> 30)" "$(get p2_minutos)" 30
 pick p2_material "PETG"
 expect_contains "info del material de la pieza 2" "$(get p2_info)" "120 W"
-# Pieza 1: 2815,99 (material 2000, electricidad 76, depreciación 489,99, mantenimiento 250).
-# Pieza 2: material 1000, electricidad 0,12 kW x 2,5 h x 160 = 48, depreciación 244,995, mantenimiento 125.
-# Costo base 4233,985 + mano de obra 6000; una unidad fallida = (4233,985 + 6000) / 2 = 5116,9925.
-expect_digits "material de las dos piezas" "$(get tv_material)" 3000
-expect_digits "electricidad de las dos piezas (95 W x 5 h + 120 W x 2,5 h)" "$(get tv_electricidad)" 124
-expect_digits "depreciación de las dos piezas (7,5 h)" "$(get tv_depreciacion)" 735
-expect_digits "mantenimiento de las dos piezas (7,5 h)" "$(get tv_mantenimiento)" 375
-expect_digits "unidad fallida con las dos piezas y la mano de obra" "$(get tv_merma)" 5117
-expect_digits "total con dos piezas" "$(get tv_total)" 15351
-expect_digits "unitario con dos piezas" "$(get tv_unitario)" 7675
-expect_digits "precio de venta con dos piezas" "$(get tv_precio_venta)" 9978
-expect_digits "costo por gramo (150 g en total)" "$(get tv_por_gramo)" 102
-expect_digits "costo por hora (7,5 h en total)" "$(get tv_por_hora)" 2047
+# Por unidad (2 unidades en el lote). Pieza 1: material 2000, electricidad 117,325, depreciación 489,99,
+# mantenimiento 250 = 2857,315. Pieza 2: material 1000, electricidad 0,12 kW x 2,5 h x 247 = 74,1,
+# depreciación 244,995, mantenimiento 125 = 1444,095. Base del lote 8602,82 + mano de obra 6000 (total del trabajo);
+# una unidad fallida = (8602,82 + 6000) / 2 = 7301,41.
+expect_digits "material de las dos piezas (2 unidades)" "$(get tv_material)" 6000
+expect_digits "electricidad de las dos piezas (2 x (95 W x 5 h + 120 W x 2,5 h) x 247)" "$(get tv_electricidad)" 383
+expect_digits "depreciación de las dos piezas (15 h)" "$(get tv_depreciacion)" 1470
+expect_digits "mantenimiento de las dos piezas (15 h)" "$(get tv_mantenimiento)" 750
+expect_digits "unidad fallida con las dos piezas y la mano de obra" "$(get tv_merma)" 7301
+expect_digits "costo del lote con dos piezas" "$(get tv_total)" 21904
+expect_digits "costo unitario con dos piezas" "$(get tv_unitario)" 10952
+expect_digits "precio de venta con dos piezas" "$(get tv_precio_venta)" 14238
+expect_digits "costo por gramo (300 g en el lote)" "$(get tv_por_gramo)" 73
+expect_digits "costo por hora (15 h en el lote)" "$(get tv_por_hora)" 1460
+expect_contains "filamento total del lote" "$(get tv_gramos_total)" "300 g"
+expect_contains "tiempo total del lote" "$(get tv_horas_total)" "15 h"
 has_text "Pieza 1 · 100 g · 5 h"
 has_text "Pieza 2 · 50 g · 2 h 30 min"
 CON2=$(get tv_calculado_con)
-expect_contains "calculado con: cantidad de piezas" "$CON2" "2 piezas"
-expect_contains "calculado con: gramos totales" "$CON2" "150 g en total"
-expect_contains "calculado con: tiempo total" "$CON2" "7 h 30 min en total"
+expect_contains "calculado con: cantidad de piezas" "$CON2" "2 piezas por unidad"
+expect_contains "calculado con: gramos por unidad" "$CON2" "150 g por unidad"
+expect_contains "calculado con: tiempo por unidad" "$CON2" "7 h 30 min por unidad"
 expect_contains "verificación de suma con dos piezas" "$(get tv_cuadra)" "Verificado"
 shot pantalla_dos_piezas
 echo "== La pieza agregada sobrevive al cambio de tema"
@@ -331,14 +350,14 @@ sleep 3
 expect_dark "con la pieza 2 en modo oscuro"
 expect_digits "gramos de la pieza 2 tras cambiar de tema" "$(get p2_gramos)" 50
 expect_contains "material de la pieza 2 tras cambiar de tema" "$(get p2_info)" "120 W"
-expect_digits "el total con dos piezas sobrevive al cambio de tema" "$(get tv_total)" 15351
+expect_digits "el total con dos piezas sobrevive al cambio de tema" "$(get tv_total)" 21904
 shot pantalla_dos_piezas_oscuro
 tap sw_oscuro
 sleep 3
 expect_light "de vuelta en modo claro con la pieza 2"
 echo "== QUITAR la pieza: vuelve el cálculo de una sola pieza"
 tap p2_quitar
-expect_digits "total tras quitar la pieza 2" "$(get tv_total)" 13224
+expect_digits "total tras quitar la pieza 2" "$(get tv_total)" 17572
 ALL_IDS=$($H ids)
 if echo "$ALL_IDS" | grep -qx "p2_gramos"; then fail "la pieza 2 debía desaparecer tras QUITAR"; fi
 echo "OK: la pieza 2 desapareció"
@@ -353,13 +372,13 @@ read -r R G B <<< "$($H bgrgb et_otros)"; echo "campo vacío (oscuro): $R $G $B"
 read -r R G B <<< "$($H bgrgb et_precio_kg)"; echo "campo con valor (oscuro): $R $G $B"
 [ $((R+G+B)) -lt 250 ] || fail "el campo con valor debía seguir oscuro ($R $G $B)"
 [ $((G-R)) -gt 20 ] || fail "el campo con valor debía verse verdoso ($R $G $B)"
-read -r R G B <<< "$($H bgrgb btn_mas_pieza)"; echo "botón + 1 pieza (oscuro): $R $G $B"
+read -r R G B <<< "$($H bgrgb btn_mas_pieza)"; echo "botón + 1 unidad (oscuro): $R $G $B"
 [ $((B-R)) -gt 30 ] || fail "el botón rápido debía verse azulado en modo oscuro ($R $G $B)"
 echo "OK: el botón rápido se distingue del fondo en modo oscuro"
 ML=$($H maxluma et_precio_kg); echo "luminosidad máxima del texto ingresado: $ML"
 [ "$ML" -gt 200 ] || fail "el texto ingresado debía verse blanco en modo oscuro (luminosidad $ML)"
 echo "OK: en modo oscuro los campos son oscuros, el texto ingresado es blanco y el campo con valor se ve verdoso"
-expect_digits "el total sobrevive al cambio de tema" "$(get tv_total)" 13224
+expect_digits "el total sobrevive al cambio de tema" "$(get tv_total)" 17572
 expect_contains "el material sobrevive al cambio de tema" "$(get tv_calculado_con)" "PLA"
 adb shell am force-stop "$PKG"; sleep 2
 start_app
@@ -367,7 +386,7 @@ expect_dark "tras reiniciar la app (el modo oscuro se mantiene)"
 [ "$(get sw_oscuro checked)" = "true" ] || fail "el interruptor debía quedar activado tras reiniciar"
 echo "OK: interruptor activado tras reiniciar"
 expect_empty "campo kg vacío al reiniciar" "$(get et_precio_kg)"
-expect_contains "la región se recuerda tras reiniciar" "$(get tv_region_ref)" '$160'
+expect_contains "la región se recuerda tras reiniciar" "$(get tv_region_ref)" '$247'
 expect_contains "el material se recuerda tras reiniciar" "$(get tv_material_info)" "95 W"
 tap sw_oscuro
 sleep 3
@@ -380,21 +399,22 @@ echo "== Tabla de precios por región"
 tap btn_tabla
 has_text "Antofagasta"
 has_text "Los Ríos"
-has_text '$170'
-has_text "sin dato: usa tu boleta"
+has_text '$298'
+has_text "est."
 shot pantalla_tabla
 $H taptext "Antofagasta" || fail "no se pudo tocar la fila de Antofagasta"
-expect_contains "tocar una fila elige la región" "$(get tv_region_ref)" '$170'
+expect_contains "tocar una fila elige la región" "$(get tv_region_ref)" '$248'
+expect_contains "la región sin dato propio se indica como estimada" "$(get tv_region_ref)" "ESTIMADO"
 tap btn_tabla
 
 echo "== Región sin precio en la tabla: aparece el precio manual y la boleta"
-pick sp_region "Los Ríos"
-expect_contains "aviso de región sin dato" "$(get tv_region_ref)" "no tiene precio"
+pick sp_region "Otra tarifa"
+expect_contains "aviso de tarifa manual" "$(get tv_region_ref)" "Tarifa manual"
 expect_empty "precio manual vacío" "$(get et_precio_kwh)"
 pick sp_material "PLA"
 fill et_precio_kg 20000
 fill et_gramos 100
-fill et_piezas 2
+fill et_piezas 1
 fill et_horas 5
 fill et_minutos 0
 tap btn_calcular
@@ -421,7 +441,7 @@ pick sp_material "Elige el material"
 tap btn_calcular
 expect_contains "falta elegir material" "$(get tv_material_info)" "Elige un material"
 pick sp_material "PLA"
-tap btn_limpiar
+tap btn_limpiar_arriba
 for id in et_nombre et_precio_kg et_gramos et_piezas et_horas et_minutos et_horas_trabajo et_otros \
           et_costo_hora_trabajo et_merma et_margen et_boleta_monto et_boleta_kwh; do
   expect_empty "$id tras LIMPIAR" "$(get $id)"
@@ -439,7 +459,15 @@ expect_contains "barra fija vacía tras LIMPIAR" "$(get tv_barra_total)" "—"
 expect_empty "otros costos tras LIMPIAR" "$(get tv_otros)"
 expect_empty "costo por gramo tras LIMPIAR" "$(get tv_por_gramo)"
 expect_contains "el material se conserva tras LIMPIAR" "$(get tv_material_info)" "95 W"
-expect_contains "la región se conserva tras LIMPIAR" "$(get tv_region_ref)" "no tiene precio"
+expect_contains "la región se conserva tras LIMPIAR" "$(get tv_region_ref)" "Tarifa manual"
+
+echo "== LIMPIAR superior y LIMPIAR inferior hacen lo mismo"
+fill et_gramos 5
+tap btn_limpiar
+expect_empty "et_gramos tras el LIMPIAR inferior" "$(get et_gramos)"
+fill et_gramos 5
+tap btn_limpiar_arriba
+expect_empty "et_gramos tras el LIMPIAR superior" "$(get et_gramos)"
 
 echo "== Detección de región con ubicación simulada (Santiago)"
 adb shell pm grant "$PKG" android.permission.ACCESS_FINE_LOCATION || true
@@ -460,7 +488,7 @@ for i in $(seq 1 8); do
 done
 shot pantalla_region
 [ -n "$FOUND" ] || fail "no se detectó la región Metropolitana con la ubicación simulada"
-expect_contains "precio de la región detectada" "$(get tv_region_ref)" '$160'
+expect_contains "precio de la región detectada" "$(get tv_region_ref)" '$247'
 ALL_IDS=$($H ids)
 if echo "$ALL_IDS" | grep -qx "et_precio_kwh"; then fail "con precio en la tabla no debe verse la casilla del kWh"; fi
 echo "OK: con precio en la tabla la casilla del kWh no aparece"

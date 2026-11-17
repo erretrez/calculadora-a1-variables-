@@ -9,6 +9,7 @@
     <string name="sec_unidades">Unidades a producir</string>
     <string name="sec_electricidad">Electricidad (precio del kWh)</string>
     <string name="sec_extras">Extras (opcionales)</string>
+    <string name="ayuda_extras">Los extras consideran la totalidad del trabajo: todas las piezas impresas de todas las unidades. Por ejemplo, las horas de mano de obra son el total del lote, no por pieza ni por unidad.</string>
     <string name="sec_resultados">Resultados</string>
 
     <string name="lbl_precio_kg">Precio del filamento por kilogramo</string>
@@ -18,7 +19,7 @@
     <string name="lbl_minutos">Minutos</string>
     
 
-    <string name="lbl_horas_trabajo">Mano de obra: horas de trabajo (lijado, pintura, armado)</string>
+    <string name="lbl_horas_trabajo">Mano de obra: horas TOTALES de todo el trabajo (lijado, pintura, armado de todas las piezas)</string>
     <string name="lbl_costo_hora_trabajo">Mano de obra: costo por hora de trabajo</string>
     <string name="lbl_merma">Unidades fallidas (cuántas se perdieron)</string>
     <string name="cb_iva">Mostrar el precio de venta con IVA (19%)</string>
@@ -40,6 +41,9 @@
 
     <string name="btn_calcular">CALCULAR</string>
     <string name="btn_limpiar">LIMPIAR</string>
+    <string name="btn_limpiar_arriba">LIMPIAR TODAS LAS CASILLAS</string>
+    <string name="btn_calculado">✓ CALCULADO</string>
+    <string name="est_corto">est.</string>
     <string name="btn_usar">USAR</string>
     <string name="btn_detectar">DETECTAR MI REGIÓN</string>
     <string name="desc_usar">Usar el valor indicado</string>
@@ -72,8 +76,8 @@
     <string name="res_mantenimiento">Mantenimiento</string>
     <string name="res_mano_obra">Mano de obra</string>
     <string name="res_merma">Unidades fallidas (costo repartido)</string>
-    <string name="res_total">COSTO TOTAL</string>
-    <string name="res_unitario">COSTO UNITARIO</string>
+    <string name="res_total">COSTO DEL LOTE (todas las unidades)</string>
+    <string name="res_unitario">COSTO UNITARIO (por unidad)</string>
     <string name="vacio">—</string>
 
     <string name="modo_oscuro">Modo oscuro</string>
@@ -97,12 +101,13 @@
     <string name="region_info_inicial">Elige tu región o toca DETECTAR MI REGIÓN.</string>
     <string name="region_ref_ninguna">Aún no hay región elegida: sin ella no hay precio del kWh.</string>
     <string name="region_ref">Precio usado: %1$s por kWh (tabla referencial, %2$s, no oficial). Verifica en tu boleta.</string>
+    <string name="region_ref_estimado">Precio usado: %1$s por kWh, ESTIMADO (sin dato propio de esta región se usa la tarifa de referencia de su distribuidora, %2$s, no oficial). Verifica en tu boleta.</string>
     <string name="region_ref_sin_dato">Esta región no tiene precio en la tabla: ingresa abajo el precio de tu boleta.</string>
     <string name="region_ref_otra">Tarifa manual: ingresa abajo el precio por kWh.</string>
     <string name="region_falta">Elige tu región (o "Otra tarifa") para obtener el precio del kWh.</string>
     <string name="btn_ver_tabla">VER TABLA DE PRECIOS POR REGIÓN</string>
     <string name="btn_ocultar_tabla">OCULTAR TABLA DE PRECIOS</string>
-    <string name="tabla_titulo">Precio referencial del kWh por región (%1$s, no oficial). Toca una fila para elegirla.</string>
+    <string name="tabla_titulo">Precio referencial del kWh por región (%1$s, no oficial; cuenta con cargos fijos e IVA para un hogar de 250 kWh al mes). "est." = sin dato propio de la región. Toca una fila para elegirla.</string>
     <string name="tabla_sin_dato">sin dato: usa tu boleta</string>
     <string name="lbl_precio_kwh_manual">Precio de electricidad por kWh (de tu boleta)</string>
     <string name="sub_boleta">O calcúlalo con tu boleta</string>
@@ -121,9 +126,11 @@
     <string name="res_otros">Otros costos (por unidad x unidades)</string>
     <string name="res_por_gramo">Costo por gramo de filamento</string>
     <string name="res_por_hora">Costo por hora de impresión</string>
+    <string name="res_gramos_total">Filamento total del lote</string>
+    <string name="res_horas_total">Tiempo total de impresión del lote</string>
     <string name="compartir_titulo">Resumen de costos</string>
-    <string name="barra_total">Total %1$s · Unitario %2$s</string>
-    <string name="barra_vacia">Total — · Unitario —</string>
+    <string name="barra_total">Lote %1$s · Unitario %2$s</string>
+    <string name="barra_vacia">Lote — · Unitario —</string>
     <string name="barra_sin_calculo">Sin cálculo aún</string>
 
     <!-- v1.6 -->
@@ -169,7 +176,7 @@
     <string name="lbl_pieza_gramos">Filamento de esta pieza (gramos)</string>
     <string name="lbl_pieza_horas">Horas de esta pieza</string>
     <string name="lbl_pieza_minutos">Minutos de esta pieza</string>
-    <string name="sub_detalle_piezas">Costo de cada pieza (material, electricidad, depreciación y mantenimiento)</string>
-    <string name="unidades_ayuda">Los gramos y el tiempo de cada pieza son los de todas las unidades juntas.</string>
+    <string name="sub_detalle_piezas">Costo de cada pieza de UNA unidad (material, electricidad, depreciación y mantenimiento)</string>
+    <string name="unidades_ayuda">Ingresa los gramos y el tiempo de UNA unidad (todas sus piezas). La cantidad de unidades multiplica el costo de todas las piezas.</string>
     <string name="max_piezas">Máximo %1$d piezas por producto.</string>
 </resources>

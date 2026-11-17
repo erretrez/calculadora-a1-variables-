@@ -428,12 +428,12 @@ class CostCalculatorTest {
 
     @Test
     fun cadaPiezaFallidaSumaElCostoCompletoDeUnaPiezaYSeRepartePorLasBuenas() {
-        // 4 piezas buenas cuestan 2889,99 + 6000 de mano de obra = 8889,99; una pieza = 2222,4975.
+        // 4 unidades buenas (1444,995 cada una) cuestan 5779,98 + 6000 de mano de obra = 11779,98; una unidad = 2944,995.
         val i = sinDatosDeImpresora().copy(piezas = 4.0, horasTrabajo = 2.0, costoHoraTrabajo = 3000.0)
         val sin = success(i)
         val con = success(i.copy(piezasFallidas = 2.0))
-        assertEquals(2222.4975, con.costoPiezaFallida, 1e-9)
-        assertEquals(sin.total + 2 * 2222.4975, con.total, 1e-9)           // se suma al total
+        assertEquals(2944.995, con.costoPiezaFallida, 1e-9)
+        assertEquals(sin.total + 2 * 2944.995, con.total, 1e-9)           // se suma al total
         assertEquals(con.total / 4.0, con.unitario, 1e-9)                  // y se reparte entre las 4 buenas
         assertEquals(sin.unitario * 1.5, con.unitario, 1e-9)               // 2 fallidas sobre 4 = +50% por pieza
         assertEquals(sin.total, success(i.copy(piezasFallidas = 0.0)).total, 1e-9)

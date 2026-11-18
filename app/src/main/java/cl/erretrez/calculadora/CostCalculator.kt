@@ -37,7 +37,8 @@ enum class Field(val optional: Boolean = false) {
 /**
  * Una pieza del producto: lo que se imprime en un ciclo de la máquina (una cama). Un objeto más grande
  * que la cama se parte en varias piezas; cada una tiene su filamento, sus gramos, su tiempo y su consumo.
- * Los gramos y el tiempo son los de UNA unidad del producto; la cantidad de unidades multiplica el costo de todas las piezas.
+ * Los gramos y el tiempo son los de esa impresión completa (la cama entera), tal como los entrega el laminador
+ * (p. ej. Bambu Studio). La cantidad de unidades NO los multiplica: solo reparte el costo total entre las figuras.
  */
 data class Parte(
     val precioKg: Double?,
@@ -47,7 +48,7 @@ data class Parte(
     val watts: Double?
 )
 
-/** Costo de una pieza para UNA unidad del producto (sin mano de obra, fallidas ni otros: esos son del producto completo). */
+/** Costo de una pieza, o sea de una impresión completa (sin mano de obra, fallidas ni otros: esos son del trabajo completo). */
 data class ParteDetalle(
     val gramos: Double,
     val horas: Double,
@@ -131,7 +132,7 @@ data class CostBreakdown(
     /** Detalle por pieza (la 1.ª primero). Con una sola pieza queda con 1 elemento. */
     val partes: List<ParteDetalle> = emptyList(),
     val gramosTotales: Double = 0.0,
-    /** Cantidad de unidades del lote (multiplica el costo de todas las piezas). */
+    /** Cantidad de unidades que salen del lote (reparte el costo total; no lo multiplica). */
     val unidades: Double = 1.0
 )
 
@@ -362,7 +363,7 @@ object Compartir {
         l += Fila("Costo de impresión 3D · $fechaHora", estilo = Estilo.SUBTITULO_ENC)
         l += Fila("Calculado con: " + Resumen.entradas(i, material, region), estilo = Estilo.NOTA)
         if (b.partes.size > 1) {
-            l += Fila("Piezas de cada unidad (" + b.partes.size + " ciclos de impresión por unidad)", estilo = Estilo.SECCION)
+            l += Fila("Piezas del lote (" + b.partes.size + " impresiones)", estilo = Estilo.SECCION)
             b.partes.forEachIndexed { k, p ->
                 l += Fila(
                     "Pieza " + (k + 1) + " · " + Suggested.plainRounded(p.gramos) + " g · " + Resumen.tiempo(p.horas),
@@ -384,7 +385,7 @@ object Compartir {
         }
         if (b.otros > 0.0) l += Fila("Otros costos", f(b.otros))
         l += Fila("COSTO DEL LOTE (" + Suggested.plainRounded(b.unidades) + (if (b.unidades == 1.0) " unidad)" else " unidades)"), f(b.total), Estilo.TOTAL)
-        l += Fila("COSTO UNITARIO (por unidad)", f(b.unitario), Estilo.TOTAL)
+        l += Fila("COSTO UNITARIO (lote ÷ unidades)", f(b.unitario), Estilo.TOTAL)
         l += Fila("Filamento total del lote", Suggested.plainRounded(b.gramosTotales) + " g")
         l += Fila("Tiempo total de impresión del lote", Resumen.tiempo(b.horasTotales))
         b.costoPorGramo?.let { l += Fila("Costo por gramo de filamento", f(it)) }
@@ -454,8 +455,8 @@ object Resumen {
         } else {
             // Producto de varias piezas: se muestran los totales (el detalle de cada una va aparte).
             val todas = listOf(Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts)) + i.partesExtra
-            partes += todas.size.toString() + " piezas por unidad"
-            partes += Suggested.plainRounded(todas.sumOf { it.gramos ?: 0.0 }) + " g por unidad"
+            partes += todas.size.toString() + " piezas"
+            partes += Suggested.plainRounded(todas.sumOf { it.gramos ?: 0.0 }) + " g en total"
         }
         i.piezas?.let { partes += Suggested.plainRounded(it) + (if (it == 1.0) " unidad" else " unidades") }
         if (i.partesExtra.isEmpty()) {
@@ -465,7 +466,7 @@ object Resumen {
             i.watts?.let { partes += Suggested.plainRounded(it) + " W" }
         } else {
             val todas = listOf(Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts)) + i.partesExtra
-            partes += tiempo(todas.sumOf { (it.horas ?: 0.0) + (it.minutos ?: 0.0) / 60.0 }) + " por unidad"
+            partes += tiempo(todas.sumOf { (it.horas ?: 0.0) + (it.minutos ?: 0.0) / 60.0 }) + " en total"
         }
         i.precioKwh?.let { partes += CostCalculator.formatClp(it) + "/kWh" + (region?.let { r -> " ($r)" } ?: "") }
         if (i.horasTrabajo != null && i.costoHoraTrabajo != null) {
@@ -615,13 +616,14 @@ object CostCalculator {
                 mantenimiento = i.mantenimientoPorHora!! * h
             )
         }
-        // Las piezas describen UNA unidad; el lote completo son n unidades.
-        val horasTotales = n * detalle.sumOf { it.horas }
-        val gramosTotales = n * detalle.sumOf { it.gramos }
-        val material = n * detalle.sumOf { it.material }
-        val electricidad = n * detalle.sumOf { it.electricidad }
-        val depreciacion = n * detalle.sumOf { it.depreciacion }
-        val mantenimiento = n * detalle.sumOf { it.mantenimiento }
+        // Cada pieza es una impresión completa (gramos y tiempo del laminador): el costo del lote es la suma de
+        // todas. Las n unidades solo reparten ese costo (costo unitario = lote / n); nunca lo multiplican.
+        val horasTotales = detalle.sumOf { it.horas }
+        val gramosTotales = detalle.sumOf { it.gramos }
+        val material = detalle.sumOf { it.material }
+        val electricidad = detalle.sumOf { it.electricidad }
+        val depreciacion = detalle.sumOf { it.depreciacion }
+        val mantenimiento = detalle.sumOf { it.mantenimiento }
         val base = material + electricidad + depreciacion + mantenimiento
 
         // Extras: sin datos valen 0 y el total es idéntico al cálculo base.

@@ -33,7 +33,7 @@ Depreciación por hora = $489.990 / 5.000 h = $97,998; mantenimiento = $50. Las 
 | **Total** | material + electricidad + depreciación + mantenimiento (+ mano de obra y merma si se indican) |
 | **Unitario** | total / cantidad de unidades |
 
-`horas` = horas + minutos / 60. Con varias piezas (v1.9), material, electricidad, depreciación y mantenimiento se calculan **por pieza y se suman**.
+`horas` = horas + minutos / 60. Con varias piezas, material, electricidad, depreciación y mantenimiento se calculan **por pieza (impresión) y se suman**; las unidades solo dividen.
 
 ## Validaciones
 
@@ -153,14 +153,14 @@ Para instalar el APK hay que permitir "instalar apps de orígenes desconocidos".
 - **Un botón bajo cada casilla:** *+ 1 pieza* (piezas), *+ 1 hora* (horas) y *+ 10 min* (minutos; al llegar a 60 pasa una hora a la casilla de horas). Botones con relleno y borde de acento para distinguirlos del fondo, en ambos temas; vibración corta al tocar.
 - **Material recordado:** el último material elegido se conserva (como la región), también tras LIMPIAR.
 
-## Productos de varias piezas y unidades que multiplican (v1.9 y v2.0)
+## Productos de varias piezas y unidades (v1.9, corregido en la v2.1)
 
-Un objeto más grande que la cama de la A1 (256 × 256 × 256 mm), o que se arma con varias partes, necesita **varios ciclos de la máquina**. Cada ciclo es una *pieza*:
+Cada *pieza* es una **impresión completa (una cama)**, con los gramos y las horas que entrega el laminador (Bambu Studio) para esa cama:
 
-- **Pieza 1** son los campos de siempre (precio del kg, gramos, horas, minutos y material). **+ AGREGAR PIEZA** crea la pieza 2, 3… (hasta 6), cada una con su **propio precio de filamento, gramos, tiempo y material** (el material define los watts: PLA 95 W, ABS 200 W…). Una pieza nueva copia el precio y el material de la anterior. **QUITAR** elimina una pieza.
-- **Las piezas se ingresan para UNA unidad** del producto. **Unidades a producir** (desde la v2.0) **multiplica** el costo de todas las piezas: material, electricidad, depreciación y mantenimiento se calculan por pieza, se suman y se multiplican por las unidades. (En la v1.9 los gramos y el tiempo eran los de todas las unidades juntas y las unidades solo dividían: eso estaba mal.)
-- **Totales por separado:** *COSTO DEL LOTE (todas las unidades)* y *COSTO UNITARIO (por unidad)*, más el filamento total y el tiempo total del lote. Con 2 o más piezas se lista el costo de cada una **por unidad**.
-- **Extras = todo el trabajo:** mano de obra, unidades fallidas, otros costos, margen e IVA consideran la totalidad del trabajo. Las horas de mano de obra son el total para todas las piezas de todas las unidades. Una unidad fallida cuesta lo mismo que una unidad buena con todas sus piezas y su parte de mano de obra; se suma al lote.
-- **Ejemplo:** pieza 1 = 100 g y 5 h, pieza 2 = 50 g y 2 h 30 min, 2 unidades, PLA/PETG, kWh $247: lote $21.904 (sin extras: $8.603 de costo base), unitario ≈ la mitad del lote con extras incluidos.
-- **CALCULAR** queda marcado (✓ CALCULADO, en verde) hasta que se cambie un dato, y la pantalla baja a los totales. **LIMPIAR TODAS LAS CASILLAS** está también arriba.
+- **Pieza 1** son los campos de siempre (precio del kg, gramos, horas, minutos y material). **+ AGREGAR PIEZA** agrega otra impresión (hasta 6), con su **propio precio de filamento, gramos, tiempo y material** (el material define los watts). Una pieza nueva copia el precio y el material de la anterior. **QUITAR** elimina una pieza. Los costos de todas las piezas se **suman**.
+- **Unidades que salen del lote:** cuántas figuras salen de lo impreso. **No multiplica nada: solo reparte el costo** (costo unitario = costo del lote ÷ unidades). Ejemplo: una cama con 7 figuras, 140 g y 6 h → se ingresa 140 g, 6 h y 7 unidades; el lote cuesta lo mismo con 1 o con 7 unidades, y el unitario es el lote ÷ 7. (La v2.0 multiplicaba por las unidades y sobrecalculaba: era un error.)
+- **Totales por separado:** *COSTO DEL LOTE* y *COSTO UNITARIO (lote ÷ unidades)*, más el filamento total y el tiempo total.
+- **Extras = todo el trabajo:** mano de obra, unidades fallidas, otros costos, margen e IVA consideran la totalidad del trabajo. Una unidad fallida cuesta (costo base del lote + mano de obra) ÷ unidades; se suma al lote.
+- **Ejemplo:** 100 g y 5 h, 2 unidades, PLA, kWh $247: lote $2.857, unitario $1.429. Agregando una pieza PETG de 50 g y 2 h 30 min: lote $4.301 de costo base.
+- **CALCULAR** queda marcado (✓ CALCULADO, en verde) hasta que se cambie un dato, y la pantalla baja a los totales. **LIMPIAR** (abajo, junto a CALCULAR) vacía las casillas; el botón **↑** (esquina inferior) vuelve al inicio.
 - Mientras una pieza esté incompleta no hay resultado.

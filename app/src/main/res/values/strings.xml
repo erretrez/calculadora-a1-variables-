@@ -5,16 +5,16 @@
     <string name="subtitulo">Ingresa los valores de tu impresión. Ningún campo viene precargado.</string>
 
     <string name="sec_pieza1">Pieza 1</string>
-    <string name="sub_tiempo">Tiempo de impresión de esta pieza</string>
+    <string name="sub_tiempo">Tiempo de impresión de esta pieza (el del laminador)</string>
     <string name="sec_unidades">Unidades a producir</string>
     <string name="sec_electricidad">Electricidad (precio del kWh)</string>
     <string name="sec_extras">Extras (opcionales)</string>
-    <string name="ayuda_extras">Los extras consideran la totalidad del trabajo: todas las piezas impresas de todas las unidades. Por ejemplo, las horas de mano de obra son el total del lote, no por pieza ni por unidad.</string>
+    <string name="ayuda_extras">Los extras consideran la totalidad del trabajo: todas las piezas impresas del lote. Por ejemplo, las horas de mano de obra son el total, no por pieza ni por unidad.</string>
     <string name="sec_resultados">Resultados</string>
 
     <string name="lbl_precio_kg">Precio del filamento por kilogramo</string>
     <string name="lbl_gramos">Filamento utilizado (gramos)</string>
-    <string name="lbl_piezas">Cantidad de unidades iguales a fabricar</string>
+    <string name="lbl_piezas">Cantidad de unidades que salen del lote (reparte el costo)</string>
     <string name="lbl_horas">Horas</string>
     <string name="lbl_minutos">Minutos</string>
     
@@ -41,7 +41,7 @@
 
     <string name="btn_calcular">CALCULAR</string>
     <string name="btn_limpiar">LIMPIAR</string>
-    <string name="btn_limpiar_arriba">LIMPIAR TODAS LAS CASILLAS</string>
+    <string name="desc_subir">Subir al inicio de la calculadora</string>
     <string name="btn_calculado">✓ CALCULADO</string>
     <string name="est_corto">est.</string>
     <string name="btn_usar">USAR</string>
@@ -76,8 +76,8 @@
     <string name="res_mantenimiento">Mantenimiento</string>
     <string name="res_mano_obra">Mano de obra</string>
     <string name="res_merma">Unidades fallidas (costo repartido)</string>
-    <string name="res_total">COSTO DEL LOTE (todas las unidades)</string>
-    <string name="res_unitario">COSTO UNITARIO (por unidad)</string>
+    <string name="res_total">COSTO DEL LOTE (todo lo impreso)</string>
+    <string name="res_unitario">COSTO UNITARIO (lote ÷ unidades)</string>
     <string name="vacio">—</string>
 
     <string name="modo_oscuro">Modo oscuro</string>
@@ -118,7 +118,7 @@
     <string name="cuadra_ok">✓ Verificado: material + electricidad + depreciación + mantenimiento + mano de obra + unidades fallidas + otros = total.</string>
     <string name="cuadra_mal">✗ Atención: las partes no suman el total. No uses este resultado.</string>
 
-    <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos, por eso una suma de cifras redondeadas puede diferir en $1 o $2. Cada unidad fallida cuesta lo mismo que una unidad buena, con todas sus piezas (material, electricidad, depreciación, mantenimiento y mano de obra; sin embalaje ni envío): ese costo se suma al total y se reparte entre las unidades buenas. Ingresa los gramos y el tiempo de las unidades buenas solamente. Si un objeto se imprime en varias piezas, el costo es la suma de todas. El margen es sobre el costo unitario. Los precios del kWh de la tabla no son oficiales: confirma con tu boleta.</string>
+    <string name="nota_formato">Usa punto o coma como separador decimal, sin separador de miles. Los montos se muestran en pesos chilenos (CLP), redondeados al peso; los cálculos internos usan los valores exactos, por eso una suma de cifras redondeadas puede diferir en $1 o $2. Cada unidad fallida cuesta lo mismo que una unidad buena, con todas sus piezas (material, electricidad, depreciación, mantenimiento y mano de obra; sin embalaje ni envío): ese costo se suma al total y se reparte entre las unidades buenas. Ingresa los gramos y el tiempo de las unidades buenas solamente (sin las que fallaron). Si el lote necesita varias impresiones (piezas), el costo es la suma de todas. El margen es sobre el costo unitario. Los precios del kWh de la tabla no son oficiales: confirma con tu boleta.</string>
 
     <!-- v1.5 -->
     <string name="lbl_otros">Otros costos por unidad (embalaje, envío, etiqueta)</string>
@@ -167,7 +167,7 @@
 
     <!-- v1.9: productos de varias piezas -->
     <string name="btn_agregar_pieza">+ AGREGAR PIEZA</string>
-    <string name="ayuda_piezas">¿Tu objeto es más grande que la cama de la A1 (256 × 256 × 256 mm) o se arma con varias piezas? Agrega cada pieza: cada una es un ciclo más de la máquina y suma su propio filamento, tiempo y consumo.</string>
+    <string name="ayuda_piezas">¿Tu objeto es más grande que la cama de la A1 (256 × 256 × 256 mm) o se arma con varias piezas? Agrega cada pieza: cada una es otra impresión de la cama y suma sus propios gramos, tiempo y consumo (los que entrega el laminador para esa cama).</string>
     <string name="pieza_titulo">Pieza %1$d</string>
     <string name="btn_quitar_pieza">QUITAR</string>
     <string name="desc_quitar_pieza">Quitar la pieza %1$d</string>
@@ -176,7 +176,7 @@
     <string name="lbl_pieza_gramos">Filamento de esta pieza (gramos)</string>
     <string name="lbl_pieza_horas">Horas de esta pieza</string>
     <string name="lbl_pieza_minutos">Minutos de esta pieza</string>
-    <string name="sub_detalle_piezas">Costo de cada pieza de UNA unidad (material, electricidad, depreciación y mantenimiento)</string>
-    <string name="unidades_ayuda">Ingresa los gramos y el tiempo de UNA unidad (todas sus piezas). La cantidad de unidades multiplica el costo de todas las piezas.</string>
+    <string name="sub_detalle_piezas">Costo de cada pieza (impresión) del lote: material, electricidad, depreciación y mantenimiento</string>
+    <string name="unidades_ayuda">Ingresa los gramos y el tiempo de la cama completa, tal como los entrega Bambu Studio. Las unidades solo reparten el costo entre las figuras (lote ÷ unidades): no lo multiplican.</string>
     <string name="max_piezas">Máximo %1$d piezas por producto.</string>
 </resources>

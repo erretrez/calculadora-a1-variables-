@@ -343,7 +343,7 @@ class MainActivity : Activity() {
             }
         }
         findViewById<Button>(R.id.btn_limpiar).setOnClickListener { clearAll() }
-        findViewById<Button>(R.id.btn_limpiar_arriba).setOnClickListener { clearAll() }
+        findViewById<Button>(R.id.btn_subir).setOnClickListener { svPrincipal.smoothScrollTo(0, 0) }
     }
 
     override fun onResume() {

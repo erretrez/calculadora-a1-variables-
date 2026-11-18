@@ -28,7 +28,7 @@ STATE = os.path.join(tempfile.gettempdir(), "ui_helper_last")
 
 # Orden de arriba hacia abajo en la pantalla: sirve para decidir hacia dónde desplazarse.
 ORDER = (
-    ["sw_oscuro", "btn_limpiar_arriba", "et_nombre", "et_precio_kg", "et_gramos", "et_horas", "btn_mas_horas", "et_minutos", "btn_mas_minutos",
+    ["sw_oscuro", "et_nombre", "et_precio_kg", "et_gramos", "et_horas", "btn_mas_horas", "et_minutos", "btn_mas_minutos",
      "sp_material", "tv_material_info", "et_watts"]
     # Piezas adicionales (2.ª a 6.ª): quedan entre la pieza 1 y el botón + AGREGAR PIEZA.
     + [f"p{n}_{x}" for n in range(2, 7)

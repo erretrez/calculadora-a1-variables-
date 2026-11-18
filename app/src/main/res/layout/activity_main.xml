@@ -5,11 +5,15 @@
     android:background="?attr/cFondo"
     android:orientation="vertical">
 
+<FrameLayout
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1">
+
 <ScrollView
     android:id="@+id/sv_principal"
     android:layout_width="match_parent"
-    android:layout_height="0dp"
-    android:layout_weight="1"
+    android:layout_height="match_parent"
     android:fillViewport="true"
     android:scrollbars="vertical">
 
@@ -50,13 +54,6 @@
             android:text="@string/subtitulo"
             android:textColor="?attr/cTextoSuave"
             android:textSize="13sp" />
-
-        <Button
-            android:id="@+id/btn_limpiar_arriba"
-            android:layout_width="match_parent"
-            android:layout_height="46dp"
-            android:layout_marginTop="10dp"
-            android:text="@string/btn_limpiar_arriba" />
 
         <!-- Nombre del cálculo: identifica el objeto en la imagen guardada -->
         <TextView style="@style/Etiqueta" android:layout_marginTop="16dp" android:text="@string/lbl_nombre" />
@@ -668,6 +665,20 @@
             android:textSize="12sp" />
     </LinearLayout>
 </ScrollView>
+
+<!-- Acceso rápido para volver al inicio de la calculadora -->
+<Button
+    android:id="@+id/btn_subir"
+    style="@style/BotonRapido"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:layout_gravity="bottom|end"
+    android:layout_margin="12dp"
+    android:contentDescription="@string/desc_subir"
+    android:padding="0dp"
+    android:text="↑"
+    android:textSize="22sp" />
+</FrameLayout>
 
     <!-- Barra fija: el total siempre a la vista mientras se editan los datos -->
     <LinearLayout

@@ -12,6 +12,20 @@ OUT="evidence"
 mkdir -p "$OUT"
 H="python3 scripts/ui_helper.py"
 
+# Color de fondo de un campo, repitiendo la lectura hasta que dos capturas seguidas coincidan
+# (así no se mide mientras la pantalla aún se desplaza o cambia de tema).
+rgb_estable() {
+  local id=$1 prev="" cur t
+  for t in 1 2 3 4 5; do
+    sleep 1.5
+    cur=$($H bgrgb "$id")
+    echo "  lectura $t de $id: $cur" >&2
+    if [ "$cur" = "$prev" ]; then break; fi
+    prev=$cur
+  done
+  echo "$cur"
+}
+
 fail() {
   echo "FALLO: $*"
   # Diagnóstico: qué hay en pantalla en este momento.
@@ -390,12 +404,12 @@ tap sw_oscuro
 sleep 3
 expect_dark "tras activar el modo oscuro"
 shot pantalla_oscuro
-read -r R G B <<< "$($H bgrgb et_otros)"; echo "campo vacío (oscuro): $R $G $B"
+read -r R G B <<< "$(rgb_estable et_otros)"; echo "campo vacío (oscuro): $R $G $B"
 [ $((R+G+B)) -lt 150 ] || fail "el campo vacío debía verse oscuro en modo oscuro ($R $G $B)"
-read -r R G B <<< "$($H bgrgb et_precio_kg)"; echo "campo con valor (oscuro): $R $G $B"
+read -r R G B <<< "$(rgb_estable et_precio_kg)"; echo "campo con valor (oscuro): $R $G $B"
 [ $((R+G+B)) -lt 250 ] || fail "el campo con valor debía seguir oscuro ($R $G $B)"
 [ $((G-R)) -gt 20 ] || fail "el campo con valor debía verse verdoso ($R $G $B)"
-read -r R G B <<< "$($H bgrgb btn_mas_pieza)"; echo "botón + 1 unidad (oscuro): $R $G $B"
+read -r R G B <<< "$(rgb_estable btn_mas_pieza)"; echo "botón + 1 unidad (oscuro): $R $G $B"
 [ $((B-R)) -gt 30 ] || fail "el botón rápido debía verse azulado en modo oscuro ($R $G $B)"
 echo "OK: el botón rápido se distingue del fondo en modo oscuro"
 ML=$($H maxluma et_precio_kg); echo "luminosidad máxima del texto ingresado: $ML"

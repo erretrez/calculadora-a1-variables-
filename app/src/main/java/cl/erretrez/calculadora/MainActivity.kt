@@ -2,6 +2,7 @@ package cl.erretrez.calculadora
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -126,6 +127,8 @@ class MainActivity : Activity() {
         val wattsBox: View = bind("watts_box")
         val masHoras: Button = bind("mas_horas")
         val masMinutos: Button = bind("mas_minutos")
+        val tiempoBox: View = bind("tiempo_box")
+        val perfil: Spinner = bind("perfil")
         var wattsAuto = false
         val cajas: List<EditText> get() = listOf(precio, gramos, horas, minutos, watts)
     }
@@ -138,6 +141,17 @@ class MainActivity : Activity() {
     private lateinit var tvGramosTotal: TextView
     private lateinit var tvHorasTotal: TextView
     private lateinit var btnCalcular: Button
+
+    // v2.2: tiempo global y perfiles de filamento
+    private lateinit var swTiempoGlobal: Switch
+    private lateinit var llTiempoPieza1: View
+    private lateinit var llTiempoGlobal: View
+    private lateinit var tvAyudaTiempo: TextView
+    private lateinit var spPerfil: Spinner
+    private lateinit var tvPctKilo: TextView
+    private lateinit var tvPerfilesEstado: TextView
+    private lateinit var btnRegistrar: Button
+    private var perfiles: List<Perfil> = emptyList()
     private lateinit var svPrincipal: ScrollView
     private var calcTextColors: ColorStateList? = null
 
@@ -231,6 +245,8 @@ class MainActivity : Activity() {
             Field.PIEZAS to findViewById<EditText>(R.id.et_piezas),
             Field.HORAS to findViewById<EditText>(R.id.et_horas),
             Field.MINUTOS to findViewById<EditText>(R.id.et_minutos),
+            Field.HORAS_GLOBAL to findViewById<EditText>(R.id.et_horas_global),
+            Field.MINUTOS_GLOBAL to findViewById<EditText>(R.id.et_minutos_global),
             Field.WATTS to findViewById<EditText>(R.id.et_watts),
             Field.PRECIO_KWH to findViewById<EditText>(R.id.et_precio_kwh),
             Field.HORAS_TRABAJO to findViewById<EditText>(R.id.et_horas_trabajo),
@@ -244,6 +260,9 @@ class MainActivity : Activity() {
         calcTextColors = btnCalcular.textColors
         svPrincipal = findViewById(R.id.sv_principal)
         tvGramosTotal = findViewById(R.id.tv_gramos_total)
+        tvPctKilo = findViewById(R.id.tv_pct_kilo)
+        tvPerfilesEstado = findViewById(R.id.tv_perfiles_estado)
+        btnRegistrar = findViewById(R.id.btn_registrar_consumo)
         tvHorasTotal = findViewById(R.id.tv_horas_total)
         llPartesExtra = findViewById(R.id.ll_partes_extra)
         llDetalle = findViewById(R.id.ll_detalle_partes)
@@ -328,6 +347,19 @@ class MainActivity : Activity() {
             }
         }
 
+        findViewById<Button>(R.id.btn_mas_horas_global).setOnClickListener {
+            rapido { putInField(Field.HORAS_GLOBAL, Rapidos.sumar(texto(Field.HORAS_GLOBAL), 1.0)) }
+        }
+        findViewById<Button>(R.id.btn_mas_minutos_global).setOnClickListener {
+            rapido {
+                val t = Rapidos.sumarMinutos(texto(Field.HORAS_GLOBAL), texto(Field.MINUTOS_GLOBAL))
+                t.horas?.let { putInField(Field.HORAS_GLOBAL, it) }
+                putInField(Field.MINUTOS_GLOBAL, t.minutos)
+            }
+        }
+
+        setupTiempoGlobal()
+        setupPerfiles()
         setupMaterial()
         setupBoleta()
         setupRegion()
@@ -388,9 +420,13 @@ class MainActivity : Activity() {
             otrosPorPieza = value(Field.OTROS_PIEZA),
             incluirIva = cbIva.isChecked,
             invalidOptional = invalidOptional,
+            tiempoGlobal = swTiempoGlobal.isChecked,
+            horasGlobal = value(Field.HORAS_GLOBAL),
+            minutosGlobal = value(Field.MINUTOS_GLOBAL),
+            perfil = perfilDe(spPerfil),
             partesExtra = cards.map { c ->
                 fun v(e: EditText) = CostCalculator.parseNumber(e.text?.toString())
-                Parte(v(c.precio), v(c.gramos), v(c.horas), v(c.minutos), v(c.watts))
+                Parte(v(c.precio), v(c.gramos), v(c.horas), v(c.minutos), v(c.watts), perfilDe(c.perfil))
             }
         )
     }
@@ -441,6 +477,7 @@ class MainActivity : Activity() {
                 flashResults()
                 showBar(b, calcCount, hora)
                 ultimoResultado = Triple(b, inputsNow, hora)
+                mostrarPerfiles(inputsNow)
                 listOf(btnGuardarImagen, btnCompartir, btnCopiar).forEach { it.isEnabled = true }
             }
             is Outcome.Failure -> {
@@ -541,6 +578,7 @@ class MainActivity : Activity() {
         tvPorHora.text = CostCalculator.formatClp(b.costoPorHora)
         tvGramosTotal.text = Suggested.plainRounded(b.gramosTotales) + " g"
         tvHorasTotal.text = Resumen.tiempo(b.horasTotales)
+        tvPctKilo.text = Perfiles.textoPct(b.pctKiloTotal) + " (" + Suggested.plainRounded(b.gramosTotales) + " g)"
         showDetallePartes(b)
     }
 
@@ -565,7 +603,7 @@ class MainActivity : Activity() {
             }
             row.addView(TextView(this, null, 0, R.style.ResultadoEtiqueta).apply {
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                text = "Pieza " + (k + 1) + " · " + Suggested.plainRounded(p.gramos) + " g · " + Resumen.tiempo(p.horas)
+                text = "Pieza " + (k + 1) + " · " + Suggested.plainRounded(p.gramos) + " g (" + Perfiles.textoPct(p.pctKilo) + ") · " + Resumen.tiempo(p.horas)
             })
             row.addView(TextView(this, null, 0, R.style.ResultadoValor).apply {
                 layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -675,8 +713,10 @@ class MainActivity : Activity() {
         listOf(
             tvMaterial, tvElectricidad, tvDepreciacion, tvMantenimiento, tvManoObra, tvMerma,
             tvTotal, tvUnitario, tvPrecioVenta, tvPrecioIva, tvGanancia, tvOtros, tvPorGramo, tvPorHora,
-            tvGananciaUnit, tvVentaLote, tvGramosTotal, tvHorasTotal
+            tvGananciaUnit, tvVentaLote, tvGramosTotal, tvHorasTotal, tvPctKilo
         ).forEach { it.text = empty }
+        tvPerfilesEstado.visibility = View.GONE
+        btnRegistrar.visibility = View.GONE
         tvVentaAyuda.setText(R.string.venta_ayuda)
         llDetalle.removeAllViews()
         llDetalle.visibility = View.GONE
@@ -701,6 +741,8 @@ class MainActivity : Activity() {
         desmarcarCalculado()
         cards.forEach { llPartesExtra.removeView(it.root) }
         cards.clear()
+        prefs.edit().remove(KEY_REGISTRO).apply()
+        spPerfil.setSelection(0)
         actualizarBotonAgregar()
         // El material y la región son ajustes que se recuerdan: se conservan al limpiar.
         suspendWatchers = false
@@ -750,6 +792,9 @@ class MainActivity : Activity() {
                 applyCardMaterial(c)
             }
         }
+        poblarPerfil(c.perfil, null)
+        c.perfil.onItemSelectedListener = perfilListener()
+        c.tiempoBox.visibility = if (swTiempoGlobal.isChecked) View.GONE else View.VISIBLE
         c.cajas.forEach { it.addTextChangedListener(recalcWatcher); marcarLleno(it) }
         c.masHoras.setOnClickListener {
             rapido { c.horas.setText(Rapidos.sumar(c.horas.text?.toString(), 1.0)); c.horas.setSelection(c.horas.text.length) }
@@ -769,6 +814,8 @@ class MainActivity : Activity() {
             val previa = cards.getOrNull(cards.size - 2)
             c.precio.setText(previa?.precio?.text?.toString() ?: texto(Field.PRECIO_KG).orEmpty())
             c.material.setSelection(previa?.material?.selectedItemPosition ?: spMaterial.selectedItemPosition)
+            // Y el mismo perfil de filamento.
+            c.perfil.setSelection(previa?.perfil?.selectedItemPosition ?: spPerfil.selectedItemPosition)
         }
         renumerarPiezas()
         actualizarBotonAgregar()
@@ -833,6 +880,249 @@ class MainActivity : Activity() {
             else -> getString(R.string.material_info, Suggested.plain(watts), m.fuente)
         }
         c.info.setTextColor(themeColor(if (error) R.attr.cError else R.attr.cTextoSuave))
+    }
+
+    // ------------------------------------------------- tiempo global (v2.2)
+
+    private fun setupTiempoGlobal() {
+        swTiempoGlobal = findViewById(R.id.sw_tiempo_global)
+        llTiempoPieza1 = findViewById(R.id.ll_tiempo_pieza1)
+        llTiempoGlobal = findViewById(R.id.ll_tiempo_global)
+        tvAyudaTiempo = findViewById(R.id.tv_ayuda_tiempo)
+        swTiempoGlobal.isChecked = prefs.getBoolean(KEY_TIEMPO_GLOBAL, false)
+        aplicarModoTiempo()
+        swTiempoGlobal.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(KEY_TIEMPO_GLOBAL, checked).apply()
+            aplicarModoTiempo()
+            recalculate(showErrors = false)
+        }
+    }
+
+    /** Con tiempo global se oculta el tiempo de cada pieza y se muestra el tiempo único de la impresión. */
+    private fun aplicarModoTiempo() {
+        val global = swTiempoGlobal.isChecked
+        llTiempoPieza1.visibility = if (global) View.GONE else View.VISIBLE
+        cards.forEach { it.tiempoBox.visibility = if (global) View.GONE else View.VISIBLE }
+        llTiempoGlobal.visibility = if (global) View.VISIBLE else View.GONE
+        tvAyudaTiempo.setText(if (global) R.string.ayuda_tiempo_global else R.string.ayuda_tiempo_pieza)
+    }
+
+    // ------------------------------------------------- perfiles de filamento (v2.2)
+
+    private fun setupPerfiles() {
+        spPerfil = findViewById(R.id.sp_perfil)
+        perfiles = Perfiles.deserializar(prefs.getString(KEY_PERFILES, null))
+        poblarPerfil(spPerfil, prefs.getString(KEY_PERFIL1, null))
+        spPerfil.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val elegido = perfiles.getOrNull(position - 1)?.id
+                prefs.edit().apply { if (elegido == null) remove(KEY_PERFIL1) else putString(KEY_PERFIL1, elegido) }.apply()
+                if (!suspendWatchers) recalculate(showErrors = false)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+        findViewById<Button>(R.id.btn_perfiles).setOnClickListener { hideKeyboard(); mostrarListaPerfiles() }
+        btnRegistrar.setOnClickListener { registrarConsumo() }
+    }
+
+    private fun perfilListener() = object : AdapterView.OnItemSelectedListener {
+        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            if (!suspendWatchers) recalculate(showErrors = false)
+        }
+
+        override fun onNothingSelected(parent: AdapterView<*>?) {}
+    }
+
+    private fun perfilDe(sp: Spinner): String? = perfiles.getOrNull(sp.selectedItemPosition - 1)?.id
+
+    /** Llena el menú de perfiles y deja elegido [idElegido] (o "Sin perfil"). */
+    private fun poblarPerfil(sp: Spinner, idElegido: String?) {
+        val nombres = listOf(getString(R.string.perfil_ninguno)) + perfiles.map { it.nombre }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, nombres)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        sp.adapter = adapter
+        sp.setSelection(perfiles.indexOfFirst { it.id == idElegido } + 1)
+    }
+
+    /** Vuelve a llenar todos los menús tras crear, editar o borrar perfiles, conservando lo elegido. */
+    private fun refrescarMenusPerfil(anteriores: Map<Spinner, String?>) {
+        suspendWatchers = true
+        anteriores.forEach { (sp, id) -> poblarPerfil(sp, id) }
+        suspendWatchers = false
+        prefs.edit().apply {
+            perfilDe(spPerfil)?.let { putString(KEY_PERFIL1, it) } ?: remove(KEY_PERFIL1)
+        }.apply()
+        recalculate(showErrors = false)
+    }
+
+    private fun guardarPerfiles(nuevos: List<Perfil>) {
+        val antes = (listOf(spPerfil) + cards.map { it.perfil }).associateWith { perfilDe(it) }
+        perfiles = nuevos
+        prefs.edit().putString(KEY_PERFILES, Perfiles.serializar(nuevos)).commit()
+        refrescarMenusPerfil(antes)
+    }
+
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    private fun mostrarListaPerfiles() {
+        val caja = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+        }
+        lateinit var dialogo: AlertDialog
+        if (perfiles.isEmpty()) {
+            caja.addView(TextView(this).apply { setText(R.string.perfiles_vacio); setPadding(0, dp(8), 0, dp(8)) })
+        }
+        perfiles.forEach { p ->
+            val pr = Perfiles.proyectar(p, 0.0)
+            caja.addView(Button(this).apply {
+                isAllCaps = false
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                text = p.nombre + "\n" + Suggested.plainRounded(p.usadoG) + " de " +
+                    Suggested.plainRounded(p.capacidadG) + " g (" + Perfiles.textoPct(pr.pct) + ")" +
+                    when (pr.estado) {
+                        EstadoPerfil.OK -> ""
+                        EstadoPerfil.CASI -> " · casi completo"
+                        EstadoPerfil.COMPLETO -> " · completo"
+                        EstadoPerfil.SOBREPASA -> " · sobrepasado"
+                    }
+                setOnClickListener { dialogo.dismiss(); editarPerfil(p) }
+            })
+        }
+        caja.addView(Button(this).apply {
+            setText(R.string.perfil_nuevo)
+            setOnClickListener { dialogo.dismiss(); editarPerfil(null) }
+        })
+        dialogo = AlertDialog.Builder(this)
+            .setTitle(R.string.perfiles_titulo)
+            .setView(ScrollView(this).apply { addView(caja) })
+            .setPositiveButton(R.string.perfil_cerrar, null)
+            .create()
+        dialogo.show()
+    }
+
+    /** Crea ([existente] null) o edita un perfil: nombre, peso del carrete y gramos ya consumidos. */
+    private fun editarPerfil(existente: Perfil?) {
+        val caja = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), dp(8))
+        }
+        val etNom = EditText(this).apply {
+            setHint(R.string.perfil_hint_nombre)
+            setText(existente?.nombre.orEmpty())
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        }
+        val etCap = EditText(this).apply {
+            setText(Suggested.plainRounded(existente?.capacidadG ?: Perfiles.KILO_G))
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        val etUsado = EditText(this).apply {
+            setText(Suggested.plainRounded(existente?.usadoG ?: 0.0))
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        caja.addView(etNom)
+        caja.addView(TextView(this).apply { setText(R.string.perfil_lbl_capacidad); setPadding(0, dp(10), 0, 0) })
+        caja.addView(etCap)
+        caja.addView(TextView(this).apply { setText(R.string.perfil_lbl_usado); setPadding(0, dp(10), 0, 0) })
+        caja.addView(etUsado)
+        val b = AlertDialog.Builder(this)
+            .setTitle(if (existente == null) R.string.perfil_nuevo else R.string.perfiles_titulo)
+            .setView(ScrollView(this).apply { addView(caja) })
+            .setPositiveButton(R.string.perfil_guardar, null)
+            .setNegativeButton(R.string.perfil_cancelar) { _, _ -> mostrarListaPerfiles() }
+        if (existente != null) {
+            b.setNeutralButton(R.string.perfil_eliminar) { _, _ ->
+                guardarPerfiles(perfiles.filter { it.id != existente.id })
+                mostrarListaPerfiles()
+            }
+        }
+        val d = b.create()
+        d.show()
+        // GUARDAR valida sin cerrar el cuadro si hay un número inválido.
+        d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val cap = CostCalculator.parseNumber(etCap.text?.toString())
+            val usado = CostCalculator.parseNumber(etUsado.text?.toString()) ?: 0.0
+            if (cap == null || cap <= 0.0 || usado < 0.0) {
+                Toast.makeText(this, R.string.perfil_dato_invalido, Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            val nombre = Perfiles.nombreOPorDefecto(etNom.text?.toString(), perfiles)
+            val nuevo = Perfil(existente?.id ?: Perfiles.nuevoId(perfiles), nombre, cap, usado)
+            guardarPerfiles(if (existente == null) perfiles + nuevo else perfiles.map { if (it.id == nuevo.id) nuevo else it })
+            d.dismiss()
+            mostrarListaPerfiles()
+        }
+        // Atajo del carrete nuevo: deja lo consumido en 0.
+        if (existente != null) {
+            caja.addView(Button(this).apply {
+                setText(R.string.perfil_reiniciar)
+                setOnClickListener { etUsado.setText("0") }
+            })
+        }
+    }
+
+    /** Firma de los consumos del cálculo actual: sirve para no registrar dos veces el mismo. */
+    private fun firmaConsumos(c: Map<String, Double>): String =
+        c.entries.joinToString(";") { it.key + "=" + Suggested.plainRounded(it.value) }
+
+    private fun consumosActuales(i: CostInputs): Map<String, Double> =
+        Perfiles.consumosPorPerfil(
+            listOf(Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts, i.perfil)) + i.partesExtra
+        )
+
+    /** Estado de cada perfil elegido: lo usado, más lo de este cálculo, con aviso al completar o pasar del carrete. */
+    private fun mostrarPerfiles(i: CostInputs) {
+        val consumos = consumosActuales(i)
+        if (consumos.isEmpty()) {
+            tvPerfilesEstado.visibility = View.GONE
+            btnRegistrar.visibility = View.GONE
+            return
+        }
+        val registrado = prefs.getString(KEY_REGISTRO, null) == firmaConsumos(consumos)
+        var alerta = false
+        val lineas = consumos.mapNotNull { (id, g) ->
+            val p = perfiles.firstOrNull { it.id == id } ?: return@mapNotNull null
+            if (registrado) {
+                val e = Perfiles.proyectar(p, 0.0).estado
+                alerta = alerta || e != EstadoPerfil.OK
+                Perfiles.mensajeRegistrado(p)
+            } else {
+                val pr = Perfiles.proyectar(p, g)
+                alerta = alerta || pr.estado != EstadoPerfil.OK
+                Perfiles.mensaje(pr)
+            }
+        }
+        tvPerfilesEstado.text = lineas.joinToString("\n")
+        tvPerfilesEstado.setTextColor(themeColor(if (alerta) R.attr.cError else R.attr.cTexto))
+        tvPerfilesEstado.visibility = View.VISIBLE
+        btnRegistrar.visibility = View.VISIBLE
+        btnRegistrar.isEnabled = !registrado
+        btnRegistrar.setText(if (registrado) R.string.btn_consumo_registrado else R.string.btn_registrar_consumo)
+    }
+
+    /** Suma los gramos de este cálculo a los perfiles elegidos y avisa si alguno se completa o se sobrepasa. */
+    private fun registrarConsumo() {
+        val i = ultimoResultado?.second ?: return
+        val consumos = consumosActuales(i)
+        if (consumos.isEmpty()) return
+        val firma = firmaConsumos(consumos)
+        if (prefs.getString(KEY_REGISTRO, null) == firma) return
+        val avisos = consumos.mapNotNull { (id, g) ->
+            perfiles.firstOrNull { it.id == id }?.let { Perfiles.proyectar(it, g) }
+        }.filter { it.estado != EstadoPerfil.OK }
+        val nuevos = Perfiles.registrar(perfiles, consumos)
+        prefs.edit().putString(KEY_REGISTRO, firma).commit()
+        guardarPerfiles(nuevos)
+        if (avisos.isEmpty()) {
+            Toast.makeText(this, R.string.btn_consumo_registrado, Toast.LENGTH_SHORT).show()
+        } else {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.perfil_alerta_titulo)
+                .setMessage(avisos.joinToString("\n\n") { Perfiles.mensaje(it) })
+                .setPositiveButton(R.string.perfil_ok, null)
+                .show()
+        }
     }
 
     // ------------------------------------------------- material → consumo (watts)
@@ -1255,6 +1545,10 @@ class MainActivity : Activity() {
         const val MAX_PIEZAS = 6
         const val KEY_REGION = "region"
         const val KEY_MATERIAL = "material"
+        const val KEY_TIEMPO_GLOBAL = "tiempo_global"
+        const val KEY_PERFILES = "perfiles"
+        const val KEY_PERFIL1 = "perfil_pieza1"
+        const val KEY_REGISTRO = "consumo_registrado"
         const val KEY_MANUAL = "precio_manual"
         const val MANUAL_TOKEN = "__manual__"
         /** Última opción del menú de regiones: 0 = sin elegir, 1..16 = regiones, 17 = otra tarifa. */

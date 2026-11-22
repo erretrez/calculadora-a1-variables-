@@ -31,7 +31,11 @@ enum class Field(val optional: Boolean = false) {
     MARGEN(true),
 
     // v1.5
-    OTROS_PIEZA(true)
+    OTROS_PIEZA(true),
+
+    // v2.2: tiempo global (una sola hora para toda la impresión)
+    HORAS_GLOBAL,
+    MINUTOS_GLOBAL
 }
 
 /**
@@ -45,7 +49,9 @@ data class Parte(
     val gramos: Double?,
     val horas: Double?,
     val minutos: Double?,
-    val watts: Double?
+    val watts: Double?,
+    /** Id del perfil de filamento elegido (solo para llevar el consumo; no cambia el costo). */
+    val perfil: String? = null
 )
 
 /** Costo de una pieza, o sea de una impresión completa (sin mano de obra, fallidas ni otros: esos son del trabajo completo). */
@@ -58,6 +64,9 @@ data class ParteDetalle(
     val mantenimiento: Double
 ) {
     val subtotal: Double get() = material + electricidad + depreciacion + mantenimiento
+
+    /** Porcentaje de un kilo de filamento que representan los gramos de esta pieza. */
+    val pctKilo: Double get() = Perfiles.porcentajeDelKilo(gramos)
 }
 
 /** Valores ingresados por el usuario. null = campo vacío o no numérico. */
@@ -94,7 +103,17 @@ data class CostInputs(
      * Piezas adicionales (2.ª en adelante). La 1.ª pieza son los campos de arriba (precioKg, gramos,
      * horas, minutos, watts). El costo total suma todas las piezas: cada una es un ciclo más de la máquina.
      */
-    val partesExtra: List<Parte> = emptyList()
+    val partesExtra: List<Parte> = emptyList(),
+    /**
+     * Tiempo global (v2.2): una sola hora y minutos para toda la impresión, sin importar las piezas.
+     * Se reparte entre las piezas en proporción a sus gramos (así la electricidad usa los watts de cada
+     * material). Con [tiempoGlobal] en false cada pieza trae su propio tiempo.
+     */
+    val tiempoGlobal: Boolean = false,
+    val horasGlobal: Double? = null,
+    val minutosGlobal: Double? = null,
+    /** Perfil de filamento de la 1.ª pieza (opcional; solo lleva el consumo, no cambia el costo). */
+    val perfil: String? = null
 )
 
 /** Desglose de costos. Las unidades monetarias son las que use el usuario. */
@@ -132,6 +151,8 @@ data class CostBreakdown(
     /** Detalle por pieza (la 1.ª primero). Con una sola pieza queda con 1 elemento. */
     val partes: List<ParteDetalle> = emptyList(),
     val gramosTotales: Double = 0.0,
+    /** Porcentaje de un kilo que representan todos los gramos del lote. */
+    val pctKiloTotal: Double = Perfiles.porcentajeDelKilo(gramosTotales),
     /** Cantidad de unidades que salen del lote (reparte el costo total; no lo multiplica). */
     val unidades: Double = 1.0
 )
@@ -366,7 +387,8 @@ object Compartir {
             l += Fila("Piezas del lote (" + b.partes.size + " impresiones)", estilo = Estilo.SECCION)
             b.partes.forEachIndexed { k, p ->
                 l += Fila(
-                    "Pieza " + (k + 1) + " · " + Suggested.plainRounded(p.gramos) + " g · " + Resumen.tiempo(p.horas),
+                    "Pieza " + (k + 1) + " · " + Suggested.plainRounded(p.gramos) + " g (" +
+                        Perfiles.textoPct(p.pctKilo) + " del kilo) · " + Resumen.tiempo(p.horas),
                     f(p.subtotal)
                 )
             }
@@ -386,7 +408,10 @@ object Compartir {
         if (b.otros > 0.0) l += Fila("Otros costos", f(b.otros))
         l += Fila("COSTO DEL LOTE (" + Suggested.plainRounded(b.unidades) + (if (b.unidades == 1.0) " unidad)" else " unidades)"), f(b.total), Estilo.TOTAL)
         l += Fila("COSTO UNITARIO (lote ÷ unidades)", f(b.unitario), Estilo.TOTAL)
-        l += Fila("Filamento total del lote", Suggested.plainRounded(b.gramosTotales) + " g")
+        l += Fila(
+            "Filamento total del lote",
+            Suggested.plainRounded(b.gramosTotales) + " g (" + Perfiles.textoPct(b.pctKiloTotal) + " de 1 kg)"
+        )
         l += Fila("Tiempo total de impresión del lote", Resumen.tiempo(b.horasTotales))
         b.costoPorGramo?.let { l += Fila("Costo por gramo de filamento", f(it)) }
         l += Fila("Costo por hora de impresión", f(b.costoPorHora))
@@ -459,14 +484,20 @@ object Resumen {
             partes += Suggested.plainRounded(todas.sumOf { it.gramos ?: 0.0 }) + " g en total"
         }
         i.piezas?.let { partes += Suggested.plainRounded(it) + (if (it == 1.0) " unidad" else " unidades") }
-        if (i.partesExtra.isEmpty()) {
+        if (i.partesExtra.isEmpty() && i.tiempoGlobal) {
+            partes += tiempo((i.horasGlobal ?: 0.0) + (i.minutosGlobal ?: 0.0) / 60.0) + " (tiempo global)"
+            i.watts?.let { partes += Suggested.plainRounded(it) + " W" }
+        } else if (i.partesExtra.isEmpty()) {
             if (i.horas != null || i.minutos != null) {
                 partes += Suggested.plainRounded(i.horas ?: 0.0) + " h " + Suggested.plainRounded(i.minutos ?: 0.0) + " min"
             }
             i.watts?.let { partes += Suggested.plainRounded(it) + " W" }
         } else {
             val todas = listOf(Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts)) + i.partesExtra
-            partes += tiempo(todas.sumOf { (it.horas ?: 0.0) + (it.minutos ?: 0.0) / 60.0 }) + " en total"
+            partes += tiempo(
+                if (i.tiempoGlobal) (i.horasGlobal ?: 0.0) + (i.minutosGlobal ?: 0.0) / 60.0
+                else todas.sumOf { (it.horas ?: 0.0) + (it.minutos ?: 0.0) / 60.0 }
+            ) + " en total"
         }
         i.precioKwh?.let { partes += CostCalculator.formatClp(it) + "/kWh" + (region?.let { r -> " ($r)" } ?: "") }
         if (i.horasTrabajo != null && i.costoHoraTrabajo != null) {
@@ -519,26 +550,30 @@ object CostCalculator {
     }
 
     /** Valida los datos propios de una pieza: filamento, gramos, consumo y tiempo (horas y/o minutos). */
-    private fun validarParte(p: Parte, errors: MutableMap<Field, String>) {
+    private fun validarParte(p: Parte, errors: MutableMap<Field, String>, conTiempo: Boolean = true) {
         nonNeg(errors, Field.PRECIO_KG, p.precioKg)
         nonNeg(errors, Field.GRAMOS, p.gramos)
         nonNeg(errors, Field.WATTS, p.watts)
-        // Tiempo: un campo vacío cuenta como 0 si el otro tiene valor.
-        val horas = p.horas
-        val minutos = p.minutos
+        if (conTiempo) validarTiempo(p.horas, p.minutos, Field.HORAS, Field.MINUTOS, errors)
+    }
+
+    /** Tiempo: un campo vacío cuenta como 0 si el otro tiene valor; el total debe ser mayor que 0. */
+    private fun validarTiempo(
+        horas: Double?, minutos: Double?, fHoras: Field, fMinutos: Field, errors: MutableMap<Field, String>
+    ) {
         if (horas == null && minutos == null) {
-            errors[Field.HORAS] = MSG_TIME_REQUIRED
-            errors[Field.MINUTOS] = MSG_TIME_REQUIRED
+            errors[fHoras] = MSG_TIME_REQUIRED
+            errors[fMinutos] = MSG_TIME_REQUIRED
         } else {
-            if (horas != null && horas < 0.0) errors[Field.HORAS] = MSG_NEGATIVE
+            if (horas != null && horas < 0.0) errors[fHoras] = MSG_NEGATIVE
             if (minutos != null && (minutos < 0.0 || minutos >= 60.0)) {
-                errors[Field.MINUTOS] = MSG_MINUTES
+                errors[fMinutos] = MSG_MINUTES
             }
-            if (!errors.containsKey(Field.HORAS) && !errors.containsKey(Field.MINUTOS)) {
+            if (!errors.containsKey(fHoras) && !errors.containsKey(fMinutos)) {
                 val total = (horas ?: 0.0) + (minutos ?: 0.0) / 60.0
                 if (total <= 0.0) {
-                    errors[Field.HORAS] = MSG_TIME_POSITIVE
-                    errors[Field.MINUTOS] = MSG_TIME_POSITIVE
+                    errors[fHoras] = MSG_TIME_POSITIVE
+                    errors[fMinutos] = MSG_TIME_POSITIVE
                 }
             }
         }
@@ -547,13 +582,16 @@ object CostCalculator {
     fun calculate(i: CostInputs): Outcome {
         val errors = LinkedHashMap<Field, String>()
 
-        val primera = Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts)
-        validarParte(primera, errors)
+        val primera = Parte(i.precioKg, i.gramos, i.horas, i.minutos, i.watts, i.perfil)
+        validarParte(primera, errors, conTiempo = !i.tiempoGlobal)
         val parteErrors = LinkedHashMap<Int, Map<Field, String>>()
         i.partesExtra.forEachIndexed { idx, p ->
             val e = LinkedHashMap<Field, String>()
-            validarParte(p, e)
+            validarParte(p, e, conTiempo = !i.tiempoGlobal)
             if (e.isNotEmpty()) parteErrors[idx] = e
+        }
+        if (i.tiempoGlobal) {
+            validarTiempo(i.horasGlobal, i.minutosGlobal, Field.HORAS_GLOBAL, Field.MINUTOS_GLOBAL, errors)
         }
 
         nonNeg(errors, Field.PRECIO_KWH, i.precioKwh)
@@ -605,8 +643,16 @@ object CostCalculator {
 
         // Cada pieza es un ciclo de la máquina: su propio filamento, consumo y tiempo. El costo del
         // producto es la suma de todas (la electricidad usa los watts del material de cada pieza).
-        val detalle = (listOf(primera) + i.partesExtra).map { p ->
-            val h = (p.horas ?: 0.0) + (p.minutos ?: 0.0) / 60.0
+        val todas = listOf(primera) + i.partesExtra
+        val gramosDeTodas = todas.sumOf { it.gramos!! }
+        val horasGlobales = (i.horasGlobal ?: 0.0) + (i.minutosGlobal ?: 0.0) / 60.0
+        val detalle = todas.map { p ->
+            val h = if (i.tiempoGlobal) {
+                // Tiempo global: se reparte según los gramos de cada pieza (a partes iguales si todas son 0 g).
+                horasGlobales * (if (gramosDeTodas > 0.0) p.gramos!! / gramosDeTodas else 1.0 / todas.size)
+            } else {
+                (p.horas ?: 0.0) + (p.minutos ?: 0.0) / 60.0
+            }
             ParteDetalle(
                 gramos = p.gramos!!,
                 horas = h,
@@ -618,7 +664,7 @@ object CostCalculator {
         }
         // Cada pieza es una impresión completa (gramos y tiempo del laminador): el costo del lote es la suma de
         // todas. Las n unidades solo reparten ese costo (costo unitario = lote / n); nunca lo multiplican.
-        val horasTotales = detalle.sumOf { it.horas }
+        val horasTotales = if (i.tiempoGlobal) horasGlobales else detalle.sumOf { it.horas }
         val gramosTotales = detalle.sumOf { it.gramos }
         val material = detalle.sumOf { it.material }
         val electricidad = detalle.sumOf { it.electricidad }

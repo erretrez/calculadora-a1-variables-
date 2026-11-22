@@ -80,6 +80,11 @@
             android:hint="@string/hint_gramos"
             android:inputType="numberDecimal" />
 
+        <LinearLayout
+            android:id="@+id/ll_tiempo_pieza1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
         <TextView style="@style/Subtitulo" android:layout_marginTop="14dp" android:text="@string/sub_tiempo" />
         <LinearLayout
             android:layout_width="match_parent"
@@ -125,6 +130,8 @@
             </LinearLayout>
         </LinearLayout>
 
+        </LinearLayout>
+
         <!-- Consumo: menú de materiales (watts promedio de la A1 con cada material) -->
         <TextView style="@style/Etiqueta" android:text="@string/lbl_material_menu" />
         <Spinner
@@ -158,6 +165,16 @@
                 android:inputType="numberDecimal" />
         </LinearLayout>
 
+        <!-- Perfil de filamento (opcional): lleva la cuenta del consumo del carrete -->
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_perfil" />
+        <Spinner
+            android:id="@+id/sp_perfil"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="4dp"
+            android:prompt="@string/prompt_perfil"
+            android:spinnerMode="dialog" />
+
         <!-- Piezas adicionales (se agregan desde el código) -->
         <LinearLayout
             android:id="@+id/ll_partes_extra"
@@ -176,6 +193,80 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/ayuda_piezas"
+            android:textColor="?attr/cTextoSuave"
+            android:textSize="12sp" />
+
+        <!-- TIEMPO: por pieza o global -->
+        <Switch
+            android:id="@+id/sw_tiempo_global"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:minHeight="48dp"
+            android:text="@string/sw_tiempo_global"
+            android:textColor="?attr/cTexto" />
+        <TextView
+            android:id="@+id/tv_ayuda_tiempo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/ayuda_tiempo_pieza"
+            android:textColor="?attr/cTextoSuave"
+            android:textSize="12sp" />
+        <LinearLayout
+            android:id="@+id/ll_tiempo_global"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView style="@style/Etiqueta" android:text="@string/lbl_horas_global" />
+                <EditText
+                    android:id="@+id/et_horas_global"
+                    style="@style/Campo"
+                    android:hint="@string/hint_horas"
+                    android:inputType="numberDecimal" />
+                <Button
+                    android:id="@+id/btn_mas_horas_global"
+                    style="@style/BotonRapido"
+                    android:text="@string/btn_mas_hora" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView style="@style/Etiqueta" android:text="@string/lbl_minutos_global" />
+                <EditText
+                    android:id="@+id/et_minutos_global"
+                    style="@style/Campo"
+                    android:hint="@string/hint_minutos"
+                    android:inputType="numberDecimal" />
+                <Button
+                    android:id="@+id/btn_mas_minutos_global"
+                    style="@style/BotonRapido"
+                    android:text="@string/btn_mas_minutos" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btn_perfiles"
+            style="@style/BotonRapido"
+            android:layout_marginTop="14dp"
+            android:text="@string/btn_perfiles" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/ayuda_perfiles"
             android:textColor="?attr/cTextoSuave"
             android:textSize="12sp" />
 
@@ -533,6 +624,14 @@
             </LinearLayout>
 
             <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_pct_kilo" />
+                <TextView
+                    android:id="@+id/tv_pct_kilo"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
                 <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_horas_total" />
                 <TextView
                     android:id="@+id/tv_horas_total"
@@ -547,6 +646,21 @@
                     style="@style/ResultadoValor"
                     android:text="@string/vacio" />
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_perfiles_estado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="?attr/cTexto"
+                android:textSize="13sp"
+                android:visibility="gone" />
+            <Button
+                android:id="@+id/btn_registrar_consumo"
+                style="@style/BotonRapido"
+                android:layout_marginTop="6dp"
+                android:text="@string/btn_registrar_consumo"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tv_calculado_con"

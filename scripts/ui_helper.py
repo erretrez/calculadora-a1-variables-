@@ -29,18 +29,19 @@ STATE = os.path.join(tempfile.gettempdir(), "ui_helper_last")
 # Orden de arriba hacia abajo en la pantalla: sirve para decidir hacia dónde desplazarse.
 ORDER = (
     ["sw_oscuro", "et_nombre", "et_precio_kg", "et_gramos", "et_horas", "btn_mas_horas", "et_minutos", "btn_mas_minutos",
-     "sp_material", "tv_material_info", "et_watts"]
+     "sp_material", "tv_material_info", "et_watts", "sp_perfil"]
     # Piezas adicionales (2.ª a 6.ª): quedan entre la pieza 1 y el botón + AGREGAR PIEZA.
     + [f"p{n}_{x}" for n in range(2, 7)
        for x in ("card", "titulo", "quitar", "precio_kg", "gramos", "horas", "mas_horas", "minutos", "mas_minutos",
-                 "material", "info", "watts")]
-    + ["btn_agregar_pieza", "tv_ayuda_piezas", "et_piezas", "btn_mas_pieza",
+                 "material", "info", "watts", "perfil")]
+    + ["btn_agregar_pieza", "tv_ayuda_piezas", "sw_tiempo_global", "tv_ayuda_tiempo", "et_horas_global",
+       "btn_mas_horas_global", "et_minutos_global", "btn_mas_minutos_global", "btn_perfiles", "et_piezas", "btn_mas_pieza",
        "sp_region", "btn_detectar", "tv_region_info",
        "tv_region_ref", "btn_tabla", "et_precio_kwh", "et_boleta_monto", "et_boleta_kwh",
        "tv_boleta_resultado", "btn_usar_boleta", "et_horas_trabajo", "et_costo_hora_trabajo",
        "et_merma", "et_otros", "et_margen", "cb_iva", "btn_calcular", "btn_limpiar", "tv_status",
        "tv_material", "tv_electricidad", "tv_depreciacion", "tv_mantenimiento", "tv_mano_obra",
-       "tv_merma", "tv_otros", "tv_total", "tv_unitario", "tv_por_gramo", "tv_gramos_total", "tv_horas_total", "tv_por_hora",
+       "tv_merma", "tv_otros", "tv_total", "tv_unitario", "tv_por_gramo", "tv_gramos_total", "tv_pct_kilo", "tv_horas_total", "tv_por_hora", "tv_perfiles_estado", "btn_registrar_consumo",
        "tv_calculado_con", "tv_cuadra", "tv_fijos", "tv_venta_ayuda", "tv_ganancia_unit",
        "tv_ganancia", "tv_precio_venta", "tv_precio_iva", "tv_venta_lote", "btn_guardar_imagen",
        "btn_compartir", "btn_copiar"]

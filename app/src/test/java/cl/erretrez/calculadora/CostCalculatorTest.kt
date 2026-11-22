@@ -836,8 +836,8 @@ class CostCalculatorTest {
         val i = sinDatosDeImpresora().copy(partesExtra = listOf(petg))
         val b = success(i)
         val t = Compartir.texto(b, i, "Soporte grande", "PLA", "Biobío", "10:00:00")
-        assertTrue(t, t.contains("Pieza 1 · 100 g · 5 h: " + CostCalculator.formatClp(2889.99)))
-        assertTrue(t, t.contains("Pieza 2 · 50 g · 2 h 30 min: " + CostCalculator.formatClp(1664.995)))
+        assertTrue(t, t.contains("Pieza 1 · 100 g (10% del kilo) · 5 h: " + CostCalculator.formatClp(2889.99)))
+        assertTrue(t, t.contains("Pieza 2 · 50 g (5% del kilo) · 2 h 30 min: " + CostCalculator.formatClp(1664.995)))
         assertTrue(t, t.contains("2 piezas"))
         assertTrue(t, t.contains("150 g en total"))
         assertTrue(t, t.contains("7 h 30 min en total"))
@@ -895,5 +895,138 @@ class CostCalculatorTest {
         // Base 2889,99 (100 g, 5 h, 200 W, 150/kWh) + mano de obra 6000; una unidad fallida = (2889,99 + 6000) / 2.
         assertEquals((2889.99 + 6000.0) / 2.0, b.costoPiezaFallida, 1e-9)
         assertEquals(1000.0, b.otros, 1e-9)                       // 500 por unidad x 2 unidades
+    }
+
+    // ---------- v2.2: tiempo global, porcentaje del kilo y perfiles de filamento ----------
+
+    private val petgSinTiempo = Parte(precioKg = 25000.0, gramos = 50.0, horas = null, minutos = null, watts = 120.0)
+
+    @Test
+    fun tiempoGlobalSeRepartePorGramosYNoPideElTiempoDeCadaPieza() {
+        // 100 g (PLA 200 W) + 50 g (PETG 120 W) y 6 h globales: 4 h para la pieza 1 y 2 h para la pieza 2.
+        val i = sinDatosDeImpresora().copy(
+            horas = null, minutos = null, partesExtra = listOf(petgSinTiempo),
+            tiempoGlobal = true, horasGlobal = 6.0, minutosGlobal = 0.0
+        )
+        val b = success(i)
+        assertEquals(6.0, b.horasTotales, 1e-9)
+        assertEquals(4.0, b.partes[0].horas, 1e-9)
+        assertEquals(2.0, b.partes[1].horas, 1e-9)
+        assertEquals(3250.0, b.material, 1e-9)                       // 2000 + 1250
+        assertEquals(120.0 + 36.0, b.electricidad, 1e-9)             // 0,2 x 4 x 150 + 0,12 x 2 x 150
+        assertEquals(97.998 * 6.0, b.depreciacion, 1e-9)
+        assertEquals(300.0, b.mantenimiento, 1e-9)
+        assertEquals(3250.0 + 156.0 + 587.988 + 300.0, b.total, 1e-9)
+        assertTrue(Resumen.partesSumanElTotal(b))
+    }
+
+    @Test
+    fun tiempoGlobalConUnaSolaPiezaEquivaleAlTiempoDeLaPieza() {
+        val porPieza = success(sinDatosDeImpresora().copy(horas = 1.0, minutos = 30.0))
+        val global = success(sinDatosDeImpresora().copy(
+            horas = null, minutos = null, tiempoGlobal = true, horasGlobal = 1.0, minutosGlobal = 30.0))
+        assertEquals(porPieza.total, global.total, 1e-9)
+        assertEquals(1.5, global.horasTotales, 1e-9)
+    }
+
+    @Test
+    fun conTiempoGlobalElTiempoPorPiezaSeIgnoraYElGlobalEsObligatorio() {
+        val i = sinDatosDeImpresora().copy(tiempoGlobal = true, horasGlobal = null, minutosGlobal = null)
+        val f = failure(i)
+        assertTrue(f.fieldErrors.containsKey(Field.HORAS_GLOBAL))
+        assertTrue(f.fieldErrors.containsKey(Field.MINUTOS_GLOBAL))
+        assertFalse(f.fieldErrors.containsKey(Field.HORAS))
+        // Un tiempo por pieza distinto no cambia nada en modo global.
+        val a = success(sinDatosDeImpresora().copy(horas = 9.0, tiempoGlobal = true, horasGlobal = 2.0, minutosGlobal = 0.0))
+        val b = success(sinDatosDeImpresora().copy(horas = 1.0, tiempoGlobal = true, horasGlobal = 2.0, minutosGlobal = 0.0))
+        assertEquals(a.total, b.total, 1e-9)
+    }
+
+    @Test
+    fun tiempoGlobalValidaMinutosYCero() {
+        val min = failure(sinDatosDeImpresora().copy(tiempoGlobal = true, horasGlobal = 1.0, minutosGlobal = 60.0))
+        assertEquals(CostCalculator.MSG_MINUTES, min.fieldErrors[Field.MINUTOS_GLOBAL])
+        val cero = failure(sinDatosDeImpresora().copy(tiempoGlobal = true, horasGlobal = 0.0, minutosGlobal = 0.0))
+        assertEquals(CostCalculator.MSG_TIME_POSITIVE, cero.fieldErrors[Field.HORAS_GLOBAL])
+    }
+
+    @Test
+    fun porcentajeDelKiloPorPiezaYTotal() {
+        val i = sinDatosDeImpresora().copy(partesExtra = listOf(petg))
+        val b = success(i)
+        assertEquals(10.0, b.partes[0].pctKilo, 1e-9)       // 100 g
+        assertEquals(5.0, b.partes[1].pctKilo, 1e-9)        // 50 g
+        assertEquals(15.0, b.pctKiloTotal, 1e-9)
+        assertEquals("15%", Perfiles.textoPct(b.pctKiloTotal))
+        assertEquals("0.3%", Perfiles.textoPct(Perfiles.porcentajeDelKilo(3.0)))
+        assertEquals("125.5%", Perfiles.textoPct(Perfiles.porcentajeDelKilo(1255.0)))
+        val t = Compartir.texto(b, i, null, "PLA", null, "10:00:00")
+        assertTrue(t, t.contains("Filamento total del lote: 150 g (15% de 1 kg)"))
+    }
+
+    @Test
+    fun estadoDelPerfilAvisaAlCompletarYAlSobrepasar() {
+        assertEquals(EstadoPerfil.OK, Perfiles.estado(799.0, 1000.0))
+        assertEquals(EstadoPerfil.CASI, Perfiles.estado(800.0, 1000.0))
+        assertEquals(EstadoPerfil.CASI, Perfiles.estado(999.0, 1000.0))
+        assertEquals(EstadoPerfil.COMPLETO, Perfiles.estado(1000.0, 1000.0))
+        assertEquals(EstadoPerfil.SOBREPASA, Perfiles.estado(1000.5, 1000.0))
+        assertEquals(EstadoPerfil.CASI, Perfiles.estado(400.0, 500.0))          // carrete de 500 g
+    }
+
+    @Test
+    fun proyectarSumaElConsumoALoYaUsado() {
+        val p = Perfil("f1", "PETG negro", 1000.0, 700.0)
+        val pr = Perfiles.proyectar(p, 150.0)
+        assertEquals(850.0, pr.totalG, 1e-9)
+        assertEquals(85.0, pr.pct, 1e-9)
+        assertEquals(EstadoPerfil.CASI, pr.estado)
+        assertEquals(150.0, pr.restanteG, 1e-9)
+        val sobre = Perfiles.proyectar(p, 400.0)
+        assertEquals(EstadoPerfil.SOBREPASA, sobre.estado)
+        assertTrue(Perfiles.mensaje(sobre), Perfiles.mensaje(sobre).contains("SOBREPASA el carrete por 100 g"))
+        assertTrue(Perfiles.mensaje(pr), Perfiles.mensaje(pr).contains("quedan 150 g"))
+    }
+
+    @Test
+    fun consumosPorPerfilSumanLasPiezasDelMismoPerfilEIgnoranLasSinPerfil() {
+        val piezas = listOf(
+            Parte(1.0, 100.0, 1.0, 0.0, 95.0, "f1"),
+            Parte(1.0, 40.0, 1.0, 0.0, 95.0, null),
+            Parte(1.0, 30.0, 1.0, 0.0, 95.0, "f1"),
+            Parte(1.0, 20.0, 1.0, 0.0, 95.0, "f2")
+        )
+        val m = Perfiles.consumosPorPerfil(piezas)
+        assertEquals(mapOf("f1" to 130.0, "f2" to 20.0), m)
+    }
+
+    @Test
+    fun registrarSumaLosGramosSoloAPerfilesExistentes() {
+        val lista = listOf(Perfil("f1", "PLA", 1000.0, 100.0), Perfil("f2", "PETG", 750.0, 0.0))
+        val nueva = Perfiles.registrar(lista, mapOf("f1" to 130.0, "f9" to 50.0))
+        assertEquals(230.0, nueva[0].usadoG, 1e-9)
+        assertEquals(0.0, nueva[1].usadoG, 1e-9)
+        assertEquals(2, nueva.size)
+    }
+
+    @Test
+    fun perfilesSeGuardanYSeLeenSinPerderNada() {
+        val lista = listOf(Perfil("f1", "PLA blanco", 1000.0, 123.5), Perfil("f3", "PETG\tnegro\nmate", 750.0, 0.0))
+        val leida = Perfiles.deserializar(Perfiles.serializar(lista))
+        assertEquals(2, leida.size)
+        assertEquals(Perfil("f1", "PLA blanco", 1000.0, 123.5), leida[0])
+        assertEquals("PETG negro mate", leida[1].nombre)               // sin tabulaciones ni saltos de línea
+        assertEquals(750.0, leida[1].capacidadG, 1e-9)
+        assertTrue(Perfiles.deserializar(null).isEmpty())
+        assertTrue(Perfiles.deserializar("basura sin campos").isEmpty())
+        assertTrue(Perfiles.deserializar("f1\tX\t0\t0").isEmpty())  // peso 0 no es válido
+    }
+
+    @Test
+    fun idsYNombresPorDefectoDeLosPerfiles() {
+        assertEquals("f1", Perfiles.nuevoId(emptyList()))
+        assertEquals("f4", Perfiles.nuevoId(listOf(Perfil("f1", "a"), Perfil("f3", "b"))))
+        assertEquals("Filamento 1", Perfiles.nombreOPorDefecto("  ", emptyList()))
+        assertEquals("PLA", Perfiles.nombreOPorDefecto(" PLA ", emptyList()))
     }
 }

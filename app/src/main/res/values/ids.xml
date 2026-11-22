@@ -66,4 +66,14 @@
     <item name="p6_minutos" type="id" />
     <item name="p6_mas_horas" type="id" />
     <item name="p6_mas_minutos" type="id" />
+    <item name="p2_tiempo_box" type="id" />
+    <item name="p2_perfil" type="id" />
+    <item name="p3_tiempo_box" type="id" />
+    <item name="p3_perfil" type="id" />
+    <item name="p4_tiempo_box" type="id" />
+    <item name="p4_perfil" type="id" />
+    <item name="p5_tiempo_box" type="id" />
+    <item name="p5_perfil" type="id" />
+    <item name="p6_tiempo_box" type="id" />
+    <item name="p6_perfil" type="id" />
 </resources>

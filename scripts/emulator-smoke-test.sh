@@ -132,6 +132,7 @@ expect_digits "costo unitario (lote / 2 unidades)" "$(get tv_unitario)" 1429
 expect_empty "precio de venta sin margen" "$(get tv_precio_venta)"
 expect_digits "costo por gramo (2857 / 100 g)" "$(get tv_por_gramo)" 29
 expect_contains "filamento total del lote" "$(get tv_gramos_total)" "100 g"
+expect_contains "porcentaje de un kilo (100 g)" "$(get tv_pct_kilo)" "10%"
 expect_contains "tiempo total del lote" "$(get tv_horas_total)" "5 h"
 expect_digits "costo por hora (2857 / 5 h)" "$(get tv_por_hora)" 571
 BARRA=$(get tv_barra_total)
@@ -372,15 +373,41 @@ expect_digits "precio de venta con dos piezas" "$(get tv_precio_venta)" 10044
 expect_digits "costo por gramo (150 g en el lote)" "$(get tv_por_gramo)" 103
 expect_digits "costo por hora (7,5 h en el lote)" "$(get tv_por_hora)" 2060
 expect_contains "filamento total del lote" "$(get tv_gramos_total)" "150 g"
+expect_contains "porcentaje de un kilo con dos piezas (150 g)" "$(get tv_pct_kilo)" "15%"
 expect_contains "tiempo total del lote" "$(get tv_horas_total)" "7 h 30 min"
-has_text "Pieza 1 · 100 g · 5 h"
-has_text "Pieza 2 · 50 g · 2 h 30 min"
+has_text "Pieza 1 · 100 g (10% del kilo) · 5 h"
+has_text "Pieza 2 · 50 g (5% del kilo) · 2 h 30 min"
 CON2=$(get tv_calculado_con)
 expect_contains "calculado con: cantidad de piezas" "$CON2" "2 piezas"
 expect_contains "calculado con: gramos en total" "$CON2" "150 g en total"
 expect_contains "calculado con: tiempo en total" "$CON2" "7 h 30 min en total"
 expect_contains "verificación de suma con dos piezas" "$(get tv_cuadra)" "Verificado"
 shot pantalla_dos_piezas
+
+echo "== Tiempo global: una sola hora para todas las piezas (se reparte por gramos)"
+tap sw_tiempo_global
+ALL_IDS=$($H ids)
+if echo "$ALL_IDS" | grep -qx "p2_horas"; then fail "con tiempo global no debía verse el tiempo de la pieza 2"; fi
+if echo "$ALL_IDS" | grep -qx "et_horas"; then fail "con tiempo global no debía verse el tiempo de la pieza 1"; fi
+echo "OK: con tiempo global se ocultan los tiempos por pieza"
+expect_empty "total sin tiempo global ingresado" "$(get tv_total)"
+fill et_horas_global 7
+fill et_minutos_global 30
+expect_digits "7 h 30 min globales = 5 h + 2 h 30 min por pieza: mismo total" "$(get tv_total)" 15452
+expect_contains "tiempo total con tiempo global" "$(get tv_horas_total)" "7 h 30 min"
+fill et_horas_global 6
+fill et_minutos_global 0
+# 6 h repartidas 100:50 g = 4 h y 2 h. Electricidad 0,095 x 4 x 247 + 0,12 x 2 x 247 = 153,14; depreciación 587,988; mantenimiento 300.
+expect_digits "electricidad con 6 h globales" "$(get tv_electricidad)" 153
+expect_digits "depreciación con 6 h globales" "$(get tv_depreciacion)" 588
+expect_digits "mantenimiento con 6 h globales" "$(get tv_mantenimiento)" 300
+expect_digits "unidad fallida con 6 h globales" "$(get tv_merma)" 5021
+expect_digits "costo del lote con 6 h globales" "$(get tv_total)" 15062
+expect_contains "el tiempo global aparece en Calculado con" "$(get tv_calculado_con)" "6 h en total"
+tap btn_mas_horas_global
+expect_digits "+ 1 hora global (6 -> 7)" "$(get et_horas_global)" 7
+tap sw_tiempo_global
+expect_digits "al volver al tiempo por pieza el total vuelve a 15452" "$(get tv_total)" 15452
 echo "== La pieza agregada sobrevive al cambio de tema"
 tap sw_oscuro
 sleep 3
@@ -398,6 +425,38 @@ expect_digits "total tras quitar la pieza 2" "$(get tv_total)" 13286
 ALL_IDS=$($H ids)
 if echo "$ALL_IDS" | grep -qx "p2_gramos"; then fail "la pieza 2 debía desaparecer tras QUITAR"; fi
 echo "OK: la pieza 2 desapareció"
+
+echo "== Perfiles de filamento: crear, elegir, avisar al sobrepasar y registrar el consumo"
+tap btn_perfiles
+$H taptext "NUEVO PERFIL" || fail "no se encontró + NUEVO PERFIL"
+sleep 1
+$H taptext "GUARDAR" || fail "no se encontró GUARDAR en el perfil nuevo"
+sleep 1
+$H hastext "Filamento 1" || fail "el perfil nuevo debía llamarse Filamento 1 por defecto"
+echo "OK: perfil creado con nombre por defecto"
+$H taptext "CERRAR" || fail "no se pudo cerrar la lista de perfiles"
+sleep 1
+pick sp_perfil "Filamento 1"
+expect_contains "estado del perfil con lo de este cálculo" "$(get tv_perfiles_estado)" "100 g de este cálculo"
+expect_contains "porcentaje del carrete" "$(get tv_perfiles_estado)" "(10%)"
+tap btn_registrar_consumo
+sleep 1
+expect_contains "tras registrar, el botón queda marcado" "$(get btn_registrar_consumo)" "REGISTRADO"
+expect_contains "tras registrar, el estado lo indica" "$(get tv_perfiles_estado)" "Registrado"
+expect_contains "el consumo registrado queda en el perfil" "$(get tv_perfiles_estado)" "100 de 1000 g (10%)"
+fill et_gramos 950
+expect_contains "aviso al sobrepasar el carrete" "$(get tv_perfiles_estado)" "SOBREPASA el carrete por 50 g"
+expect_contains "el botón vuelve a poder registrar" "$(get btn_registrar_consumo)" "REGISTRAR CONSUMO"
+tap btn_registrar_consumo
+sleep 1
+$H hastext "Aviso de filamento" || fail "debía aparecer el aviso al sobrepasar el carrete"
+echo "OK: aparece el aviso de filamento"
+$H taptext "ENTENDIDO" || fail "no se pudo cerrar el aviso"
+sleep 1
+expect_contains "perfil acumulado tras el segundo registro" "$(get tv_perfiles_estado)" "1050 de 1000 g"
+fill et_gramos 100
+pick sp_perfil "Sin perfil"
+expect_digits "total sin perfil igual que antes" "$(get tv_total)" 13286
 
 echo "== Modo oscuro: se aplica, conserva los datos y se recuerda al reiniciar"
 tap sw_oscuro

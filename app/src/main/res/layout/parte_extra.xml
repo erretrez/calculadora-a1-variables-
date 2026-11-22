@@ -48,6 +48,12 @@
         android:inputType="numberDecimal"
         android:tag="gramos" />
 
+    <!-- Tiempo propio de la pieza (se oculta con el tiempo global) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:tag="tiempo_box">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -92,6 +98,8 @@
         </LinearLayout>
     </LinearLayout>
 
+    </LinearLayout>
+
     <TextView style="@style/Etiqueta" android:text="@string/lbl_pieza_material" />
     <Spinner
         android:layout_width="match_parent"
@@ -121,4 +129,13 @@
             android:inputType="numberDecimal"
             android:tag="watts" />
     </LinearLayout>
+
+    <TextView style="@style/Etiqueta" android:text="@string/lbl_perfil" />
+    <Spinner
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="4dp"
+        android:prompt="@string/prompt_perfil"
+        android:spinnerMode="dialog"
+        android:tag="perfil" />
 </LinearLayout>

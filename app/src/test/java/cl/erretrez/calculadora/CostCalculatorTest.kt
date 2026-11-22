@@ -117,7 +117,8 @@ class CostCalculatorTest {
         val empty = CostInputs(null, null, null, null, null, null, null, null, null, null)
         val f = failure(empty)
         // Solo los 10 campos obligatorios; los opcionales vacíos no son error.
-        assertEquals(Field.values().count { !it.optional }, f.fieldErrors.size)
+        // (el tiempo global solo se exige cuando se activa ese modo)
+        assertEquals(Field.values().count { !it.optional && it != Field.HORAS_GLOBAL && it != Field.MINUTOS_GLOBAL }, f.fieldErrors.size)
         assertEquals(10, f.fieldErrors.size)
         assertTrue(f.fieldErrors.keys.none { it.optional })
     }

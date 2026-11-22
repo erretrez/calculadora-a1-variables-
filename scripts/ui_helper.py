@@ -61,15 +61,24 @@ def screen_size():
 W, H = screen_size()
 
 
+# Si el emulador deja de responder a un deslizamiento, se prueba con otra columna y otra duración.
+SWIPE_VARIANTS = ((0.50, "250"), (0.15, "400"), (0.85, "400"), (0.30, "700"))
+_variant = [0]
+
+
 def swipe_to_see_below():
     """Mueve el contenido hacia arriba (muestra lo que está más abajo)."""
-    adb("shell", "input", "swipe", str(W // 2), str(int(H * 0.75)), str(W // 2), str(int(H * 0.30)), "250")
+    fx, dur = SWIPE_VARIANTS[_variant[0] % len(SWIPE_VARIANTS)]
+    x = str(int(W * fx))
+    adb("shell", "input", "swipe", x, str(int(H * 0.75)), x, str(int(H * 0.30)), dur)
     time.sleep(0.8)
 
 
 def swipe_to_see_above():
     """Mueve el contenido hacia abajo (muestra lo que está más arriba)."""
-    adb("shell", "input", "swipe", str(W // 2), str(int(H * 0.30)), str(W // 2), str(int(H * 0.75)), "250")
+    fx, dur = SWIPE_VARIANTS[_variant[0] % len(SWIPE_VARIANTS)]
+    x = str(int(W * fx))
+    adb("shell", "input", "swipe", x, str(int(H * 0.30)), x, str(int(H * 0.75)), dur)
     time.sleep(0.8)
 
 
@@ -127,8 +136,17 @@ def locate(rid, max_steps=34):
     if last in ORDER and rid in ORDER:
         below = ORDER.index(rid) >= ORDER.index(last)
     flipped = False
+    firma_prev = None
     for step in range(max_steps):
-        node = find_in(dump(), rid)
+        nodos = dump()
+        node = find_in(nodos, rid)
+        # Si la pantalla no cambió tras el deslizamiento anterior, se cambia la forma de deslizar.
+        firma = tuple(n.get("bounds") for n in nodos if n.get("resource-id", "").startswith(f"{PKG}:id/"))
+        if firma_prev is not None and firma == firma_prev:
+            _variant[0] += 1
+            print(f"AVISO: el deslizamiento no movió la pantalla; se prueba la variante {_variant[0] % len(SWIPE_VARIANTS)}",
+                  file=sys.stderr)
+        firma_prev = firma
         if node is not None:
             _, y = center(node)
             if H * 0.08 < y < H * 0.92:

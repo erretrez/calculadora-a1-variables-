@@ -375,8 +375,8 @@ expect_digits "costo por hora (7,5 h en el lote)" "$(get tv_por_hora)" 2060
 expect_contains "filamento total del lote" "$(get tv_gramos_total)" "150 g"
 expect_contains "porcentaje de un kilo con dos piezas (150 g)" "$(get tv_pct_kilo)" "15%"
 expect_contains "tiempo total del lote" "$(get tv_horas_total)" "7 h 30 min"
-has_text "Pieza 1 · 100 g (10% del kilo) · 5 h"
-has_text "Pieza 2 · 50 g (5% del kilo) · 2 h 30 min"
+has_text "Pieza 1 · 100 g (10%) · 5 h"
+has_text "Pieza 2 · 50 g (5%) · 2 h 30 min"
 CON2=$(get tv_calculado_con)
 expect_contains "calculado con: cantidad de piezas" "$CON2" "2 piezas"
 expect_contains "calculado con: gramos en total" "$CON2" "150 g en total"

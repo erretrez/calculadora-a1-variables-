@@ -56,6 +56,7 @@ class MainActivity : Activity() {
     private lateinit var tvMantenimiento: TextView
     private lateinit var tvManoObra: TextView
     private lateinit var tvCobroHoras: TextView
+    private lateinit var tvPorCantidad: TextView
     private lateinit var tvMerma: TextView
     private lateinit var tvTotal: TextView
     private lateinit var tvUnitario: TextView
@@ -285,6 +286,7 @@ class MainActivity : Activity() {
         tvMantenimiento = findViewById(R.id.tv_mantenimiento)
         tvManoObra = findViewById(R.id.tv_mano_obra)
         tvCobroHoras = findViewById(R.id.tv_cobro_horas)
+        tvPorCantidad = findViewById(R.id.tv_por_cantidad)
         tvMerma = findViewById(R.id.tv_merma)
         tvTotal = findViewById(R.id.tv_total)
         tvUnitario = findViewById(R.id.tv_unitario)
@@ -469,7 +471,7 @@ class MainActivity : Activity() {
             is Outcome.Success -> {
                 ok = true
                 val b = outcome.breakdown
-                showResults(b)
+                showResults(b, inputsNow)
                 calcCount++
                 val hora = horaActual()
                 tvStatus.text = getString(R.string.status_ok, calcCount, hora)
@@ -560,7 +562,7 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun showResults(b: CostBreakdown) {
+    private fun showResults(b: CostBreakdown, inputsNow: CostInputs) {
         val empty = getString(R.string.vacio)
         tvMaterial.text = CostCalculator.formatClp(b.material)
         tvElectricidad.text = CostCalculator.formatClp(b.electricidad)
@@ -568,6 +570,9 @@ class MainActivity : Activity() {
         tvMantenimiento.text = CostCalculator.formatClp(b.mantenimiento)
         tvManoObra.text = CostCalculator.formatClp(b.manoObra)
         tvCobroHoras.text = CostCalculator.formatClp(b.cobroHoras)
+        tvPorCantidad.text = PorCantidad.tabla(inputsNow).joinToString("\n") {
+            PorCantidad.etiqueta(it) + " · " + PorCantidad.valor(it)
+        }
         tvMerma.text = CostCalculator.formatClp(b.merma)
         tvTotal.text = CostCalculator.formatClp(b.total)
         tvUnitario.text = CostCalculator.formatClp(b.unitario)
@@ -718,7 +723,7 @@ class MainActivity : Activity() {
         listOf(
             tvMaterial, tvElectricidad, tvDepreciacion, tvMantenimiento, tvManoObra, tvCobroHoras, tvMerma,
             tvTotal, tvUnitario, tvPrecioVenta, tvPrecioIva, tvGanancia, tvOtros, tvPorGramo, tvPorHora,
-            tvGananciaUnit, tvVentaLote, tvGramosTotal, tvHorasTotal, tvPctKilo
+            tvGananciaUnit, tvVentaLote, tvGramosTotal, tvHorasTotal, tvPctKilo, tvPorCantidad
         ).forEach { it.text = empty }
         tvPerfilesEstado.visibility = View.GONE
         btnRegistrar.visibility = View.GONE

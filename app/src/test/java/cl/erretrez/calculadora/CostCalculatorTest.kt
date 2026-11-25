@@ -911,6 +911,41 @@ class CostCalculatorTest {
     }
 
     @Test
+    fun tablaPorCantidadRepartePorUnidadElMismoLote() {
+        val i = sinDatosDeImpresora()                                   // 2 unidades, lote 2889,99
+        val t = PorCantidad.tabla(i)
+        assertEquals(listOf(2.0, 5.0, 10.0, 25.0, 50.0, 100.0), t.map { it.unidades })
+        assertTrue(t.first { it.unidades == 2.0 }.esActual)
+        t.forEach { assertEquals(2889.99 / it.unidades, it.costoUnitario, 1e-9) }
+        assertEquals("10 unidades", PorCantidad.etiqueta(t.first { it.unidades == 10.0 }))
+        assertEquals("2 unidades (actual)", PorCantidad.etiqueta(t.first { it.esActual }))
+        assertNull(t[0].precioVenta)
+    }
+
+    @Test
+    fun tablaPorCantidadNoRepiteLaActualYAplicaMargenIvaOtrosYCobroPorHora() {
+        val i = sinDatosDeImpresora().copy(piezas = 10.0, tarifaHora = 1500.0, otrosPorPieza = 500.0,
+            margenPct = 30.0, incluirIva = true)
+        val t = PorCantidad.tabla(i)
+        assertEquals(1, t.count { it.unidades == 10.0 })
+        val f25 = t.first { it.unidades == 25.0 }
+        // (2889,99 + 7500) / 25 + 500 por unidad de otros costos
+        assertEquals((2889.99 + 7500.0) / 25.0 + 500.0, f25.costoUnitario, 1e-9)
+        assertEquals(f25.costoUnitario * 1.3, f25.precioVenta!!, 1e-9)
+        assertEquals(f25.precioVenta!! * 1.19, f25.precioConIva!!, 1e-9)
+        assertEquals(success(i).unitario, t.first { it.esActual }.costoUnitario, 1e-9)
+        assertTrue(PorCantidad.valor(f25).contains("venta") && PorCantidad.valor(f25).contains("con IVA"))
+    }
+
+    @Test
+    fun tablaPorCantidadVaEnElTextoCompartido() {
+        val i = sinDatosDeImpresora()
+        val t = Compartir.texto(success(i), i, null, "PLA", null, "10:00:00")
+        assertTrue(t, t.contains("PRECIO POR UNIDAD SEGÚN LA CANTIDAD DEL LOTE"))
+        assertTrue(t, t.contains("10 unidades: costo " + CostCalculator.formatClp(288.999)))
+    }
+
+    @Test
     fun cobroPorHoraApareceEnElTextoCompartido() {
         val i = sinDatosDeImpresora().copy(tarifaHora = 1500.0)
         val b = success(i)

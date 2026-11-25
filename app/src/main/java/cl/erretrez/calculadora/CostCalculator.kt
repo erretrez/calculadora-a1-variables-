@@ -443,6 +443,11 @@ object Compartir {
             b.precioConIva?.let { l += Fila("Precio de venta unitario con IVA", f(it), Estilo.VENTA) }
             b.precioVentaLote?.let { l += Fila("Precio de venta del lote (sin IVA)", f(it)) }
         }
+        val tabla = PorCantidad.tabla(i)
+        if (tabla.size > 1) {
+            l += Fila("Precio por unidad según la cantidad del lote", estilo = Estilo.SECCION)
+            tabla.forEach { l += Fila(PorCantidad.etiqueta(it), PorCantidad.valor(it)) }
+        }
         l += Fila(
             "Incluye depreciación (impresora de " + f(Suggested.PRECIO_IMPRESORA) + ", " +
                 Suggested.grouped(Suggested.VIDA_UTIL_HORAS) + " h) y mantenimiento (" +
@@ -759,5 +764,45 @@ object CostCalculator {
         nf.maximumFractionDigits = 0
         nf.minimumFractionDigits = 0
         return nf.format(value)
+    }
+}
+
+
+/** Costo y precio unitario si el mismo lote saliera con otra cantidad de unidades (v2.4). */
+data class FilaCantidad(
+    val unidades: Double,
+    val costoUnitario: Double,
+    val precioVenta: Double?,
+    val precioConIva: Double?,
+    val esActual: Boolean
+)
+
+/**
+ * Tabla de precio por cantidad: recalcula el mismo trabajo con otras cantidades de unidades. El costo del lote
+ * (material, máquina, cobro por hora, mano de obra) es el mismo; solo cambia cómo se reparte, y lo que depende de
+ * la cantidad (otros costos por unidad) se recalcula. Sirve para cotizar por tramos cuando aún no se sabe el lote.
+ */
+object PorCantidad {
+    val CANTIDADES = listOf(5.0, 10.0, 25.0, 50.0, 100.0)
+
+    fun tabla(i: CostInputs, cantidades: List<Double> = CANTIDADES): List<FilaCantidad> {
+        val actual = i.piezas ?: 1.0
+        val todas = (listOf(actual) + cantidades.filter { it != actual }).distinct()
+        return todas.sortedBy { it }.mapNotNull { n ->
+            val r = CostCalculator.calculate(i.copy(piezas = n))
+            (r as? Outcome.Success)?.breakdown?.let {
+                FilaCantidad(n, it.unitario, it.precioVenta, it.precioConIva, n == actual)
+            }
+        }
+    }
+
+    fun etiqueta(f: FilaCantidad): String =
+        Suggested.plainRounded(f.unidades) + (if (f.unidades == 1.0) " unidad" else " unidades") +
+            (if (f.esActual) " (actual)" else "")
+
+    fun valor(f: FilaCantidad): String {
+        val c = CostCalculator::formatClp
+        return "costo " + c(f.costoUnitario) + (f.precioVenta?.let { " · venta " + c(it) } ?: "") +
+            (f.precioConIva?.let { " · con IVA " + c(it) } ?: "")
     }
 }

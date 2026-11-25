@@ -670,6 +670,22 @@
             </LinearLayout>
 
             <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/res_por_cantidad"
+                android:textColor="?attr/cTextoSuave"
+                android:textSize="12sp" />
+            <TextView
+                android:id="@+id/tv_por_cantidad"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/vacio"
+                android:textColor="?attr/cTexto"
+                android:textSize="13sp" />
+
+            <TextView
                 android:id="@+id/tv_perfiles_estado"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

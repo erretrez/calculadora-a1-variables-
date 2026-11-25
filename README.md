@@ -175,3 +175,7 @@ Cada *pieza* es una **impresión completa (una cama)**, con los gramos y las hor
 
 En los extras hay un campo *Cobro por hora de impresión* (por ejemplo $1.500 por hora), **independiente del filamento**. Se multiplica por las **horas totales de impresión** (suma de las piezas o el tiempo global) y se suma al costo del lote en una fila propia. Después se comporta como la mano de obra: entra en el costo unitario, en la unidad fallida (una unidad fallida también gastó horas de máquina), en el margen y en el IVA. Vacío o 0 no cambia nada. Es **adicional** a la depreciación ($97,998 por hora) y al mantenimiento ($50 por hora) que ya se calculan, porque esos reponen la máquina y este es el cobro por el tiempo.
 
+## Precio por cantidad (v2.4)
+
+Bajo los resultados, **Precio por unidad según la cantidad del lote** muestra el costo (y la venta con margen e IVA, si los pediste) para 5, 10, 25, 50 y 100 unidades, además de la cantidad actual. Es el mismo trabajo con otro reparto: el costo del lote no cambia, y lo que depende de la cantidad (otros costos por unidad) se recalcula. Sirve para cotizar por tramos cuando todavía no se sabe el tamaño del lote. También va en el texto y la imagen que se comparten.
+

@@ -243,6 +243,15 @@ expect_contains "calculado con incluye el cobro por hora" "$(get tv_calculado_co
 fill et_tarifa_hora ""
 expect_digits "total sin cobro por hora" "$(get tv_total)" 2857
 
+echo "== Precio por unidad según la cantidad del lote (mismo trabajo, otro reparto)"
+TABLA=$(get tv_por_cantidad)
+expect_contains "tabla: la cantidad actual" "$TABLA" "2 unidades (actual) · costo \$1.429"
+expect_contains "tabla: 5 unidades" "$TABLA" "5 unidades · costo \$571"
+expect_contains "tabla: 10 unidades" "$TABLA" "10 unidades · costo \$286"
+expect_contains "tabla: 25 unidades" "$TABLA" "25 unidades · costo \$114"
+expect_contains "tabla: 100 unidades" "$TABLA" "100 unidades · costo \$29"
+expect_digits "el total del lote no cambia por la tabla" "$(get tv_total)" 2857
+
 echo "== Colores de los campos (modo claro): vacío blanco, con valor verde"
 read -r R G B <<< "$($H bgrgb et_otros)"; echo "campo vacío: $R $G $B"
 [ $((R+G+B)) -gt 700 ] || fail "el campo vacío debía verse claro ($R $G $B)"

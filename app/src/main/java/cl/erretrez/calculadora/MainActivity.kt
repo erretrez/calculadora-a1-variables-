@@ -55,6 +55,7 @@ class MainActivity : Activity() {
     private lateinit var tvDepreciacion: TextView
     private lateinit var tvMantenimiento: TextView
     private lateinit var tvManoObra: TextView
+    private lateinit var tvCobroHoras: TextView
     private lateinit var tvMerma: TextView
     private lateinit var tvTotal: TextView
     private lateinit var tvUnitario: TextView
@@ -249,6 +250,7 @@ class MainActivity : Activity() {
             Field.MINUTOS_GLOBAL to findViewById<EditText>(R.id.et_minutos_global),
             Field.WATTS to findViewById<EditText>(R.id.et_watts),
             Field.PRECIO_KWH to findViewById<EditText>(R.id.et_precio_kwh),
+            Field.TARIFA_HORA to findViewById<EditText>(R.id.et_tarifa_hora),
             Field.HORAS_TRABAJO to findViewById<EditText>(R.id.et_horas_trabajo),
             Field.COSTO_HORA_TRABAJO to findViewById<EditText>(R.id.et_costo_hora_trabajo),
             Field.MERMA to findViewById<EditText>(R.id.et_merma),
@@ -282,6 +284,7 @@ class MainActivity : Activity() {
         tvDepreciacion = findViewById(R.id.tv_depreciacion)
         tvMantenimiento = findViewById(R.id.tv_mantenimiento)
         tvManoObra = findViewById(R.id.tv_mano_obra)
+        tvCobroHoras = findViewById(R.id.tv_cobro_horas)
         tvMerma = findViewById(R.id.tv_merma)
         tvTotal = findViewById(R.id.tv_total)
         tvUnitario = findViewById(R.id.tv_unitario)
@@ -413,6 +416,7 @@ class MainActivity : Activity() {
             minutos = value(Field.MINUTOS),
             watts = value(Field.WATTS),
             precioKwh = value(Field.PRECIO_KWH),
+            tarifaHora = value(Field.TARIFA_HORA),
             horasTrabajo = value(Field.HORAS_TRABAJO),
             costoHoraTrabajo = value(Field.COSTO_HORA_TRABAJO),
             piezasFallidas = value(Field.MERMA),
@@ -563,6 +567,7 @@ class MainActivity : Activity() {
         tvDepreciacion.text = CostCalculator.formatClp(b.depreciacion)
         tvMantenimiento.text = CostCalculator.formatClp(b.mantenimiento)
         tvManoObra.text = CostCalculator.formatClp(b.manoObra)
+        tvCobroHoras.text = CostCalculator.formatClp(b.cobroHoras)
         tvMerma.text = CostCalculator.formatClp(b.merma)
         tvTotal.text = CostCalculator.formatClp(b.total)
         tvUnitario.text = CostCalculator.formatClp(b.unitario)
@@ -711,7 +716,7 @@ class MainActivity : Activity() {
     private fun clearResults() {
         val empty = getString(R.string.vacio)
         listOf(
-            tvMaterial, tvElectricidad, tvDepreciacion, tvMantenimiento, tvManoObra, tvMerma,
+            tvMaterial, tvElectricidad, tvDepreciacion, tvMantenimiento, tvManoObra, tvCobroHoras, tvMerma,
             tvTotal, tvUnitario, tvPrecioVenta, tvPrecioIva, tvGanancia, tvOtros, tvPorGramo, tvPorHora,
             tvGananciaUnit, tvVentaLote, tvGramosTotal, tvHorasTotal, tvPctKilo
         ).forEach { it.text = empty }

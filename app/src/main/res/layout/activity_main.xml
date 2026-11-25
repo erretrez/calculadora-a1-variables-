@@ -419,6 +419,20 @@
             android:textColor="?attr/cTextoSuave"
             android:textSize="12sp" />
 
+        <TextView style="@style/Etiqueta" android:text="@string/lbl_tarifa_hora" />
+        <EditText
+            android:id="@+id/et_tarifa_hora"
+            style="@style/Campo"
+            android:hint="@string/hint_tarifa_hora"
+            android:inputType="numberDecimal" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/ayuda_tarifa_hora"
+            android:textColor="?attr/cTextoSuave"
+            android:textSize="12sp" />
+
         <TextView style="@style/Etiqueta" android:text="@string/lbl_horas_trabajo" />
         <EditText
             android:id="@+id/et_horas_trabajo"
@@ -547,6 +561,14 @@
                 <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_mantenimiento" />
                 <TextView
                     android:id="@+id/tv_mantenimiento"
+                    style="@style/ResultadoValor"
+                    android:text="@string/vacio" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FilaResultado">
+                <TextView style="@style/ResultadoEtiqueta" android:text="@string/res_cobro_horas" />
+                <TextView
+                    android:id="@+id/tv_cobro_horas"
                     style="@style/ResultadoValor"
                     android:text="@string/vacio" />
             </LinearLayout>

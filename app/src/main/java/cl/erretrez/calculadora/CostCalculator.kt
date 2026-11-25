@@ -35,7 +35,10 @@ enum class Field(val optional: Boolean = false) {
 
     // v2.2: tiempo global (una sola hora para toda la impresión)
     HORAS_GLOBAL,
-    MINUTOS_GLOBAL
+    MINUTOS_GLOBAL,
+
+    // v2.3: cobro por hora de impresión
+    TARIFA_HORA(true)
 }
 
 /**
@@ -87,6 +90,12 @@ data class CostInputs(
     val horasTrabajo: Double? = null,
     val costoHoraTrabajo: Double? = null,
     /**
+     * Cobro por hora de impresión (v2.3): monto fijo por cada hora de máquina, independiente del filamento.
+     * Se multiplica por las horas totales de impresión y se suma al costo del lote (después, igual que la
+     * mano de obra, entra en el costo unitario, la unidad fallida, el margen y el IVA). Vacío = no aplica.
+     */
+    val tarifaHora: Double? = null,
+    /**
      * Piezas fallidas (cantidad que se imprimió y se perdió). Cada una cuesta lo mismo que una pieza
      * buena, con material, electricidad, depreciación, mantenimiento y mano de obra; ese costo se suma
      * al total y queda repartido entre las piezas buenas. No incluye "otros costos por pieza"
@@ -126,6 +135,8 @@ data class CostBreakdown(
     val total: Double,
     val unitario: Double,
     val manoObra: Double = 0.0,
+    /** Cobro por hora de impresión: tarifa por hora x horas totales (v2.3). */
+    val cobroHoras: Double = 0.0,
     val merma: Double = 0.0,
     /** Precio de venta unitario sin IVA (costo unitario + margen). null si no se indicó margen. */
     val precioVenta: Double? = null,
@@ -398,6 +409,13 @@ object Compartir {
         l += Fila("Electricidad", f(b.electricidad))
         l += Fila("Depreciación de la impresora", f(b.depreciacion))
         l += Fila("Mantenimiento", f(b.mantenimiento))
+        if (b.cobroHoras > 0.0) {
+            l += Fila(
+                "Cobro por hora de impresión (" + Resumen.tiempo(b.horasTotales) + " x " +
+                    f(b.cobroHoras / b.horasTotales) + ")",
+                f(b.cobroHoras)
+            )
+        }
         if (b.manoObra > 0.0) l += Fila("Mano de obra", f(b.manoObra))
         if (b.merma > 0.0) {
             l += Fila(
@@ -464,7 +482,7 @@ object Resumen {
 
     /** Las partes del desglose deben sumar exactamente el total (control interno). */
     fun partesSumanElTotal(b: CostBreakdown): Boolean {
-        val suma = b.material + b.electricidad + b.depreciacion + b.mantenimiento + b.manoObra + b.merma + b.otros
+        val suma = b.material + b.electricidad + b.depreciacion + b.mantenimiento + b.manoObra + b.cobroHoras + b.merma + b.otros
         return Math.abs(suma - b.total) <= 1e-9 * Math.max(1.0, Math.abs(b.total))
     }
 
@@ -500,6 +518,7 @@ object Resumen {
             ) + " en total"
         }
         i.precioKwh?.let { partes += CostCalculator.formatClp(it) + "/kWh" + (region?.let { r -> " ($r)" } ?: "") }
+        i.tarifaHora?.let { partes += "cobro " + CostCalculator.formatClp(it) + "/h de impresión" }
         if (i.horasTrabajo != null && i.costoHoraTrabajo != null) {
             partes += "mano de obra " + Suggested.plainRounded(i.horasTrabajo) + " h x " +
                 CostCalculator.formatClp(i.costoHoraTrabajo)
@@ -632,6 +651,7 @@ object CostCalculator {
             errors[Field.HORAS_TRABAJO] = MSG_PAIR
         }
 
+        optionalNonNegative(Field.TARIFA_HORA, i.tarifaHora)
         optionalNonNegative(Field.MERMA, i.piezasFallidas)
         optionalNonNegative(Field.MARGEN, i.margenPct)
         optionalNonNegative(Field.OTROS_PIEZA, i.otrosPorPieza)
@@ -676,11 +696,14 @@ object CostCalculator {
         val manoObra = (horasTrabajo ?: 0.0) * (costoHora ?: 0.0)
         // Pieza fallida = costo completo de una pieza (con mano de obra) x cantidad de fallidas.
         val fallidas = i.piezasFallidas ?: 0.0
-        val costoPiezaFallida = (base + manoObra) / n
+        // Cobro por hora: se factura sobre todas las horas de máquina del lote (las de las unidades fallidas
+        // quedan dentro de la unidad fallida, como la mano de obra).
+        val cobroHoras = (i.tarifaHora ?: 0.0) * horasTotales
+        val costoPiezaFallida = (base + manoObra + cobroHoras) / n
         val costoMerma = costoPiezaFallida * fallidas
 
         val otros = (i.otrosPorPieza ?: 0.0) * n
-        val total = base + manoObra + costoMerma + otros
+        val total = base + manoObra + cobroHoras + costoMerma + otros
         val unitario = total / n
 
         val margen = i.margenPct
@@ -693,7 +716,7 @@ object CostCalculator {
         val costoPorHora = total / horasTotales
 
         val all = listOfNotNull(
-            material, electricidad, depreciacion, mantenimiento, manoObra, costoMerma,
+            material, electricidad, depreciacion, mantenimiento, manoObra, cobroHoras, costoMerma,
             total, unitario, precioVenta, precioConIva, gananciaLote, otros, costoPorHora, gananciaUnitaria, precioVentaLote
         ) + listOfNotNull(costoPorGramo)
         if (all.any { !it.isFinite() }) {
@@ -710,6 +733,7 @@ object CostCalculator {
                 total = total,
                 unitario = unitario,
                 manoObra = manoObra,
+                cobroHoras = cobroHoras,
                 merma = costoMerma,
                 precioVenta = precioVenta,
                 precioConIva = precioConIva,

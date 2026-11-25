@@ -179,6 +179,11 @@
     <string name="sub_detalle_piezas">Costo de cada pieza (impresión) del lote: material, electricidad, depreciación y mantenimiento</string>
     <string name="unidades_ayuda">Ingresa los gramos y el tiempo de la cama completa, tal como los entrega Bambu Studio. Las unidades solo reparten el costo entre las figuras (lote ÷ unidades): no lo multiplican.</string>
     <string name="max_piezas">Máximo %1$d piezas por producto.</string>
+    <!-- v2.3 -->
+    <string name="lbl_tarifa_hora">Cobro por hora de impresión ($ por hora, independiente del filamento)</string>
+    <string name="hint_tarifa_hora">Por ejemplo 1500</string>
+    <string name="ayuda_tarifa_hora">Se multiplica por las horas totales de impresión y se suma al costo del lote, aparte del material y de la depreciación y el mantenimiento que ya se calculan.</string>
+    <string name="res_cobro_horas">Cobro por hora de impresión</string>
     <!-- v2.2 -->
     <string name="sw_tiempo_global">Tiempo global (una sola hora para todas las piezas)</string>
     <string name="ayuda_tiempo_pieza">Ahora cada pieza lleva su propio tiempo. Activa el tiempo global si el laminador te da un solo tiempo para toda la impresión, por ejemplo una pieza en PETG con soportes en PLA.</string>

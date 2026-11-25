@@ -860,6 +860,66 @@ class CostCalculatorTest {
 
     // ---------- v2.1: las unidades solo reparten el costo (los gramos y horas son los de la cama completa) ----------
 
+    // ---------- v2.3: cobro por hora de impresión ----------
+
+    @Test
+    fun cobroPorHoraSeSumaAlLoteSinTocarElMaterial() {
+        val sin = success(sinDatosDeImpresora())
+        val con = success(sinDatosDeImpresora().copy(tarifaHora = 1500.0))
+        assertEquals(7500.0, con.cobroHoras, 1e-9)                 // 1.500 x 5 h
+        assertEquals(sin.total + 7500.0, con.total, 1e-9)
+        assertEquals((sin.total + 7500.0) / 2.0, con.unitario, 1e-9)
+        assertEquals(sin.material, con.material, 1e-9)              // no depende del filamento
+        assertEquals(sin.depreciacion, con.depreciacion, 1e-9)
+        assertEquals(0.0, sin.cobroHoras, 1e-9)
+        assertTrue(Resumen.partesSumanElTotal(con))
+    }
+
+    @Test
+    fun cobroPorHoraUsaLasHorasTotalesDeTodasLasPiezasYElTiempoGlobal() {
+        val dos = success(sinDatosDeImpresora().copy(partesExtra = listOf(petg), tarifaHora = 1500.0))
+        assertEquals(1500.0 * 7.5, dos.cobroHoras, 1e-9)            // 5 h + 2 h 30 min
+        val global = success(sinDatosDeImpresora().copy(
+            horas = null, minutos = null, partesExtra = listOf(petgSinTiempo),
+            tiempoGlobal = true, horasGlobal = 6.0, minutosGlobal = 0.0, tarifaHora = 1500.0))
+        assertEquals(9000.0, global.cobroHoras, 1e-9)
+        // Con otro filamento el cobro por hora es el mismo: solo depende de las horas.
+        val otroPrecio = success(sinDatosDeImpresora().copy(precioKg = 90000.0, tarifaHora = 1500.0))
+        assertEquals(7500.0, otroPrecio.cobroHoras, 1e-9)
+    }
+
+    @Test
+    fun cobroPorHoraEntraEnLaUnidadFallidaElMargenYElIva() {
+        val i = sinDatosDeImpresora().copy(tarifaHora = 1500.0, horasTrabajo = 2.0, costoHoraTrabajo = 3000.0,
+            piezasFallidas = 1.0, margenPct = 30.0, incluirIva = true)
+        val b = success(i)
+        val base = 2889.99
+        val fallida = (base + 6000.0 + 7500.0) / 2.0
+        assertEquals(fallida, b.costoPiezaFallida, 1e-9)
+        assertEquals(base + 6000.0 + 7500.0 + fallida, b.total, 1e-9)
+        assertEquals(b.total / 2.0 * 1.3, b.precioVenta!!, 1e-9)
+        assertEquals(b.precioVenta!! * 1.19, b.precioConIva!!, 1e-9)
+        assertTrue(Resumen.partesSumanElTotal(b))
+    }
+
+    @Test
+    fun cobroPorHoraNegativoEsInvalidoYVacioNoCambiaNada() {
+        val f = failure(sinDatosDeImpresora().copy(tarifaHora = -1.0))
+        assertTrue(f.fieldErrors.containsKey(Field.TARIFA_HORA))
+        assertEquals(success(sinDatosDeImpresora()).total, success(sinDatosDeImpresora().copy(tarifaHora = null)).total, 1e-9)
+        assertEquals(success(sinDatosDeImpresora()).total, success(sinDatosDeImpresora().copy(tarifaHora = 0.0)).total, 1e-9)
+    }
+
+    @Test
+    fun cobroPorHoraApareceEnElTextoCompartido() {
+        val i = sinDatosDeImpresora().copy(tarifaHora = 1500.0)
+        val b = success(i)
+        val t = Compartir.texto(b, i, null, "PLA", null, "10:00:00")
+        assertTrue(t, t.contains("Cobro por hora de impresión (5 h x " + CostCalculator.formatClp(1500.0) + ")"))
+        assertTrue(t, t.contains(CostCalculator.formatClp(7500.0)))
+        assertTrue(Resumen.entradas(i, null, "PLA").contains("cobro " + CostCalculator.formatClp(1500.0) + "/h de impresión"))
+    }
+
     @Test
     fun lasUnidadesNoMultiplicanElCostoDelLoteSoloLoDividen() {
         val i = sinDatosDeImpresora().copy(partesExtra = listOf(petg))

@@ -233,6 +233,16 @@ expect_contains "calculado con incluye otros costos" "$(get tv_calculado_con)" "
 fill et_otros ""
 expect_digits "total sin otros costos" "$(get tv_total)" 2857
 
+echo "== Cobro por hora de impresión (1.500 por hora, independiente del filamento)"
+fill et_tarifa_hora 1500
+expect_digits "cobro por hora: 1500 x 5 h" "$(get tv_cobro_horas)" 7500
+expect_digits "total con cobro por hora (2857 + 7500)" "$(get tv_total)" 10357
+expect_digits "unitario con cobro por hora (lote / 2)" "$(get tv_unitario)" 5179
+expect_digits "costo por hora con cobro (10357 / 5 h)" "$(get tv_por_hora)" 2071
+expect_contains "calculado con incluye el cobro por hora" "$(get tv_calculado_con)" "cobro"
+fill et_tarifa_hora ""
+expect_digits "total sin cobro por hora" "$(get tv_total)" 2857
+
 echo "== Colores de los campos (modo claro): vacío blanco, con valor verde"
 read -r R G B <<< "$($H bgrgb et_otros)"; echo "campo vacío: $R $G $B"
 [ $((R+G+B)) -gt 700 ] || fail "el campo vacío debía verse claro ($R $G $B)"

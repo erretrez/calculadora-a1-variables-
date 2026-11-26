@@ -478,7 +478,14 @@ object Compartir {
                 "El cobro por hora incluye la depreciación y el mantenimiento (costo operativo real de " +
                     f(dh) + " por hora). La electricidad va aparte. Valores en pesos chilenos."
             } else {
-                "Incluye depreciación y mantenimiento (" + f(dh) + " por hora entre ambos). Valores en pesos chilenos."
+                if (i.depreciacionHora == null && i.mantenimientoHoraManual == null) {
+                    "Incluye depreciación (impresora de " + f(Suggested.PRECIO_IMPRESORA) + ", " +
+                        Suggested.grouped(Suggested.VIDA_UTIL_HORAS) + " h) y mantenimiento (" +
+                        f(Suggested.MANTENIMIENTO_POR_HORA) + "/h). Valores en pesos chilenos."
+                } else {
+                    "Incluye depreciación y mantenimiento editados (" + f(dh) + " por hora entre ambos). " +
+                        "Valores en pesos chilenos."
+                }
             },
             estilo = Estilo.NOTA
         )

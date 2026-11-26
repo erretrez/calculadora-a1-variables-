@@ -863,14 +863,18 @@ class CostCalculatorTest {
     // ---------- v2.3: cobro por hora de impresión ----------
 
     @Test
-    fun cobroPorHoraSeSumaAlLoteSinTocarElMaterial() {
+    fun cobroPorHoraReemplazaDepreciacionYMantenimientoSinTocarMaterialNiElectricidad() {
         val sin = success(sinDatosDeImpresora())
         val con = success(sinDatosDeImpresora().copy(tarifaHora = 1500.0))
         assertEquals(7500.0, con.cobroHoras, 1e-9)                 // 1.500 x 5 h
-        assertEquals(sin.total + 7500.0, con.total, 1e-9)
-        assertEquals((sin.total + 7500.0) / 2.0, con.unitario, 1e-9)
+        assertEquals(0.0, con.depreciacion, 1e-9)                   // no se cobran dos veces
+        assertEquals(0.0, con.mantenimiento, 1e-9)
         assertEquals(sin.material, con.material, 1e-9)              // no depende del filamento
-        assertEquals(sin.depreciacion, con.depreciacion, 1e-9)
+        assertEquals(sin.electricidad, con.electricidad, 1e-9)      // la electricidad va aparte
+        assertEquals(2000.0 + 150.0 + 7500.0, con.total, 1e-9)
+        assertEquals(9650.0 / 2.0, con.unitario, 1e-9)
+        assertEquals(489.99 + 250.0, con.costoOperativo, 1e-9)      // piso interno
+        assertEquals((489.99 + 250.0 + 150.0) / 5.0, con.costoOperativoPorHora, 1e-9)
         assertEquals(0.0, sin.cobroHoras, 1e-9)
         assertTrue(Resumen.partesSumanElTotal(con))
     }
@@ -889,17 +893,36 @@ class CostCalculatorTest {
     }
 
     @Test
-    fun cobroPorHoraEntraEnLaUnidadFallidaElMargenYElIva() {
+    fun laUnidadFallidaUsaElCostoOperativoRealYNoLaTarifa() {
         val i = sinDatosDeImpresora().copy(tarifaHora = 1500.0, horasTrabajo = 2.0, costoHoraTrabajo = 3000.0,
             piezasFallidas = 1.0, margenPct = 30.0, incluirIva = true)
         val b = success(i)
-        val base = 2889.99
-        val fallida = (base + 6000.0 + 7500.0) / 2.0
+        val fallida = (2000.0 + 150.0 + (489.99 + 250.0) + 6000.0) / 2.0
         assertEquals(fallida, b.costoPiezaFallida, 1e-9)
-        assertEquals(base + 6000.0 + 7500.0 + fallida, b.total, 1e-9)
+        assertEquals(2000.0 + 150.0 + 7500.0 + 6000.0 + fallida, b.total, 1e-9)
         assertEquals(b.total / 2.0 * 1.3, b.precioVenta!!, 1e-9)
         assertEquals(b.precioVenta!! * 1.19, b.precioConIva!!, 1e-9)
+        // Ingreso por hora de máquina: venta del lote sin material, electricidad, mano de obra ni fallidas.
+        assertEquals((b.precioVentaLote!! - 2000.0 - 150.0 - 6000.0 - fallida) / 5.0, b.gananciaPorHora!!, 1e-9)
         assertTrue(Resumen.partesSumanElTotal(b))
+    }
+
+    @Test
+    fun depreciacionYMantenimientoSePuedenEditarYTienenValorPropuesto() {
+        val propuesto = success(sinDatosDeImpresora())
+        assertEquals(489.99, propuesto.depreciacion, 1e-9)           // 97,998 x 5 h
+        assertEquals(250.0, propuesto.mantenimiento, 1e-9)           // 50 x 5 h
+        val editado = success(sinDatosDeImpresora().copy(depreciacionHora = 200.0, mantenimientoHoraManual = 100.0))
+        assertEquals(1000.0, editado.depreciacion, 1e-9)
+        assertEquals(500.0, editado.mantenimiento, 1e-9)
+        assertEquals(2000.0 + 150.0 + 1000.0 + 500.0, editado.total, 1e-9)
+        // Con tarifa, lo editado alimenta el piso interno (costo operativo), no el cobro.
+        val conTarifa = success(sinDatosDeImpresora().copy(
+            depreciacionHora = 200.0, mantenimientoHoraManual = 100.0, tarifaHora = 1500.0))
+        assertEquals(1500.0, conTarifa.costoOperativo, 1e-9)
+        assertEquals(0.0, conTarifa.depreciacion, 1e-9)
+        assertTrue(failure(sinDatosDeImpresora().copy(depreciacionHora = -1.0)).fieldErrors.containsKey(Field.DEPRECIACION_HORA))
+        assertTrue(failure(sinDatosDeImpresora().copy(mantenimientoHoraManual = -1.0)).fieldErrors.containsKey(Field.MANTENIMIENTO_HORA))
     }
 
     @Test
@@ -908,6 +931,16 @@ class CostCalculatorTest {
         assertTrue(f.fieldErrors.containsKey(Field.TARIFA_HORA))
         assertEquals(success(sinDatosDeImpresora()).total, success(sinDatosDeImpresora().copy(tarifaHora = null)).total, 1e-9)
         assertEquals(success(sinDatosDeImpresora()).total, success(sinDatosDeImpresora().copy(tarifaHora = 0.0)).total, 1e-9)
+    }
+
+    @Test
+    fun laElectricidadSigueElPrecioDelKwhYLosWattsEditados() {
+        // 350 W x 5 h x 250 = 437,5 (el ejemplo de una tarifa que sube): un solo parámetro la actualiza.
+        val a = success(sinDatosDeImpresora().copy(watts = 350.0, precioKwh = 250.0))
+        assertEquals(437.5, a.electricidad, 1e-9)
+        val b = success(sinDatosDeImpresora().copy(watts = 350.0, precioKwh = 300.0, tarifaHora = 1500.0))
+        assertEquals(525.0, b.electricidad, 1e-9)
+        assertEquals(2000.0 + 525.0 + 7500.0, b.total, 1e-9)
     }
 
     @Test
@@ -929,8 +962,8 @@ class CostCalculatorTest {
         val t = PorCantidad.tabla(i)
         assertEquals(1, t.count { it.unidades == 10.0 })
         val f25 = t.first { it.unidades == 25.0 }
-        // (2889,99 + 7500) / 25 + 500 por unidad de otros costos
-        assertEquals((2889.99 + 7500.0) / 25.0 + 500.0, f25.costoUnitario, 1e-9)
+        // (material 2000 + electricidad 150 + cobro 7500) / 25 + 500 por unidad de otros costos
+        assertEquals((2000.0 + 150.0 + 7500.0) / 25.0 + 500.0, f25.costoUnitario, 1e-9)
         assertEquals(f25.costoUnitario * 1.3, f25.precioVenta!!, 1e-9)
         assertEquals(f25.precioVenta!! * 1.19, f25.precioConIva!!, 1e-9)
         assertEquals(success(i).unitario, t.first { it.esActual }.costoUnitario, 1e-9)
@@ -950,7 +983,8 @@ class CostCalculatorTest {
         val i = sinDatosDeImpresora().copy(tarifaHora = 1500.0)
         val b = success(i)
         val t = Compartir.texto(b, i, null, "PLA", null, "10:00:00")
-        assertTrue(t, t.contains("Cobro por hora de impresión (5 h x " + CostCalculator.formatClp(1500.0) + ")"))
+        assertTrue(t, t.contains("Cobro por hora de impresión (5 h x " + CostCalculator.formatClp(1500.0) + ", incluye depreciación y mantenimiento)"))
+        assertFalse(t, t.contains("Depreciación de la impresora"))
         assertTrue(t, t.contains(CostCalculator.formatClp(7500.0)))
         assertTrue(Resumen.entradas(i, null, "PLA").contains("cobro " + CostCalculator.formatClp(1500.0) + "/h de impresión"))
     }

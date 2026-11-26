@@ -233,12 +233,30 @@ expect_contains "calculado con incluye otros costos" "$(get tv_calculado_con)" "
 fill et_otros ""
 expect_digits "total sin otros costos" "$(get tv_total)" 2857
 
-echo "== Cobro por hora de impresión (1.500 por hora, independiente del filamento)"
+echo "== Watts editables (propuestos por el material) y parámetros de la máquina"
+expect_digits "watts propuestos por el material PLA, visibles y editables" "$(get et_watts)" 95
+fill et_watts 200
+expect_digits "electricidad con 200 W editados (0,2 kW x 5 h x 247)" "$(get tv_electricidad)" 247
+fill et_watts 95
+expect_digits "electricidad con 95 W otra vez" "$(get tv_electricidad)" 117
+fill et_depreciacion_hora 200
+fill et_mantenimiento_hora 100
+expect_digits "depreciación editada (200 x 5 h)" "$(get tv_depreciacion)" 1000
+expect_digits "mantenimiento editado (100 x 5 h)" "$(get tv_mantenimiento)" 500
+expect_digits "total con depreciación y mantenimiento editados" "$(get tv_total)" 3617
+fill et_depreciacion_hora ""
+fill et_mantenimiento_hora ""
+expect_digits "total con los valores propuestos" "$(get tv_total)" 2857
+
+echo "== Cobro por hora todo incluido (1.500 por hora, reemplaza depreciación y mantenimiento)"
 fill et_tarifa_hora 1500
 expect_digits "cobro por hora: 1500 x 5 h" "$(get tv_cobro_horas)" 7500
-expect_digits "total con cobro por hora (2857 + 7500)" "$(get tv_total)" 10357
-expect_digits "unitario con cobro por hora (lote / 2)" "$(get tv_unitario)" 5179
-expect_digits "costo por hora con cobro (10357 / 5 h)" "$(get tv_por_hora)" 2071
+expect_digits "con tarifa no se cobra depreciación aparte" "$(get tv_depreciacion)" 0
+expect_digits "con tarifa no se cobra mantenimiento aparte" "$(get tv_mantenimiento)" 0
+expect_digits "electricidad sigue aparte con la tarifa" "$(get tv_electricidad)" 117
+expect_digits "total con tarifa (2000 + 117,3 + 7500)" "$(get tv_total)" 9617
+expect_digits "unitario con tarifa (lote / 2)" "$(get tv_unitario)" 4809
+expect_digits "costo por hora con tarifa (9617 / 5 h)" "$(get tv_por_hora)" 1923
 expect_contains "calculado con incluye el cobro por hora" "$(get tv_calculado_con)" "cobro"
 fill et_tarifa_hora ""
 expect_digits "total sin cobro por hora" "$(get tv_total)" 2857
@@ -556,11 +574,15 @@ pick sp_material "Elige el material"
 tap btn_calcular
 expect_contains "falta elegir material" "$(get tv_material_info)" "Elige un material"
 pick sp_material "PLA"
+fill et_tarifa_hora 1500
 tap btn_limpiar
 for id in et_nombre et_precio_kg et_gramos et_piezas et_horas et_minutos et_horas_trabajo et_otros \
           et_costo_hora_trabajo et_merma et_margen et_boleta_monto et_boleta_kwh; do
   expect_empty "$id tras LIMPIAR" "$(get $id)"
 done
+expect_digits "la tarifa por hora se recuerda tras LIMPIAR" "$(get et_tarifa_hora)" 1500
+fill et_tarifa_hora ""
+expect_digits "los watts del material se vuelven a proponer tras LIMPIAR" "$(get et_watts)" 95
 for id in tv_material tv_electricidad tv_depreciacion tv_mantenimiento tv_mano_obra tv_merma \
           tv_total tv_unitario tv_precio_venta tv_precio_iva tv_ganancia tv_ganancia_unit tv_venta_lote; do
   expect_empty "$id tras LIMPIAR" "$(get $id)"

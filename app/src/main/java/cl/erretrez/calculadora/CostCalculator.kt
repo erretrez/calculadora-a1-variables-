@@ -38,7 +38,11 @@ enum class Field(val optional: Boolean = false) {
     MINUTOS_GLOBAL,
 
     // v2.3: cobro por hora de impresión
-    TARIFA_HORA(true)
+    TARIFA_HORA(true),
+
+    // v2.5: parámetros de la máquina editables (vacío = valor propuesto)
+    DEPRECIACION_HORA(true),
+    MANTENIMIENTO_HORA(true)
 }
 
 /**
@@ -64,9 +68,13 @@ data class ParteDetalle(
     val material: Double,
     val electricidad: Double,
     val depreciacion: Double,
-    val mantenimiento: Double
+    val mantenimiento: Double,
+    /** Cobro por hora de esta pieza (tarifa x horas). Con tarifa activa reemplaza depreciación y mantenimiento. */
+    val cobroHoras: Double = 0.0,
+    /** Depreciación + mantenimiento reales de esta pieza (piso interno), aunque la tarifa los reemplace. */
+    val costoOperativo: Double = 0.0
 ) {
-    val subtotal: Double get() = material + electricidad + depreciacion + mantenimiento
+    val subtotal: Double get() = material + electricidad + depreciacion + mantenimiento + cobroHoras
 
     /** Porcentaje de un kilo de filamento que representan los gramos de esta pieza. */
     val pctKilo: Double get() = Perfiles.porcentajeDelKilo(gramos)
@@ -90,11 +98,17 @@ data class CostInputs(
     val horasTrabajo: Double? = null,
     val costoHoraTrabajo: Double? = null,
     /**
-     * Cobro por hora de impresión (v2.3): monto fijo por cada hora de máquina, independiente del filamento.
-     * Se multiplica por las horas totales de impresión y se suma al costo del lote (después, igual que la
-     * mano de obra, entra en el costo unitario, la unidad fallida, el margen y el IVA). Vacío = no aplica.
+     * Cobro por hora de impresión (v2.3, todo incluido desde la v2.5): precio de una hora de máquina, independiente
+     * del filamento. Se multiplica por las horas totales y REEMPLAZA la depreciación y el mantenimiento (no se
+     * cobran dos veces). La electricidad sigue aparte, con sus watts y su precio del kWh editables, porque sube
+     * por razones ajenas. Entra en el costo unitario, el margen y el IVA. Una unidad fallida se costea con el
+     * costo operativo real, no con la tarifa. Vacío o 0 = no aplica.
      */
     val tarifaHora: Double? = null,
+    /** Depreciación por hora de máquina (v2.5). null = precio de la impresora / vida útil. */
+    val depreciacionHora: Double? = null,
+    /** Mantenimiento por hora de máquina (v2.5). null = el valor propuesto de [mantenimientoPorHora]. */
+    val mantenimientoHoraManual: Double? = null,
     /**
      * Piezas fallidas (cantidad que se imprimió y se perdió). Cada una cuesta lo mismo que una pieza
      * buena, con material, electricidad, depreciación, mantenimiento y mano de obra; ese costo se suma
@@ -137,6 +151,12 @@ data class CostBreakdown(
     val manoObra: Double = 0.0,
     /** Cobro por hora de impresión: tarifa por hora x horas totales (v2.3). */
     val cobroHoras: Double = 0.0,
+    /** Depreciación + mantenimiento reales del lote (piso interno), aunque la tarifa los reemplace (v2.5). */
+    val costoOperativo: Double = 0.0,
+    /** Costo operativo por hora de máquina: (depreciación + mantenimiento + electricidad) / horas (v2.5). */
+    val costoOperativoPorHora: Double = 0.0,
+    /** Ingreso por hora de máquina: (venta del lote - material - electricidad - mano de obra - fallidas - otros) / horas. */
+    val gananciaPorHora: Double? = null,
     val merma: Double = 0.0,
     /** Precio de venta unitario sin IVA (costo unitario + margen). null si no se indicó margen. */
     val precioVenta: Double? = null,
@@ -407,14 +427,16 @@ object Compartir {
         l += Fila("Costos", estilo = Estilo.SECCION)
         l += Fila("Material", f(b.material))
         l += Fila("Electricidad", f(b.electricidad))
-        l += Fila("Depreciación de la impresora", f(b.depreciacion))
-        l += Fila("Mantenimiento", f(b.mantenimiento))
         if (b.cobroHoras > 0.0) {
+            // La tarifa reemplaza a la depreciación y al mantenimiento: no se muestran ni se cobran dos veces.
             l += Fila(
                 "Cobro por hora de impresión (" + Resumen.tiempo(b.horasTotales) + " x " +
-                    f(b.cobroHoras / b.horasTotales) + ")",
+                    f(b.cobroHoras / b.horasTotales) + ", incluye depreciación y mantenimiento)",
                 f(b.cobroHoras)
             )
+        } else {
+            l += Fila("Depreciación de la impresora", f(b.depreciacion))
+            l += Fila("Mantenimiento", f(b.mantenimiento))
         }
         if (b.manoObra > 0.0) l += Fila("Mano de obra", f(b.manoObra))
         if (b.merma > 0.0) {
@@ -433,6 +455,8 @@ object Compartir {
         l += Fila("Tiempo total de impresión del lote", Resumen.tiempo(b.horasTotales))
         b.costoPorGramo?.let { l += Fila("Costo por gramo de filamento", f(it)) }
         l += Fila("Costo por hora de impresión", f(b.costoPorHora))
+        l += Fila("Costo operativo por hora de máquina (piso interno)", f(b.costoOperativoPorHora))
+        b.gananciaPorHora?.let { l += Fila("Ingreso por hora de máquina (venta sin material, mano de obra ni otros)", f(it)) }
         val pv = b.precioVenta
         if (pv != null) {
             val pct = b.margenPct?.let { Suggested.plainRounded(it) + "% " } ?: ""
@@ -448,10 +472,14 @@ object Compartir {
             l += Fila("Precio por unidad según la cantidad del lote", estilo = Estilo.SECCION)
             tabla.forEach { l += Fila(PorCantidad.etiqueta(it), PorCantidad.valor(it)) }
         }
+        val dh = if (b.horasTotales > 0.0) b.costoOperativo / b.horasTotales else 0.0
         l += Fila(
-            "Incluye depreciación (impresora de " + f(Suggested.PRECIO_IMPRESORA) + ", " +
-                Suggested.grouped(Suggested.VIDA_UTIL_HORAS) + " h) y mantenimiento (" +
-                f(Suggested.MANTENIMIENTO_POR_HORA) + "/h). Valores en pesos chilenos.",
+            if (b.cobroHoras > 0.0) {
+                "El cobro por hora incluye la depreciación y el mantenimiento (costo operativo real de " +
+                    f(dh) + " por hora). La electricidad va aparte. Valores en pesos chilenos."
+            } else {
+                "Incluye depreciación y mantenimiento (" + f(dh) + " por hora entre ambos). Valores en pesos chilenos."
+            },
             estilo = Estilo.NOTA
         )
         return l
@@ -657,6 +685,8 @@ object CostCalculator {
         }
 
         optionalNonNegative(Field.TARIFA_HORA, i.tarifaHora)
+        optionalNonNegative(Field.DEPRECIACION_HORA, i.depreciacionHora)
+        optionalNonNegative(Field.MANTENIMIENTO_HORA, i.mantenimientoHoraManual)
         optionalNonNegative(Field.MERMA, i.piezasFallidas)
         optionalNonNegative(Field.MARGEN, i.margenPct)
         optionalNonNegative(Field.OTROS_PIEZA, i.otrosPorPieza)
@@ -678,13 +708,20 @@ object CostCalculator {
             } else {
                 (p.horas ?: 0.0) + (p.minutos ?: 0.0) / 60.0
             }
+            val depOp = (i.depreciacionHora ?: (i.precioImpresora!! / vida!!)) * h
+            val mantOp = (i.mantenimientoHoraManual ?: i.mantenimientoPorHora!!) * h
+            val tarifa = i.tarifaHora ?: 0.0
+            val conTarifa = tarifa > 0.0
             ParteDetalle(
                 gramos = p.gramos!!,
                 horas = h,
                 material = (p.precioKg!! / 1000.0) * p.gramos,
                 electricidad = (p.watts!! / 1000.0) * h * i.precioKwh!!,
-                depreciacion = (i.precioImpresora!! / vida!!) * h,
-                mantenimiento = i.mantenimientoPorHora!! * h
+                // Con tarifa por hora, ella reemplaza a la depreciación y al mantenimiento.
+                depreciacion = if (conTarifa) 0.0 else depOp,
+                mantenimiento = if (conTarifa) 0.0 else mantOp,
+                cobroHoras = if (conTarifa) tarifa * h else 0.0,
+                costoOperativo = depOp + mantOp
             )
         }
         // Cada pieza es una impresión completa (gramos y tiempo del laminador): el costo del lote es la suma de
@@ -695,16 +732,18 @@ object CostCalculator {
         val electricidad = detalle.sumOf { it.electricidad }
         val depreciacion = detalle.sumOf { it.depreciacion }
         val mantenimiento = detalle.sumOf { it.mantenimiento }
+        val costoOperativo = detalle.sumOf { it.costoOperativo }
         val base = material + electricidad + depreciacion + mantenimiento
 
         // Extras: sin datos valen 0 y el total es idéntico al cálculo base.
         val manoObra = (horasTrabajo ?: 0.0) * (costoHora ?: 0.0)
         // Pieza fallida = costo completo de una pieza (con mano de obra) x cantidad de fallidas.
         val fallidas = i.piezasFallidas ?: 0.0
-        // Cobro por hora: se factura sobre todas las horas de máquina del lote (las de las unidades fallidas
-        // quedan dentro de la unidad fallida, como la mano de obra).
-        val cobroHoras = (i.tarifaHora ?: 0.0) * horasTotales
-        val costoPiezaFallida = (base + manoObra + cobroHoras) / n
+        // Cobro por hora: tarifa x horas totales; reemplaza a la depreciación y al mantenimiento.
+        val cobroHoras = detalle.sumOf { it.cobroHoras }
+        // Una unidad fallida cuesta lo que realmente se perdió (material, electricidad, desgaste real y mano de
+        // obra), no la tarifa comercial. Sin tarifa es idéntico al costo completo de una unidad.
+        val costoPiezaFallida = (material + electricidad + costoOperativo + manoObra) / n
         val costoMerma = costoPiezaFallida * fallidas
 
         val otros = (i.otrosPorPieza ?: 0.0) * n
@@ -719,6 +758,10 @@ object CostCalculator {
         val precioVentaLote = if (precioVenta != null) precioVenta * n else null
         val costoPorGramo = if (gramosTotales > 0.0) total / gramosTotales else null
         val costoPorHora = total / horasTotales
+        val costoOperativoPorHora = (costoOperativo + electricidad) / horasTotales
+        val gananciaPorHora = precioVentaLote?.let {
+            (it - material - electricidad - manoObra - costoMerma - otros) / horasTotales
+        }
 
         val all = listOfNotNull(
             material, electricidad, depreciacion, mantenimiento, manoObra, cobroHoras, costoMerma,
@@ -739,6 +782,9 @@ object CostCalculator {
                 unitario = unitario,
                 manoObra = manoObra,
                 cobroHoras = cobroHoras,
+                costoOperativo = costoOperativo,
+                costoOperativoPorHora = costoOperativoPorHora,
+                gananciaPorHora = gananciaPorHora,
                 merma = costoMerma,
                 precioVenta = precioVenta,
                 precioConIva = precioConIva,

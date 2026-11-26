@@ -88,6 +88,7 @@ class MainActivity : Activity() {
     private lateinit var tvMaterialInfo: TextView
     private lateinit var llWattsOtro: View
     private var wattsAuto = false
+    private var materialAplicado: String? = null
 
     // Precio del kWh: región (tabla) y, solo si hace falta, precio manual / boleta
     private lateinit var spRegion: Spinner
@@ -132,6 +133,7 @@ class MainActivity : Activity() {
         val tiempoBox: View = bind("tiempo_box")
         val perfil: Spinner = bind("perfil")
         var wattsAuto = false
+        var materialAplicado: String? = null
         val cajas: List<EditText> get() = listOf(precio, gramos, horas, minutos, watts)
     }
 
@@ -252,6 +254,8 @@ class MainActivity : Activity() {
             Field.WATTS to findViewById<EditText>(R.id.et_watts),
             Field.PRECIO_KWH to findViewById<EditText>(R.id.et_precio_kwh),
             Field.TARIFA_HORA to findViewById<EditText>(R.id.et_tarifa_hora),
+            Field.DEPRECIACION_HORA to findViewById<EditText>(R.id.et_depreciacion_hora),
+            Field.MANTENIMIENTO_HORA to findViewById<EditText>(R.id.et_mantenimiento_hora),
             Field.HORAS_TRABAJO to findViewById<EditText>(R.id.et_horas_trabajo),
             Field.COSTO_HORA_TRABAJO to findViewById<EditText>(R.id.et_costo_hora_trabajo),
             Field.MERMA to findViewById<EditText>(R.id.et_merma),
@@ -363,6 +367,7 @@ class MainActivity : Activity() {
             }
         }
 
+        setupParametros()
         setupTiempoGlobal()
         setupPerfiles()
         setupMaterial()
@@ -419,6 +424,8 @@ class MainActivity : Activity() {
             watts = value(Field.WATTS),
             precioKwh = value(Field.PRECIO_KWH),
             tarifaHora = value(Field.TARIFA_HORA),
+            depreciacionHora = value(Field.DEPRECIACION_HORA),
+            mantenimientoHoraManual = value(Field.MANTENIMIENTO_HORA),
             horasTrabajo = value(Field.HORAS_TRABAJO),
             costoHoraTrabajo = value(Field.COSTO_HORA_TRABAJO),
             piezasFallidas = value(Field.MERMA),
@@ -740,9 +747,10 @@ class MainActivity : Activity() {
     private fun clearAll() {
         stopLocationSearch()
         suspendWatchers = true
-        inputs.values.forEach {
-            it.setText("")
-            it.error = null
+        inputs.entries.forEach { (campo, caja) ->
+            // La tarifa, la depreciación y el mantenimiento son parámetros que se recuerdan al limpiar.
+            if (campo !in PARAMETROS) caja.setText("")
+            caja.error = null
         }
         etBoletaMonto.setText("")
         etBoletaKwh.setText("")
@@ -866,9 +874,9 @@ class MainActivity : Activity() {
                 c.wattsAuto = false
             }
             watts != null -> {
-                c.wattsBox.visibility = View.GONE
-                val text = Suggested.plain(watts)
-                if (c.watts.text?.toString() != text) c.watts.setText(text)
+                c.wattsBox.visibility = View.VISIBLE
+                val cambioMaterial = c.materialAplicado != null && c.materialAplicado != m.nombre
+                if (c.watts.text.isNullOrEmpty() || cambioMaterial) c.watts.setText(Suggested.plain(watts))
                 c.wattsAuto = true
             }
             else -> {
@@ -877,6 +885,7 @@ class MainActivity : Activity() {
                 c.wattsAuto = false
             }
         }
+        c.materialAplicado = m?.nombre
         showCardInfo(c, error = false)
     }
 
@@ -890,6 +899,25 @@ class MainActivity : Activity() {
             else -> getString(R.string.material_info, Suggested.plain(watts), m.fuente)
         }
         c.info.setTextColor(themeColor(if (error) R.attr.cError else R.attr.cTextoSuave))
+    }
+
+    // ------------------------------------------------- parámetros de la máquina (v2.5)
+
+    /** Carga y guarda la tarifa, la depreciación y el mantenimiento: se recuerdan entre usos y al limpiar. */
+    private fun setupParametros() {
+        PARAMETROS.forEach { campo ->
+            val caja = inputs.getValue(campo)
+            val clave = "par_" + campo.name
+            val guardado = prefs.getString(clave, null)
+            if (!guardado.isNullOrEmpty() && caja.text.isNullOrEmpty()) caja.setText(guardado)
+            caja.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
+                override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
+                override fun afterTextChanged(s: Editable?) {
+                    prefs.edit().putString(clave, s?.toString().orEmpty()).apply()
+                }
+            })
+        }
     }
 
     // ------------------------------------------------- tiempo global (v2.2)
@@ -1175,9 +1203,10 @@ class MainActivity : Activity() {
                 wattsAuto = false
             }
             watts != null -> {
-                llWattsOtro.visibility = View.GONE
-                val text = Suggested.plain(watts)
-                if (field.text?.toString() != text) field.setText(text)
+                // Los watts del material son una propuesta: el campo queda visible para editarlo.
+                llWattsOtro.visibility = View.VISIBLE
+                val cambioMaterial = materialAplicado != null && materialAplicado != m.nombre
+                if (field.text.isNullOrEmpty() || cambioMaterial) field.setText(Suggested.plain(watts))
                 wattsAuto = true
             }
             else -> {
@@ -1186,6 +1215,7 @@ class MainActivity : Activity() {
                 wattsAuto = false
             }
         }
+        materialAplicado = m?.nombre
         showMaterialInfo(error = false)
         // Recordar la elección (solo materiales con watts propios; "Otro" y sin elegir no se guardan).
         prefs.edit().apply {
@@ -1555,6 +1585,8 @@ class MainActivity : Activity() {
         const val MAX_PIEZAS = 6
         const val KEY_REGION = "region"
         const val KEY_MATERIAL = "material"
+        /** Parámetros de la máquina que se recuerdan (clave de preferencias = "par_" + nombre del campo). */
+        val PARAMETROS = setOf(Field.TARIFA_HORA, Field.DEPRECIACION_HORA, Field.MANTENIMIENTO_HORA)
         const val KEY_TIEMPO_GLOBAL = "tiempo_global"
         const val KEY_PERFILES = "perfiles"
         const val KEY_PERFIL1 = "perfil_pieza1"

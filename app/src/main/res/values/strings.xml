@@ -87,10 +87,10 @@
     <string name="prompt_material">Material de impresión</string>
     <string name="material_placeholder">Elige el material</string>
     <string name="material_info_ninguno">Elige un material para usar el consumo promedio de la Bambu Lab A1 Combo con ese material.</string>
-    <string name="material_info">Consumo usado: %1$s W (%2$s). Referencial: un enchufe medidor da el dato exacto de tu equipo.</string>
+    <string name="material_info">Consumo propuesto: %1$s W (%2$s). Referencial y editable: un enchufe medidor da el dato exacto de tu equipo.</string>
     <string name="material_info_otro">Ingresa el consumo de tu impresora en watts.</string>
     <string name="material_falta">Elige un material (o "Otro" e ingresa los watts).</string>
-    <string name="lbl_watts">Consumo de la impresora (watts)</string>
+    <string name="lbl_watts">Consumo de la impresora (watts): propuesto según el material, puedes cambiarlo</string>
 
     <!-- Electricidad: región y tabla de precios -->
     <string name="lbl_region">Región (define el precio de la electricidad por kWh)</string>
@@ -179,12 +179,18 @@
     <string name="sub_detalle_piezas">Costo de cada pieza (impresión) del lote: material, electricidad, depreciación y mantenimiento</string>
     <string name="unidades_ayuda">Ingresa los gramos y el tiempo de la cama completa, tal como los entrega Bambu Studio. Las unidades solo reparten el costo entre las figuras (lote ÷ unidades): no lo multiplican.</string>
     <string name="max_piezas">Máximo %1$d piezas por producto.</string>
+    <!-- v2.5 -->
+    <string name="lbl_dep_hora">Depreciación por hora ($/h): vacío usa el valor propuesto (precio de la impresora / vida útil)</string>
+    <string name="hint_dep_hora">Propuesto: 98</string>
+    <string name="lbl_mant_hora">Mantenimiento por hora ($/h): vacío usa el valor propuesto</string>
+    <string name="hint_mant_hora">Propuesto: 50</string>
+    <string name="ayuda_parametros">Estos tres valores se recuerdan aunque limpies las casillas, para ajustarlos cuando suban los costos.</string>
     <!-- v2.4 -->
     <string name="res_por_cantidad">PRECIO POR UNIDAD SEGÚN LA CANTIDAD DEL LOTE (mismo trabajo, otro reparto; sirve para cotizar por tramos)</string>
     <!-- v2.3 -->
-    <string name="lbl_tarifa_hora">Cobro por hora de impresión ($ por hora, independiente del filamento)</string>
+    <string name="lbl_tarifa_hora">Cobro por hora de impresión ($ por hora, todo incluido, independiente del filamento)</string>
     <string name="hint_tarifa_hora">Por ejemplo 1500</string>
-    <string name="ayuda_tarifa_hora">Se multiplica por las horas totales de impresión y se suma al costo del lote, aparte del material y de la depreciación y el mantenimiento que ya se calculan.</string>
+    <string name="ayuda_tarifa_hora">Se multiplica por las horas totales y REEMPLAZA a la depreciación y al mantenimiento (no se cobran dos veces). La electricidad va aparte, con sus watts y su precio del kWh editables. Se recuerda al limpiar. Vacío = se usan depreciación y mantenimiento por hora.</string>
     <string name="res_cobro_horas">Cobro por hora de impresión</string>
     <!-- v2.2 -->
     <string name="sw_tiempo_global">Tiempo global (una sola hora para todas las piezas)</string>

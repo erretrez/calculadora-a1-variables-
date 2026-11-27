@@ -561,8 +561,21 @@ expect_digits "electricidad con 150/kWh (95 W x 5 h)" "$(get tv_electricidad)" 7
 fill et_boleta_kwh 0
 expect_contains "kWh 0 en boleta" "$(get tv_boleta_resultado)" "mayores que 0"
 shot pantalla_manual
+# Parámetros guardados: la app debe abrir con ellos (la v2.5 se cerraba al abrir si había alguno guardado).
+fill et_tarifa_hora 1500
+fill et_depreciacion_hora 120
+fill et_mantenimiento_hora 60
 adb shell am force-stop "$PKG"; sleep 2
 start_app
+expect_digits "la tarifa por hora se recuerda al reiniciar la app" "$(get et_tarifa_hora)" 1500
+expect_digits "la depreciación se recuerda al reiniciar la app" "$(get et_depreciacion_hora)" 120
+expect_digits "el mantenimiento se recuerda al reiniciar la app" "$(get et_mantenimiento_hora)" 60
+fill et_tarifa_hora ""
+fill et_depreciacion_hora ""
+fill et_mantenimiento_hora ""
+adb shell am force-stop "$PKG"; sleep 2
+start_app
+expect_empty "tarifa vacía guardada al reiniciar" "$(get et_tarifa_hora)"
 expect_digits "el precio manual se recuerda al reiniciar" "$(get et_precio_kwh)" 150
 
 echo "== LIMPIAR: vacía los datos de la impresión y conserva la región"

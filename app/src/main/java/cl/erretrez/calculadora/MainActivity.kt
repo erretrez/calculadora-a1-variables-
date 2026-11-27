@@ -909,7 +909,12 @@ class MainActivity : Activity() {
             val caja = inputs.getValue(campo)
             val clave = "par_" + campo.name
             val guardado = prefs.getString(clave, null)
-            if (!guardado.isNullOrEmpty() && caja.text.isNullOrEmpty()) caja.setText(guardado)
+            if (!guardado.isNullOrEmpty() && caja.text.isNullOrEmpty()) {
+                // Sin recalcular: aún no existen todas las vistas (recalcular aquí cerraba la app al abrir).
+                suspendWatchers = true
+                caja.setText(guardado)
+                suspendWatchers = false
+            }
             caja.addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
                 override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}

@@ -11,8 +11,8 @@ android {
         applicationId = "cl.erretrez.calculadora"
         minSdk = 24
         targetSdk = 34
-        versionCode = 16
-        versionName = "2.5"
+        versionCode = 17
+        versionName = "2.5.1"
     }
 
     buildTypes {

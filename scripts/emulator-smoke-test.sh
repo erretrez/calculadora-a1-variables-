@@ -575,7 +575,8 @@ fill et_depreciacion_hora ""
 fill et_mantenimiento_hora ""
 adb shell am force-stop "$PKG"; sleep 2
 start_app
-expect_empty "tarifa vacía guardada al reiniciar" "$(get et_tarifa_hora)"
+# Un campo vacío muestra su pista ("Por ejemplo 1500") en lugar de texto.
+expect_contains "tarifa vacía guardada al reiniciar" "$(get et_tarifa_hora)" "Por ejemplo"
 expect_digits "el precio manual se recuerda al reiniciar" "$(get et_precio_kwh)" 150
 
 echo "== LIMPIAR: vacía los datos de la impresión y conserva la región"

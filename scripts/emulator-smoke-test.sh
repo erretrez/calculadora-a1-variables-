@@ -66,7 +66,7 @@ get()  { $H get "$1" "${2:-text}" || fail "no se pudo leer $1"; }
 
 start_app() {
   adb logcat -c
-  adb shell am start -W -n "$ACT" | tee "$OUT/start.txt"
+  adb shell am start -W -n "$ACT" --ez sin_animacion true | tee "$OUT/start.txt"
   grep -q "Status: ok" "$OUT/start.txt" || fail "am start no devolvió Status: ok"
   sleep 4
   adb shell pidof "$PKG" > /dev/null || fail "el proceso de la app no está en ejecución"
@@ -618,6 +618,29 @@ tap btn_subir
 sleep 1
 $H visible sw_oscuro || fail "btn_subir no volvió al inicio"
 echo "OK: botón subir"
+
+echo "== Botón bajar al final"
+tap btn_bajar
+sleep 1
+if $H visible sw_oscuro; then fail "btn_bajar no bajó al final"; fi
+echo "OK: botón bajar"
+tap btn_subir
+sleep 1
+
+echo "== Animación de inicio (arranque en frío sin saltarla)"
+adb shell am force-stop "$PKG"
+adb logcat -c
+adb shell am start -W -n "$ACT" | tee "$OUT/start_splash.txt"
+grep -q "Status: ok" "$OUT/start_splash.txt" || fail "arranque con animación sin Status: ok"
+sleep 1
+adb shell uiautomator dump /sdcard/ui_splash.xml > /dev/null
+adb pull /sdcard/ui_splash.xml "$OUT/ui_splash.xml" > /dev/null
+shot animacion_inicio
+sleep 5
+adb shell pidof "$PKG" > /dev/null || fail "la app se cerró durante la animación"
+if adb logcat -d | grep -q "FATAL EXCEPTION"; then fail "excepción fatal durante la animación"; fi
+$H visible sw_oscuro || fail "tras la animación la calculadora no quedó usable"
+echo "OK: la animación termina y la calculadora queda usable"
 
 echo "== Detección de región con ubicación simulada (Santiago)"
 adb shell pm grant "$PKG" android.permission.ACCESS_FINE_LOCATION || true

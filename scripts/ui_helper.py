@@ -39,7 +39,7 @@ ORDER = (
        "sp_region", "btn_detectar", "tv_region_info",
        "tv_region_ref", "btn_tabla", "et_precio_kwh", "et_boleta_monto", "et_boleta_kwh",
        "tv_boleta_resultado", "btn_usar_boleta", "et_tarifa_hora", "et_depreciacion_hora", "et_mantenimiento_hora", "et_horas_trabajo", "et_costo_hora_trabajo",
-       "et_merma", "et_otros", "et_margen", "cb_iva", "btn_calcular", "btn_limpiar", "tv_status",
+       "et_merma", "et_otros", "et_margen", "cb_iva", "btn_calcular", "btn_limpiar", "btn_subir", "btn_bajar", "tv_status",
        "tv_material", "tv_electricidad", "tv_depreciacion", "tv_mantenimiento", "tv_cobro_horas", "tv_mano_obra",
        "tv_merma", "tv_otros", "tv_total", "tv_unitario", "tv_por_gramo", "tv_gramos_total", "tv_pct_kilo", "tv_horas_total", "tv_por_hora", "tv_por_cantidad", "tv_perfiles_estado", "btn_registrar_consumo",
        "tv_calculado_con", "tv_cuadra", "tv_fijos", "tv_venta_ayuda", "tv_ganancia_unit",

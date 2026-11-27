@@ -42,6 +42,7 @@
     <string name="btn_calcular">CALCULAR</string>
     <string name="btn_limpiar">LIMPIAR</string>
     <string name="desc_subir">Subir al inicio de la calculadora</string>
+    <string name="desc_bajar">Bajar al final de la calculadora</string>
     <string name="btn_calculado">✓ CALCULADO</string>
     <string name="est_corto">est.</string>
     <string name="btn_usar">USAR</string>

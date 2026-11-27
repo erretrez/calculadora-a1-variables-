@@ -386,6 +386,50 @@ class MainActivity : Activity() {
         }
         findViewById<Button>(R.id.btn_limpiar).setOnClickListener { clearAll() }
         findViewById<Button>(R.id.btn_subir).setOnClickListener { svPrincipal.smoothScrollTo(0, 0) }
+        findViewById<Button>(R.id.btn_bajar).setOnClickListener {
+            svPrincipal.smoothScrollTo(0, svPrincipal.getChildAt(0).height)
+        }
+
+        if (savedInstanceState == null && !intent.getBooleanExtra(EXTRA_SIN_ANIMACION, false)) mostrarSplash()
+    }
+
+    /** Animación de bienvenida (solo al abrir la app en frío): engranaje y serpiente giran en sentidos opuestos y el nombre aparece con rebote. */
+    private fun mostrarSplash() {
+        val escala = try {
+            android.provider.Settings.Global.getFloat(contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        } catch (e: Exception) { 1f }
+        if (escala == 0f) return
+        val dp = resources.displayMetrics.density
+        val lado = (260 * dp).toInt()
+        val overlay = android.widget.FrameLayout(this)
+        overlay.setBackgroundColor(0xFF0B1220.toInt())
+        overlay.isClickable = true
+        fun capa(recurso: Int): android.widget.ImageView {
+            val iv = android.widget.ImageView(this)
+            iv.setImageResource(recurso)
+            overlay.addView(iv, android.widget.FrameLayout.LayoutParams(lado, lado, Gravity.CENTER))
+            return iv
+        }
+        val engranaje = capa(R.drawable.splash_engranaje)
+        val serpiente = capa(R.drawable.splash_serpiente)
+        val nombre = capa(R.drawable.splash_nombre)
+        engranaje.alpha = 0f; engranaje.scaleX = 0.5f; engranaje.scaleY = 0.5f; engranaje.rotation = -150f
+        serpiente.alpha = 0f; serpiente.scaleX = 0.5f; serpiente.scaleY = 0.5f; serpiente.rotation = 330f
+        nombre.alpha = 0f; nombre.scaleX = 0.3f; nombre.scaleY = 0.3f
+        addContentView(overlay, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+
+        val salir = Runnable {
+            overlay.animate().alpha(0f).setDuration(350).withEndAction {
+                (overlay.parent as? ViewGroup)?.removeView(overlay)
+            }.start()
+        }
+        overlay.setOnClickListener { overlay.removeCallbacks(salir); salir.run() }
+        val dec = android.view.animation.DecelerateInterpolator(1.6f)
+        engranaje.animate().alpha(1f).scaleX(1f).scaleY(1f).rotation(0f).setDuration(1100).setInterpolator(dec).start()
+        serpiente.animate().alpha(1f).scaleX(1f).scaleY(1f).rotation(0f).setStartDelay(150).setDuration(1100).setInterpolator(dec).start()
+        nombre.animate().alpha(1f).scaleX(1f).scaleY(1f).setStartDelay(700).setDuration(600)
+            .setInterpolator(android.view.animation.OvershootInterpolator(2.2f)).start()
+        overlay.postDelayed(salir, 2200)
     }
 
     override fun onResume() {
@@ -1577,6 +1621,7 @@ class MainActivity : Activity() {
     }
 
     private companion object {
+        const val EXTRA_SIN_ANIMACION = "sin_animacion"
         const val REQ_LOCATION = 1001
         const val REQ_STORAGE = 1002
         const val ACCION_GUARDAR = 1

@@ -851,6 +851,20 @@
     android:padding="0dp"
     android:text="↑"
     android:textSize="22sp" />
+
+<!-- Acceso rápido para ir al final (totales y botones de salida) -->
+<Button
+    android:id="@+id/btn_bajar"
+    style="@style/BotonRapido"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:layout_gravity="bottom|end"
+    android:layout_marginEnd="72dp"
+    android:layout_marginBottom="12dp"
+    android:contentDescription="@string/desc_bajar"
+    android:padding="0dp"
+    android:text="↓"
+    android:textSize="22sp" />
 </FrameLayout>
 
     <!-- Barra fija: el total siempre a la vista mientras se editan los datos -->

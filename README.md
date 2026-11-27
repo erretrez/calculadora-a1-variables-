@@ -183,3 +183,10 @@ Cada *pieza* es una **impresión completa (una cama)**, con los gramos y las hor
 
 Bajo los resultados, **Precio por unidad según la cantidad del lote** muestra el costo (y la venta con margen e IVA, si los pediste) para 5, 10, 25, 50 y 100 unidades, además de la cantidad actual. Es el mismo trabajo con otro reparto: el costo del lote no cambia, y lo que depende de la cantidad (otros costos por unidad) se recalcula. Sirve para cotizar por tramos cuando todavía no se sabe el tamaño del lote. También va en el texto y la imagen que se comparten.
 
+
+## v2.6 – Logo, ícono circular y animación de inicio
+
+- Logo rediseñado (engranaje + ouroboros + nombre ERRETREZ, con el rótulo completo dentro del engranaje), generado con `python3 scripts/generar_logo.py`.
+- Ícono circular (adaptativo + `roundIcon` + PNG clásicos) con fondo transparente.
+- Animación de bienvenida al abrir en frío: el engranaje y la serpiente giran en sentidos opuestos y el nombre aparece con rebote (~2 s). Se salta tocando la pantalla y se omite si las animaciones del sistema están desactivadas.
+- Nuevo botón ↓ junto al ↑ para bajar al final de la calculadora.
